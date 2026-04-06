@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Selenwright UI</title>
+    <meta
+      name="description"
+      content="Dense operator console for Selenwright sessions, artifacts, and browser inventory."
+    />
+    <script>
+      (function () {
+        var themeMode = localStorage.getItem("selenwright-ui.theme-mode") || "system";
+        var density = localStorage.getItem("selenwright-ui.density") || "compact";
+        var isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var resolvedTheme = themeMode === "system" ? (isDark ? "dark" : "light") : themeMode;
+        document.documentElement.dataset.themeMode = themeMode;
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.dataset.density = density;
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/styles/app.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

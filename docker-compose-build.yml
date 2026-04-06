@@ -1,0 +1,13 @@
+version: "3"
+services:
+  selenwright-ui:
+    build:
+      context: "."
+    ports:
+      - "4173:4173"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4173"
+      SELENWRIGHT_TARGET: "${SELENWRIGHT_TARGET:-http://host.docker.internal:4444}"

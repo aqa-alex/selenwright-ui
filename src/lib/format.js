@@ -1,0 +1,99 @@
+const statusLabels = {
+  completed: "Completed",
+  failed: "Failed",
+  pending: "Pending",
+  queued: "Queued",
+  running: "Running",
+  terminated: "Terminated",
+};
+
+export function formatDuration(milliseconds) {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
+export function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+
+  const units = ["B", "KB", "MB", "GB"];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** exponent;
+  return `${value.toFixed(value >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+}
+
+export function formatStatus(status) {
+  return statusLabels[status] || titleCase(status);
+}
+
+export function titleCase(value) {
+  return String(value)
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+export function formatDateTime(value, preferences) {
+  const date = new Date(value);
+  const useUtc = preferences.timezone === "utc";
+  const hour12 = preferences.timeFormat === "12h";
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12,
+    minute: "2-digit",
+    month: "short",
+    timeZone: useUtc ? "UTC" : undefined,
+  }).format(date);
+}
+
+export function formatDateTimeLong(value, preferences) {
+  const date = new Date(value);
+  const useUtc = preferences.timezone === "utc";
+  const hour12 = preferences.timeFormat === "12h";
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12,
+    minute: "2-digit",
+    month: "short",
+    second: "2-digit",
+    timeZone: useUtc ? "UTC" : undefined,
+    year: "numeric",
+  }).format(date);
+}
+
+export function timeAgo(value, now = Date.now()) {
+  const diff = Math.max(0, now - new Date(value).getTime());
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) {
+    return "just now";
+  }
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+export function compareValues(left, right) {
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right;
+  }
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+}
+
