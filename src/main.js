@@ -49,7 +49,8 @@ const state = {
     detailDisclosures: {},
     logFiles: {},
     logSearch: "",
-    logWrap: initialPreferences.logWrap,
+    logsPage: 1,
+    logsPerPage: 10,
     liveLogs: createInitialLiveLogState(),
     notice: "",
     quickJumpQuery: "",
@@ -208,6 +209,14 @@ function handleClick(event) {
         render();
       }
       break;
+    case "logs-next-page":
+      state.ui.logsPage = state.ui.logsPage + 1;
+      render();
+      break;
+    case "logs-prev-page":
+      state.ui.logsPage = Math.max(1, state.ui.logsPage - 1);
+      render();
+      break;
     case "select-artifact":
       state.ui.selectedArtifacts[page] = filename;
       render();
@@ -231,11 +240,6 @@ function handleClick(event) {
       savePreference("detailPanel", value);
       render();
       break;
-    case "set-log-wrap": {
-      const wrapEnabled = value === "wrap";
-      applyLogWrapPreference(wrapEnabled);
-      break;
-    }
     case "set-sort":
       state.filters.sort = sort;
       render();
@@ -309,8 +313,10 @@ function handleInput(event) {
       state.ui.logSearch = target.value;
       render();
       break;
-    case "log-wrap":
-      applyLogWrapPreference(target.checked);
+    case "logs-per-page":
+      state.ui.logsPerPage = parseInt(target.value, 10);
+      state.ui.logsPage = 1;
+      render();
       break;
     case "protocol-filter":
       state.filters.protocol = target.value;
@@ -596,38 +602,6 @@ function syncSegmentedSelection(action, selectedValue) {
     const isSelected = button.dataset.value === selectedValue;
     button.classList.toggle("selected", isSelected);
     button.setAttribute("aria-pressed", isSelected ? "true" : "false");
-  }
-}
-
-function applyLogWrapPreference(wrapEnabled) {
-  state.ui.logWrap = wrapEnabled;
-  state.preferences.logWrap = wrapEnabled;
-  savePreference("logWrap", wrapEnabled);
-  syncLogWrapControls(wrapEnabled);
-  syncLogViewerWrap(wrapEnabled);
-}
-
-function syncLogWrapControls(wrapEnabled) {
-  const inputs = document.querySelectorAll('[data-input="log-wrap"]');
-  for (const input of inputs) {
-    if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") {
-      continue;
-    }
-
-    input.checked = wrapEnabled;
-  }
-
-  syncSegmentedSelection("set-log-wrap", wrapEnabled ? "wrap" : "nowrap");
-}
-
-function syncLogViewerWrap(wrapEnabled) {
-  const viewers = document.querySelectorAll("[data-log-viewer]");
-  for (const viewer of viewers) {
-    if (!(viewer instanceof HTMLElement)) {
-      continue;
-    }
-
-    viewer.classList.toggle("wrap", wrapEnabled);
   }
 }
 

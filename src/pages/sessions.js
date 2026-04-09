@@ -414,10 +414,6 @@ function renderLiveLogPanel(state, session) {
           <strong>${session.id}</strong>
           <span>${escapeHtml(getLiveLogStatusText(liveState))}</span>
         </div>
-        <label class="toggle-chip">
-          <input ${state.ui.logWrap ? "checked" : ""} data-input="log-wrap" type="checkbox" />
-          <span>Wrap lines</span>
-        </label>
       </div>
       <div class="drawer-actions">
         <button class="button secondary" ${liveContent ? "" : "disabled"} data-action="copy-log-content" type="button">Copy block</button>
@@ -426,7 +422,7 @@ function renderLiveLogPanel(state, session) {
       </div>
       ${liveState?.error ? `<div class="note-block log-note-error">${escapeHtml(liveState.error)}</div>` : ""}
       ${!liveContent ? `<p class="hint-text">${escapeHtml(getLiveLogEmptyText(liveState))}</p>` : ""}
-      <pre class="code-block log-viewer ${state.ui.logWrap ? "wrap" : ""}" data-live-log-viewer="${escapeAttribute(session.id)}" data-log-viewer id="log-viewer-content">${escapeHtml(liveContent)}</pre>
+      <pre class="code-block log-viewer wrap" data-live-log-viewer="${escapeAttribute(session.id)}" data-log-viewer id="log-viewer-content">${escapeHtml(liveContent)}</pre>
     </div>
   `;
 }
@@ -455,14 +451,7 @@ function renderSavedLogPanel(state, session) {
             value="${escapeHtml(state.ui.logSearch)}"
           />
         </label>
-        <div class="log-toolbar-status">
-          <strong>Saved file</strong>
-          <span>${escapeHtml(getSavedLogStatusText(logState))}</span>
-        </div>
-        <label class="toggle-chip">
-          <input ${state.ui.logWrap ? "checked" : ""} data-input="log-wrap" type="checkbox" />
-          <span>Wrap lines</span>
-        </label>
+        <div class="log-toolbar-spacer"></div>
       </div>
       <div class="drawer-actions">
         <button class="button secondary" ${hasContent ? "" : "disabled"} data-action="copy-log-content" data-filename="${escapeAttribute(filename)}" type="button">Copy block</button>
@@ -474,7 +463,7 @@ function renderSavedLogPanel(state, session) {
       ${logState.error ? `<div class="note-block log-note-error">${escapeHtml(logState.error)}</div>` : ""}
       ${
         hasContent
-          ? `<pre class="code-block log-viewer ${state.ui.logWrap ? "wrap" : ""}" data-log-viewer id="log-viewer-content">${escapeHtml(filteredContent)}</pre>`
+          ? `<pre class="code-block log-viewer wrap" data-log-viewer id="log-viewer-content">${escapeHtml(filteredContent)}</pre>`
           : `<p class="hint-text">${escapeHtml(getSavedLogEmptyText(logState, state.ui.logSearch))}</p>`
       }
     </div>
@@ -530,22 +519,6 @@ function filterLogContent(content, query) {
     .split("\n")
     .filter((line) => line.toLowerCase().includes(normalizedQuery))
     .join("\n");
-}
-
-function getSavedLogStatusText(logState) {
-  if (logState.loading) {
-    return "Loading on demand";
-  }
-
-  if (logState.error) {
-    return "Load failed";
-  }
-
-  if (logState.loaded) {
-    return "Loaded on demand";
-  }
-
-  return "Ready to load";
 }
 
 function getSavedLogEmptyText(logState, query) {

@@ -420,23 +420,27 @@ async function fetchArtifactHistorySettings() {
   return normalizeArtifactHistorySettings(payload);
 }
 
-function buildArtifactList(filenames, type) {
-  return filenames
-    .filter((filename) => typeof filename === "string" && filename.trim())
-    .map((filename) => {
-      const extension = type === "video" ? ".mp4" : ".log";
-      const sessionId = filename.endsWith(extension) ? filename.slice(0, -extension.length) : "unknown";
+function buildArtifactList(items, type) {
+  return items
+    .filter((item) => {
+      if (typeof item === "string") return item.trim();
+      return item && typeof item === "object" && item.filename;
+    })
+    .map((item) => {
+      const isObject = typeof item === "object";
+      const filename = isObject ? item.filename : item;
+      const sessionId = isObject ? item.sessionId : extractSessionIdFromFilename(filename, type);
       const base = {
-        browser: "unknown",
-        createdAt: new Date().toISOString(),
+        browser: isObject ? item.browser || "unknown" : "unknown",
+        createdAt: isObject ? item.createdAt : undefined,
         filename,
-        protocol: "unknown",
+        protocol: isObject ? item.protocol || "unknown" : "unknown",
         sessionId,
-        size: 0,
+        size: isObject ? Number(item.size) || 0 : 0,
       };
 
       if (type === "video") {
-        return { ...base, durationMs: 0 };
+        return { ...base, durationMs: isObject ? Number(item.durationMs) || 0 : 0 };
       }
 
       return {
@@ -447,6 +451,11 @@ function buildArtifactList(filenames, type) {
         liveStreamAvailable: false,
       };
     });
+}
+
+function extractSessionIdFromFilename(filename, type) {
+  const extension = type === "video" ? ".mp4" : ".log";
+  return filename.endsWith(extension) ? filename.slice(0, -extension.length) : "unknown";
 }
 
 function buildDownloadList(items) {
@@ -849,7 +858,7 @@ function buildSessionsFromStatus(browserTree, referenceTime = new Date().toISOSt
             protocol,
             protocolVersion: resolvedVersion,
             startedAt,
-            status: "running",
+            status: raw?.status,
           });
         }
       }

@@ -66,6 +66,11 @@ html[data-theme="dark"] {
   --shadow-subtle: none;
 }
 
+html[data-theme="dark"] .segmented-option.selected {
+  background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-panel));
+  color: var(--accent-primary);
+}
+
 html[data-density="comfortable"] {
   --panel-padding: 16px;
   --row-height: 60px;
@@ -582,6 +587,28 @@ a {
   color: var(--text-primary);
   height: 32px;
   padding: 0 10px;
+}
+
+.pagination-bar {
+  align-items: center;
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+}
+
+.pagination-controls {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 4ch;
+  text-align: center;
 }
 
 .toggle-chip {

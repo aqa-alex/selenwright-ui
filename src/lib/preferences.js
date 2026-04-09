@@ -7,7 +7,6 @@ const artifactPaneDefaults = {
 const defaults = {
   density: 'compact',
   detailPanel: 'collapsed',
-  logWrap: false,
   themeMode: 'system',
   timeFormat: '24h',
   timezone: 'local',
@@ -17,7 +16,6 @@ const defaults = {
 const storageKeys = {
   density: 'selenwright-ui.density',
   detailPanel: 'selenwright-ui.detail-panel',
-  logWrap: 'selenwright-ui.log-wrap',
   themeMode: 'selenwright-ui.theme-mode',
   timeFormat: 'selenwright-ui.time-format',
   timezone: 'selenwright-ui.timezone',
@@ -37,7 +35,6 @@ export function loadPreferences() {
     detailPanel: normalizeDetailPanel(
       localStorage.getItem(storageKeys.detailPanel),
     ),
-    logWrap: localStorage.getItem(storageKeys.logWrap) === 'true',
     themeMode: normalizeThemeMode(localStorage.getItem(storageKeys.themeMode)),
     timeFormat: normalizeTimeFormat(
       localStorage.getItem(storageKeys.timeFormat),

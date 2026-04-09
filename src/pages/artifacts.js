@@ -33,12 +33,21 @@ export function renderVideosPage(state) {
 
 export function renderLogsPage(state) {
   const filteredLogs = getFilteredArtifacts(state, state.data.logs);
+  const perPage = state.ui.logsPerPage;
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / perPage));
+  const currentPage = Math.min(state.ui.logsPage, totalPages);
+  const start = (currentPage - 1) * perPage;
+  const pageItems = filteredLogs.slice(start, start + perPage);
+
   return renderArtifactPage({
     columns: ['Filename', 'Session', 'Browser', 'Created', 'Size', 'Actions'],
     drawer: renderLogDrawer(state),
     emptyHint: getLogsEmptyHint(state, filteredLogs),
-    items: filteredLogs,
+    items: pageItems,
     pageKey: 'logs',
+    pagination: filteredLogs.length
+      ? renderLogsPagination(currentPage, totalPages, perPage)
+      : null,
     state,
     title: 'Logs',
   });
@@ -62,6 +71,7 @@ function renderArtifactPage({
   emptyHint,
   items,
   pageKey,
+  pagination = null,
   state,
   title,
 }) {
@@ -93,6 +103,7 @@ function renderArtifactPage({
                   </tbody>
                 </table>
               </div>
+              ${pagination ?? ''}
             `
             : renderEmptyState(`No ${title.toLowerCase()}`, emptyHint),
         )}
@@ -124,12 +135,13 @@ function renderArtifactRow(pageKey, item, state) {
     (candidate) => candidate.id === item.sessionId,
   );
   const safeFilename = escapeAttribute(item.filename);
+  const created = item.createdAt ? formatDateTime(item.createdAt, state.preferences) : '—';
 
   const sharedCells = `
     ${renderArtifactIdentityCell(item.filename)}
     ${renderArtifactIdentityCell(item.sessionId)}
     <td>${session ? titleCase(session.browser) : titleCase(item.browser)}</td>
-    <td>${formatDateTime(item.createdAt, state.preferences)}</td>
+    <td>${created}</td>
     <td class="mono">${formatBytes(item.size)}</td>
   `;
 
@@ -140,7 +152,7 @@ function renderArtifactRow(pageKey, item, state) {
         ${renderArtifactIdentityCell(item.sessionId)}
         <td>${session ? titleCase(session.browser) : titleCase(item.browser)}</td>
         <td>${titleCase(item.protocol)}</td>
-        <td>${formatDateTime(item.createdAt, state.preferences)}</td>
+        <td>${created}</td>
         <td class="mono">${formatBytes(item.size)}</td>
         ${renderArtifactActionCell(pageKey, safeFilename)}
       </tr>
@@ -178,6 +190,7 @@ function renderVideoDrawer(state) {
   const selected = state.data.videos.find(
     (item) => item.filename === state.ui.selectedArtifacts.videos,
   );
+  const created = selected?.createdAt ? formatDateTime(selected.createdAt, state.preferences) : '—';
 
   return renderPanel(
     'Preview',
@@ -191,7 +204,7 @@ function renderVideoDrawer(state) {
             ${renderKeyValue('Session', selected.sessionId)}
             ${renderKeyValue('Browser', titleCase(selected.browser))}
             ${renderKeyValue('Protocol', titleCase(selected.protocol))}
-            ${renderKeyValue('Created', formatDateTime(selected.createdAt, state.preferences))}
+            ${renderKeyValue('Created', created)}
             ${renderKeyValue('Duration', formatDuration(selected.durationMs))}
             ${renderKeyValue('Size', formatBytes(selected.size))}
           </div>
@@ -229,14 +242,7 @@ function renderLogDrawer(state) {
                 value="${escapeHtml(state.ui.logSearch)}"
               />
             </label>
-            <div class="log-toolbar-status">
-              <strong>Saved file</strong>
-              <span>${escapeHtml(getSavedLogStatusText(logState))}</span>
-            </div>
-            <label class="toggle-chip">
-              <input ${state.ui.logWrap ? 'checked' : ''} data-input="log-wrap" type="checkbox" />
-              <span>Wrap lines</span>
-            </label>
+            <div class="log-toolbar-spacer"></div>
           </div>
           <div class="drawer-actions">
             <button class="button secondary" ${hasContent ? '' : 'disabled'} data-action="copy-log-content" data-filename="${escapeAttribute(selected.filename)}" type="button">Copy block</button>
@@ -248,7 +254,7 @@ function renderLogDrawer(state) {
           ${logState.error ? `<div class="note-block log-note-error">${escapeHtml(logState.error)}</div>` : ''}
           ${
             hasContent
-              ? `<pre class="code-block log-viewer ${state.ui.logWrap ? 'wrap' : ''}" data-log-viewer id="log-viewer-content">${escapeHtml(filteredContent)}</pre>`
+              ? `<pre class="code-block log-viewer wrap" data-log-viewer id="log-viewer-content">${escapeHtml(filteredContent)}</pre>`
               : `<p class="hint-text">${escapeHtml(getSavedLogEmptyText(logState, state.ui.logSearch))}</p>`
           }
         `)
@@ -260,6 +266,7 @@ function renderDownloadDrawer(state) {
   const selected = state.data.downloads.find(
     (item) => item.filename === state.ui.selectedArtifacts.downloads,
   );
+  const created = selected?.createdAt ? formatDateTime(selected.createdAt, state.preferences) : '—';
 
   return renderPanel(
     'Details',
@@ -269,7 +276,7 @@ function renderDownloadDrawer(state) {
             ${renderKeyValue('File', selected.filename)}
             ${renderKeyValue('Session', selected.sessionId)}
             ${renderKeyValue('Browser', titleCase(selected.browser))}
-            ${renderKeyValue('Created', formatDateTime(selected.createdAt, state.preferences))}
+            ${renderKeyValue('Created', created)}
             ${renderKeyValue('Size', formatBytes(selected.size))}
             ${renderKeyValue('Type', selected.mimeType)}
           </div>
@@ -280,6 +287,25 @@ function renderDownloadDrawer(state) {
         `)
       : `<p class="hint-text">Select a file to inspect metadata.</p>`,
   );
+}
+
+function renderLogsPagination(currentPage, totalPages, perPage) {
+  const options = [10, 20, 50, 100];
+  return `
+    <div class="pagination-bar">
+      <label class="filter-select">
+        <span>Per page</span>
+        <select data-input="logs-per-page">
+          ${options.map((n) => `<option ${perPage === n ? 'selected' : ''} value="${n}">${n}</option>`).join('')}
+        </select>
+      </label>
+      <div class="pagination-controls">
+        <button class="button secondary" data-action="logs-prev-page" type="button"${currentPage <= 1 ? ' disabled' : ''}>Prev</button>
+        <span class="pagination-info">${currentPage} / ${totalPages}</span>
+        <button class="button secondary" data-action="logs-next-page" type="button"${currentPage >= totalPages ? ' disabled' : ''}>Next</button>
+      </div>
+    </div>
+  `;
 }
 
 function getFilteredArtifacts(state, items) {
@@ -341,22 +367,6 @@ function filterLogContent(content, query) {
     .split('\n')
     .filter((line) => line.toLowerCase().includes(normalizedQuery))
     .join('\n');
-}
-
-function getSavedLogStatusText(logState) {
-  if (logState.loading) {
-    return 'Loading on demand';
-  }
-
-  if (logState.error) {
-    return 'Load failed';
-  }
-
-  if (logState.loaded) {
-    return 'Loaded on demand';
-  }
-
-  return 'Ready to load';
 }
 
 function getSavedLogEmptyText(logState, query) {

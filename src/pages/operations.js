@@ -184,13 +184,6 @@ export function renderSettingsPage(state) {
         `
           <div class="settings-grid">
             <div>
-              <h3>Log wrapping</h3>
-              ${renderSegmentedButtons("set-log-wrap", state.ui.logWrap ? "wrap" : "nowrap", [
-                { value: "nowrap", label: "No wrap" },
-                { value: "wrap", label: "Wrap" },
-              ])}
-            </div>
-            <div>
               <h3>Detail panels</h3>
               ${renderSegmentedButtons("set-detail-panel", state.preferences.detailPanel, [
                 { value: "collapsed", label: "Collapsed" },
