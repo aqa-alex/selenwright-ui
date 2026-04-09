@@ -62,4 +62,3 @@ export function parseRoute(pathname) {
   }
   return { name: "not-found" };
 }
-
