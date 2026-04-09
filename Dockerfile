@@ -18,10 +18,12 @@ RUN if [ -f package-lock.json ]; then \
 COPY index.html ./
 COPY server.mjs ./
 COPY src ./src
+COPY vnc.html ./
+COPY vendor ./vendor
 
 EXPOSE 4173
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "fetch(`http://127.0.0.1:${process.env.PORT || 4173}/api/meta`).then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"
+  CMD ["node", "-e", "const p=process.env.PORT||4173;fetch('http://127.0.0.1:'+p+'/api/meta').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
 
 ENTRYPOINT ["node", "server.mjs"]

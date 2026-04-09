@@ -16,6 +16,8 @@ By default it will try a lightweight proxy connection to `http://localhost:4444`
 SELENWRIGHT_TARGET=http://localhost:4444 npm run dev
 ```
 
+The local server also proxies `/api/vnc/<session-id>` as a WebSocket endpoint so the bundled noVNC viewer in `vnc.html` can watch live sessions with `vnc: true`.
+
 If the target is unavailable, the UI falls back to an embedded demo dataset so layout and navigation remain fully usable.
 
 ## Docker
@@ -78,4 +80,3 @@ Required GitHub secrets for image publishing:
 - `server.mjs` serves the static app and proxies lightweight API requests.
 - `src/` contains the console UI, data adapters, renderers, and pages.
 - `codex-skills/` contains project-local skill definitions for future agent work.
-

@@ -97,6 +97,12 @@ button {
   cursor: pointer;
 }
 
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -267,6 +273,10 @@ a {
   padding: 2px;
 }
 
+.segmented-control.is-disabled {
+  background: var(--bg-subtle);
+}
+
 .segmented-option {
   background: transparent;
   border: 0;
@@ -279,6 +289,16 @@ a {
 .segmented-option.selected {
   background: var(--bg-subtle);
   color: var(--text-primary);
+  font-weight: 500;
+}
+
+.segmented-option:disabled {
+  color: var(--text-muted);
+}
+
+.segmented-option.selected:disabled {
+  background: color-mix(in srgb, var(--text-muted) 10%, var(--bg-subtle));
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -306,6 +326,16 @@ a {
   background: var(--accent-primary);
   border-color: var(--accent-primary);
   color: white;
+}
+
+.button:disabled,
+.button.secondary:disabled,
+.ghost-button:disabled,
+.sort-button:disabled {
+  background: var(--bg-subtle);
+  border-color: var(--border-default);
+  box-shadow: none;
+  color: var(--text-muted);
 }
 
 .button.secondary:hover,
@@ -418,6 +448,14 @@ a {
   max-width: 680px;
 }
 
+.page-empty-copy {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 28px;
+  margin: 0;
+}
+
 .page-intro-meta,
 .detail-header-actions,
 .panel-actions {
@@ -499,6 +537,11 @@ a {
   background: var(--bg-panel);
 }
 
+.search-field.is-disabled {
+  background: var(--bg-subtle);
+  border-color: var(--border-default);
+}
+
 .search-field:focus-within {
   background: var(--bg-panel);
   border-color: var(--focus-border-soft);
@@ -518,6 +561,10 @@ a {
 
 .search-field input:focus-visible {
   outline: none;
+}
+
+.search-field.is-disabled input {
+  color: var(--text-muted);
 }
 
 .filter-select {
@@ -567,9 +614,11 @@ a {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
+  height: 32px;
   line-height: 16px;
-  padding: 0 12px var(--space-2);
+  padding: 0 12px;
   text-align: left;
+  vertical-align: middle;
 }
 
 .data-table td {
@@ -832,12 +881,7 @@ a {
   align-items: center;
   display: flex;
   gap: var(--space-4);
-  justify-content: space-between;
   margin-bottom: var(--space-4);
-}
-
-.detail-header-copy {
-  color: var(--text-muted);
 }
 
 .detail-grid,
@@ -845,6 +889,10 @@ a {
 .two-column-layout {
   display: grid;
   gap: var(--space-4);
+}
+
+.detail-grid > * {
+  min-width: 0;
 }
 
 .detail-grid {
@@ -939,17 +987,18 @@ html.artifact-resize-active * {
 
 details {
   border-top: 1px solid var(--border-muted);
-  padding-top: var(--space-3);
+  padding-block: var(--space-3);
 }
 
 details:first-child {
   border-top: 0;
-  padding-top: 0;
 }
 
 summary {
+  align-items: center;
   color: var(--text-primary);
   cursor: pointer;
+  display: flex;
   font-weight: 500;
   list-style: none;
 }
@@ -961,17 +1010,22 @@ summary::-webkit-details-marker {
 .details-body {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
   padding-top: var(--space-3);
 }
 
 .log-preview-panel,
-.live-preview-placeholder,
 .drawer-media-placeholder,
 .note-block {
   background: var(--bg-subtle);
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  padding: var(--space-3);
+  padding: var(--panel-padding);
+}
+
+.log-preview-panel {
+  display: grid;
+  gap: var(--space-3);
 }
 
 .artifact-drawer-body {
@@ -982,13 +1036,35 @@ summary::-webkit-details-marker {
 
 .log-preview-header,
 .drawer-toolbar,
-.drawer-actions,
 .artifact-row,
 .copyable-row {
   align-items: center;
   display: flex;
   gap: var(--space-3);
   justify-content: space-between;
+}
+
+.log-preview-header,
+.drawer-toolbar,
+.drawer-actions {
+  flex-wrap: wrap;
+}
+
+.drawer-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-start;
+}
+
+.log-toolbar-status {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.log-toolbar-status span {
+  color: var(--text-muted);
 }
 
 .log-preview {
@@ -1002,6 +1078,19 @@ summary::-webkit-details-marker {
   overflow: auto;
   padding: var(--space-3);
   white-space: pre-wrap;
+}
+
+.log-preview-panel .log-viewer {
+  min-height: 220px;
+}
+
+.log-preview-panel .hint-text {
+  margin: 0;
+}
+
+.log-note-error {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .artifact-list {
@@ -1028,22 +1117,60 @@ summary::-webkit-details-marker {
 .key-value-list {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .key-value-list.compact .copyable-row {
   min-height: 32px;
 }
 
+.configuration-panel-empty {
+  color: var(--text-muted);
+}
+
 .copyable-row {
   background: var(--bg-subtle);
   border: 1px solid var(--border-default);
   border-radius: 8px;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 112px minmax(0, 1fr);
   min-height: 40px;
-  padding: 0 var(--space-3);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
 }
 
-.copyable-row span {
+.copyable-row__label {
+  align-self: center;
   color: var(--text-muted);
+}
+
+.copyable-row__content {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.copyable-row__value {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--control-radius);
+  color: var(--text-secondary);
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  user-select: text;
+  -webkit-user-select: text;
+  white-space: nowrap;
+}
+
+.copyable-row__copy {
+  flex: 0 0 auto;
 }
 
 .drawer-media-placeholder {
@@ -1051,8 +1178,7 @@ summary::-webkit-details-marker {
   gap: var(--space-3);
 }
 
-.video-poster,
-.live-preview-screen {
+.video-poster {
   align-items: center;
   background: var(--bg-panel);
   border: 1px dashed var(--border-default);
@@ -1062,6 +1188,169 @@ summary::-webkit-details-marker {
   font-family: var(--font-mono);
   justify-content: center;
   min-height: 160px;
+}
+
+.vnc-page {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 auto;
+  max-width: 1600px;
+  min-height: 100vh;
+  padding: var(--space-5);
+}
+
+.vnc-page__header {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.vnc-page__title {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.vnc-page__title h1,
+.vnc-page__title p {
+  margin: 0;
+}
+
+.vnc-page__title p {
+  color: var(--text-muted);
+}
+
+.vnc-toolbar,
+.vnc-toolbar__status,
+.vnc-footer {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.vnc-toolbar,
+.vnc-footer {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.vnc-toolbar__status {
+  min-width: 0;
+}
+
+.viewer-mode-toggle {
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--badge-radius);
+  color: var(--text-secondary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 500;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.viewer-mode-toggle:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-default));
+  color: var(--text-primary);
+}
+
+.viewer-mode-toggle[data-read-only="false"] {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  color: var(--accent-primary);
+}
+
+.viewer-mode-toggle .icon {
+  color: var(--text-muted);
+}
+
+.viewer-mode-toggle[data-read-only="false"] .icon {
+  color: currentColor;
+}
+
+.viewer-mode-toggle__icon--unlock {
+  display: none;
+}
+
+.viewer-mode-toggle[data-read-only="false"] .viewer-mode-toggle__icon--lock {
+  display: none;
+}
+
+.viewer-mode-toggle[data-read-only="false"] .viewer-mode-toggle__icon--unlock {
+  display: inline-flex;
+}
+
+.vnc-status-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.vnc-status-copy strong,
+.vnc-status-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vnc-status-copy span {
+  color: var(--text-muted);
+}
+
+.vnc-screen-shell {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: var(--space-2);
+}
+
+.vnc-screen {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-app) 72%, black 28%);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  display: flex;
+  height: max(420px, calc(100vh - 280px));
+  justify-content: center;
+  min-height: calc(100vh - 280px);
+  overflow: hidden;
+  width: 100%;
+}
+
+.vnc-screen canvas {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.vnc-endpoint {
+  color: var(--text-muted);
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.vnc-endpoint code {
+  color: var(--text-secondary);
+}
+
+.vnc-status[data-state="connected"] {
+  color: var(--success);
+}
+
+.vnc-status[data-state="error"],
+.vnc-status[data-state="disconnected"] {
+  color: var(--danger);
+}
+
+.vnc-status[data-state="connecting"] {
+  color: var(--accent-primary);
 }
 
 .code-block {
@@ -1112,11 +1401,40 @@ summary::-webkit-details-marker {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.settings-field {
+  align-content: start;
+  display: grid;
+  gap: var(--space-2);
+}
+
 .settings-grid h3 {
   font-size: 16px;
   font-weight: 600;
   line-height: 24px;
   margin: 0 0 var(--space-2);
+}
+
+.settings-field h3,
+.settings-field .hint-text {
+  margin: 0;
+}
+
+.settings-number-field {
+  max-width: 180px;
+}
+
+.settings-actions {
+  margin-top: 0;
+}
+
+.settings-status-stack {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.settings-status-callout {
+  margin: 0;
 }
 
 .empty-state {
@@ -1166,6 +1484,22 @@ summary::-webkit-details-marker {
   .settings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .vnc-page {
+    padding: var(--space-4);
+  }
+
+  .vnc-page__header,
+  .vnc-toolbar,
+  .vnc-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vnc-screen {
+    height: 420px;
+    min-height: 420px;
+  }
 }
 
 @media (max-width: 960px) {
@@ -1207,5 +1541,9 @@ summary::-webkit-details-marker {
 
   .overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .copyable-row {
+    grid-template-columns: 88px minmax(0, 1fr);
   }
 }

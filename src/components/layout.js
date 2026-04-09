@@ -116,6 +116,7 @@ export function renderSegmentedButtons(action, selectedValue, options) {
           (option) => `
             <button
               class="segmented-option ${selectedValue === option.value ? "selected" : ""}"
+              aria-pressed="${selectedValue === option.value ? "true" : "false"}"
               data-action="${action}"
               data-value="${option.value}"
               type="button"

@@ -32,11 +32,12 @@ export function renderVideosPage(state) {
 }
 
 export function renderLogsPage(state) {
+  const filteredLogs = getFilteredArtifacts(state, state.data.logs);
   return renderArtifactPage({
     columns: ['Filename', 'Session', 'Browser', 'Created', 'Size', 'Actions'],
     drawer: renderLogDrawer(state),
-    emptyHint: 'No logs match the current selection.',
-    items: getFilteredArtifacts(state, state.data.logs),
+    emptyHint: getLogsEmptyHint(state, filteredLogs),
+    items: filteredLogs,
     pageKey: 'logs',
     state,
     title: 'Logs',
@@ -208,11 +209,11 @@ function renderLogDrawer(state) {
   const selected = state.data.logs.find(
     (item) => item.filename === state.ui.selectedArtifacts.logs,
   );
-  const query = state.ui.logSearch.trim().toLowerCase();
-  const lines = selected ? selected.content.split('\n') : [];
-  const filteredContent = query
-    ? lines.filter((line) => line.toLowerCase().includes(query)).join('\n')
-    : selected?.content || '';
+  const logState = selected ? getSavedLogState(state, selected.filename) : null;
+  const filteredContent = selected
+    ? filterLogContent(logState.content, state.ui.logSearch)
+    : '';
+  const hasContent = Boolean(filteredContent);
 
   return renderPanel(
     'Log viewer',
@@ -228,17 +229,28 @@ function renderLogDrawer(state) {
                 value="${escapeHtml(state.ui.logSearch)}"
               />
             </label>
+            <div class="log-toolbar-status">
+              <strong>Saved file</strong>
+              <span>${escapeHtml(getSavedLogStatusText(logState))}</span>
+            </div>
             <label class="toggle-chip">
               <input ${state.ui.logWrap ? 'checked' : ''} data-input="log-wrap" type="checkbox" />
               <span>Wrap lines</span>
             </label>
           </div>
           <div class="drawer-actions">
-            <button class="button secondary" data-action="copy" data-copy="${escapeAttribute(selected.content)}" type="button">Copy block</button>
+            <button class="button secondary" ${hasContent ? '' : 'disabled'} data-action="copy-log-content" data-filename="${escapeAttribute(selected.filename)}" type="button">Copy block</button>
             <button class="button secondary" data-action="jump-log-end" type="button">Jump to end</button>
-            <button class="button secondary" type="button">Download</button>
+            ${logState.error ? `<button class="button secondary" data-action="retry-log-file" data-filename="${escapeAttribute(selected.filename)}" type="button">Retry</button>` : ''}
+            <a class="button secondary" download="${escapeAttribute(selected.filename)}" href="${buildLogDownloadHref(selected.filename)}">Download</a>
           </div>
-          <pre class="code-block log-viewer ${state.ui.logWrap ? 'wrap' : ''}" id="log-viewer-content">${escapeHtml(filteredContent)}</pre>
+          ${logState.loading ? `<div class="note-block">Loading ${escapeHtml(selected.filename)}…</div>` : ''}
+          ${logState.error ? `<div class="note-block log-note-error">${escapeHtml(logState.error)}</div>` : ''}
+          ${
+            hasContent
+              ? `<pre class="code-block log-viewer ${state.ui.logWrap ? 'wrap' : ''}" data-log-viewer id="log-viewer-content">${escapeHtml(filteredContent)}</pre>`
+              : `<p class="hint-text">${escapeHtml(getSavedLogEmptyText(logState, state.ui.logSearch))}</p>`
+          }
         `)
       : `<p class="hint-text">Select a log file to inspect it.</p>`,
   );
@@ -262,9 +274,8 @@ function renderDownloadDrawer(state) {
             ${renderKeyValue('Type', selected.mimeType)}
           </div>
           <div class="drawer-actions">
-            <button class="button secondary" type="button">Download</button>
+            <a class="button secondary" download="${escapeAttribute(selected.filename)}" href="${buildDownloadArtifactHref(selected)}">Download</a>
             <button class="button secondary" data-action="copy" data-copy="${selected.filename}" type="button">Copy filename</button>
-            <button class="button danger" type="button">Delete</button>
           </div>
         `)
       : `<p class="hint-text">Select a file to inspect metadata.</p>`,
@@ -280,6 +291,18 @@ function getFilteredArtifacts(state, items) {
   );
 }
 
+function getLogsEmptyHint(state, items) {
+  if (items.length) {
+    return 'No logs match the current selection.';
+  }
+
+  if (state.ui.artifactSessionFilter) {
+    return 'No saved logs have been persisted for this session yet.';
+  }
+
+  return 'No saved logs have been persisted yet.';
+}
+
 function renderKeyValue(label, value) {
   return `
     <div class="copyable-row">
@@ -291,6 +314,73 @@ function renderKeyValue(label, value) {
 
 function renderArtifactDrawerBody(content) {
   return `<div class="artifact-drawer-body">${content}</div>`;
+}
+
+function getSavedLogState(state, filename) {
+  const cached = state.ui.logFiles[filename];
+  if (cached) {
+    return cached;
+  }
+
+  const item = state.data.logs.find((entry) => entry.filename === filename);
+  return {
+    content: item?.content || '',
+    error: item?.contentError || '',
+    loaded: Boolean(item?.contentLoaded),
+    loading: false,
+  };
+}
+
+function filterLogContent(content, query) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return content;
+  }
+
+  return content
+    .split('\n')
+    .filter((line) => line.toLowerCase().includes(normalizedQuery))
+    .join('\n');
+}
+
+function getSavedLogStatusText(logState) {
+  if (logState.loading) {
+    return 'Loading on demand';
+  }
+
+  if (logState.error) {
+    return 'Load failed';
+  }
+
+  if (logState.loaded) {
+    return 'Loaded on demand';
+  }
+
+  return 'Ready to load';
+}
+
+function getSavedLogEmptyText(logState, query) {
+  if (logState.loading) {
+    return 'Waiting for log content.';
+  }
+
+  if (logState.error) {
+    return 'Log content is unavailable right now.';
+  }
+
+  if (query.trim()) {
+    return 'No lines match the current search.';
+  }
+
+  return logState.loaded ? 'This log file is empty.' : 'Open the file to load its content.';
+}
+
+function buildDownloadArtifactHref(item) {
+  return item?.downloadUrl || "#";
+}
+
+function buildLogDownloadHref(filename) {
+  return `/api/logs/file/${encodeURIComponent(filename)}`;
 }
 
 function escapeAttribute(value) {

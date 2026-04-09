@@ -1,7 +1,14 @@
 import { renderLayout } from "./components/layout.js";
-import { createMockDataset } from "./data/mock-data.js";
-import { loadConsoleData } from "./data/service.js";
-import { formatStatus } from "./lib/format.js";
+import {
+  subscribeToConsoleData,
+  createEmptyDataset,
+  loadConsoleData,
+  loadLogFileContent,
+  saveArtifactHistorySettings,
+  subscribeToLiveLogs,
+  terminateSession,
+} from "./data/service.js";
+import { formatDuration, formatStatus, timeAgo } from "./lib/format.js";
 import {
   applyDensity,
   applyPreferences,
@@ -18,7 +25,7 @@ import { getFilteredSessions, renderSessionDetailPage, renderSessionsPage } from
 
 const initialPreferences = loadPreferences();
 const state = {
-  data: createMockDataset(),
+  data: createEmptyDataset(),
   filters: {
     activeOnly: false,
     browser: "all",
@@ -31,8 +38,19 @@ const state = {
   route: parseRoute(window.location.pathname),
   ui: {
     artifactSessionFilter: "",
+    artifactHistory: {
+      dirty: false,
+      draftEnabled: false,
+      draftRetentionDays: "7",
+      error: "",
+      loaded: false,
+      saving: false,
+    },
+    detailDisclosures: {},
+    logFiles: {},
     logSearch: "",
     logWrap: initialPreferences.logWrap,
+    liveLogs: createInitialLiveLogState(),
     notice: "",
     quickJumpQuery: "",
     quickJumpResults: [],
@@ -42,6 +60,7 @@ const state = {
       videos: null,
     },
     selectedSessionId: null,
+    terminatingSessionId: "",
   },
 };
 
@@ -53,8 +72,13 @@ const artifactSplitterWidth = 8;
 const artifactMinIndexWidth = 420;
 const artifactMinDrawerWidth = 360;
 const artifactKeyboardStep = 24;
-
 let artifactResizeState = null;
+let consoleDataSubscription = null;
+let liveLogSubscription = null;
+let liveLogSubscriptionToken = 0;
+let liveLogRenderFrame = 0;
+let relativeTimeTimer = 0;
+let suppressDisclosureTracking = false;
 
 applyPreferences(state.preferences);
 bindGlobalEvents();
@@ -68,12 +92,20 @@ watchSystemTheme(() => {
 });
 
 async function bootstrap() {
-  state.data = await loadConsoleData();
+  await refreshData();
+  startConsoleDataSubscription();
+  startRelativeTimeTicker();
+}
+
+async function refreshData() {
+  state.data = mergeLogStateIntoDataset(await loadConsoleData());
+  syncArtifactHistoryState(state.data.settings.artifactHistory);
   render();
 }
 
 function bindGlobalEvents() {
   window.addEventListener("popstate", handleRouteChange);
+  window.addEventListener("pagehide", handlePageHide);
   window.addEventListener("selenwright:navigate", handleRouteChange);
   window.addEventListener("pointermove", handlePointerMove);
   window.addEventListener("pointerup", handlePointerUp);
@@ -84,6 +116,19 @@ function bindGlobalEvents() {
   document.addEventListener("input", handleInput);
   document.addEventListener("change", handleInput);
   document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("scroll", handleScroll, true);
+  document.addEventListener("toggle", handleToggle, true);
+}
+
+function handlePageHide() {
+  stopConsoleDataSubscription();
+  stopLiveLogSubscription();
+  if (liveLogRenderFrame) {
+    window.cancelAnimationFrame(liveLogRenderFrame);
+    liveLogRenderFrame = 0;
+  }
+  window.clearInterval(relativeTimeTimer);
+  relativeTimeTimer = 0;
 }
 
 function handleRouteChange() {
@@ -115,6 +160,9 @@ function handleClick(event) {
     case "copy":
       copyToClipboard(actionTarget.dataset.copy);
       break;
+    case "copy-log-content":
+      copyCurrentLogContent(filename);
+      break;
     case "clear-artifact-session-filter":
       state.ui.artifactSessionFilter = "";
       render();
@@ -130,14 +178,53 @@ function handleClick(event) {
     case "open-session":
       navigate(buildSessionPath(sessionId));
       break;
+    case "focus-session-logs": {
+      const logsPanel = document.getElementById("session-logs-panel");
+      if (logsPanel instanceof HTMLElement) {
+        logsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      break;
+    }
+    case "reconnect-live-log": {
+      const session = getSessionById(state.route.sessionId);
+      if (session?.artifacts.liveLogs) {
+        stopLiveLogSubscription();
+        state.ui.liveLogs = {
+          ...state.ui.liveLogs,
+          error: "",
+          message: "Connecting to live log stream.",
+          sessionId: session.id,
+          status: "connecting",
+        };
+        ensureLiveLogSubscription(session);
+        render();
+      }
+      break;
+    }
+    case "retry-log-file":
+      if (filename) {
+        delete state.ui.logFiles[filename];
+        void ensureLogFileLoaded(filename);
+        render();
+      }
+      break;
     case "select-artifact":
       state.ui.selectedArtifacts[page] = filename;
+      render();
+      break;
+    case "set-artifact-history-enabled":
+      state.ui.artifactHistory.draftEnabled = value === "enabled";
+      state.ui.artifactHistory.dirty = true;
+      state.ui.artifactHistory.error = "";
       render();
       break;
     case "set-density":
       state.preferences.density = value;
       applyDensity(value);
       render();
+      break;
+    case "save-artifact-history-settings":
+      void saveArtifactHistorySettingsFromUi();
       break;
     case "set-detail-panel":
       state.preferences.detailPanel = value;
@@ -146,10 +233,7 @@ function handleClick(event) {
       break;
     case "set-log-wrap": {
       const wrapEnabled = value === "wrap";
-      state.ui.logWrap = wrapEnabled;
-      state.preferences.logWrap = wrapEnabled;
-      savePreference("logWrap", wrapEnabled);
-      render();
+      applyLogWrapPreference(wrapEnabled);
       break;
     }
     case "set-sort":
@@ -159,7 +243,7 @@ function handleClick(event) {
     case "set-theme":
       state.preferences.themeMode = value;
       applyTheme(value);
-      render();
+      syncSegmentedSelection("set-theme", value);
       break;
     case "set-time-format":
       state.preferences.timeFormat = value;
@@ -171,9 +255,15 @@ function handleClick(event) {
       savePreference("timezone", value);
       render();
       break;
+    case "terminate-session":
+      if (sessionId) {
+        void terminateSessionFromUi(sessionId);
+      }
+      break;
     case "jump-log-end": {
-      const viewer = document.getElementById("log-viewer-content");
+      const viewer = getCurrentLogViewer();
       if (viewer) {
+        state.ui.liveLogs.autoScroll = true;
         viewer.scrollTop = viewer.scrollHeight;
       }
       break;
@@ -205,6 +295,12 @@ function handleInput(event) {
       state.filters.activeOnly = target.checked;
       render();
       break;
+    case "artifact-history-retention-days":
+      state.ui.artifactHistory.draftRetentionDays = target.value;
+      state.ui.artifactHistory.dirty = true;
+      state.ui.artifactHistory.error = "";
+      render();
+      break;
     case "browser-filter":
       state.filters.browser = target.value;
       render();
@@ -214,10 +310,7 @@ function handleInput(event) {
       render();
       break;
     case "log-wrap":
-      state.ui.logWrap = target.checked;
-      state.preferences.logWrap = target.checked;
-      savePreference("logWrap", target.checked);
-      render();
+      applyLogWrapPreference(target.checked);
       break;
     case "protocol-filter":
       state.filters.protocol = target.value;
@@ -238,6 +331,145 @@ function handleInput(event) {
     default:
       break;
   }
+}
+
+function syncArtifactHistoryState(settings) {
+  const nextSettings = settings || {
+    available: false,
+    enabled: false,
+    reason: "Artifact history settings unavailable",
+    retentionDays: 7,
+  };
+  const uiSettings = state.ui.artifactHistory;
+
+  if (!uiSettings.loaded || !uiSettings.dirty) {
+    uiSettings.draftEnabled = nextSettings.enabled;
+    uiSettings.draftRetentionDays = String(nextSettings.retentionDays);
+    uiSettings.loaded = true;
+    if (!uiSettings.saving) {
+      uiSettings.error = "";
+    }
+  }
+}
+
+async function saveArtifactHistorySettingsFromUi() {
+  const retentionInput = state.ui.artifactHistory.draftRetentionDays.trim();
+  if (!/^\d+$/.test(retentionInput)) {
+    state.ui.artifactHistory.error = "Retention days must be a whole number.";
+    render();
+    return;
+  }
+
+  const nextRetentionDays = Number.parseInt(retentionInput, 10);
+  if (nextRetentionDays < 1 || nextRetentionDays > 365) {
+    state.ui.artifactHistory.error = "Retention days must stay between 1 and 365.";
+    render();
+    return;
+  }
+
+  state.ui.artifactHistory.saving = true;
+  state.ui.artifactHistory.error = "";
+  render();
+
+  try {
+    await saveArtifactHistorySettings({
+      enabled: state.ui.artifactHistory.draftEnabled,
+      retentionDays: nextRetentionDays,
+    });
+    state.ui.artifactHistory.dirty = false;
+    await refreshData();
+    setNotice("Artifact history settings saved");
+  } catch (error) {
+    state.ui.artifactHistory.error =
+      error instanceof Error ? error.message : "Artifact history settings update failed";
+    render();
+  } finally {
+    state.ui.artifactHistory.saving = false;
+    render();
+  }
+}
+
+async function terminateSessionFromUi(sessionId) {
+  const session = getSessionById(sessionId);
+  if (!session || state.ui.terminatingSessionId === sessionId) {
+    return;
+  }
+
+  const confirmed =
+    typeof window.confirm === "function"
+      ? window.confirm(`Terminate session ${session.name}?`)
+      : true;
+
+  if (!confirmed) {
+    return;
+  }
+
+  state.ui.terminatingSessionId = sessionId;
+  render();
+
+  try {
+    await terminateSession(sessionId, session.protocol);
+
+    if (state.ui.liveLogs.sessionId === sessionId) {
+      stopLiveLogSubscription();
+    }
+
+    removeSessionFromCurrentDataset(sessionId);
+
+    if (state.route.name === "session-detail" && state.route.sessionId === sessionId) {
+      navigate("/sessions", { replace: true });
+    }
+
+    setNotice("Session terminated");
+    void refreshDataAfterTerminate();
+  } catch (error) {
+    setNotice(error instanceof Error ? error.message : "Session terminate failed");
+  } finally {
+    state.ui.terminatingSessionId = "";
+    render();
+  }
+}
+
+async function refreshDataAfterTerminate() {
+  try {
+    await refreshData();
+  } catch (error) {
+    setNotice(error instanceof Error ? error.message : "Session refresh failed");
+  }
+}
+
+function removeSessionFromCurrentDataset(sessionId) {
+  state.data = {
+    ...state.data,
+    sessions: state.data.sessions.filter((session) => session.id !== sessionId),
+  };
+}
+
+function handleToggle(event) {
+  if (suppressDisclosureTracking) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof HTMLDetailsElement)) {
+    return;
+  }
+
+  const disclosureId = target.dataset.persistId;
+  if (!disclosureId) {
+    return;
+  }
+
+  state.ui.detailDisclosures[disclosureId] = target.open;
+}
+
+function handleScroll(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !target.matches("[data-live-log-viewer]")) {
+    return;
+  }
+
+  state.ui.liveLogs.autoScroll = isViewerNearEnd(target);
 }
 
 function handleKeyDown(event) {
@@ -319,6 +551,7 @@ function handleKeyDown(event) {
 }
 
 function render(options = {}) {
+  reconcileLiveLogState();
   syncSelections();
   state.ui.quickJumpResults = buildQuickJumpResults();
 
@@ -328,8 +561,16 @@ function render(options = {}) {
   }
 
   const focusedTextInput = options.focusSelectedSession ? null : captureFocusedTextInput();
-  root.innerHTML = renderLayout(state, renderCurrentPage());
-  syncArtifactPaneLayout(root);
+  const logViewerSnapshot = options.focusSelectedSession ? null : captureLogViewerSnapshot();
+  suppressDisclosureTracking = true;
+
+  try {
+    root.innerHTML = renderLayout(state, renderCurrentPage());
+    syncArtifactPaneLayout(root);
+    restorePersistedDetails(root);
+  } finally {
+    suppressDisclosureTracking = false;
+  }
 
   if (options.focusSelectedSession) {
     const selectedRow = root.querySelector(".session-row.selected");
@@ -340,6 +581,54 @@ function render(options = {}) {
   }
 
   restoreFocusedTextInput(root, focusedTextInput);
+  restoreLogViewerSnapshot(root, logViewerSnapshot);
+  syncLogEffects(root);
+  syncRelativeTimeLabels(root);
+}
+
+function syncSegmentedSelection(action, selectedValue) {
+  const buttons = document.querySelectorAll(`[data-action="${action}"][data-value]`);
+  for (const button of buttons) {
+    if (!(button instanceof HTMLButtonElement)) {
+      continue;
+    }
+
+    const isSelected = button.dataset.value === selectedValue;
+    button.classList.toggle("selected", isSelected);
+    button.setAttribute("aria-pressed", isSelected ? "true" : "false");
+  }
+}
+
+function applyLogWrapPreference(wrapEnabled) {
+  state.ui.logWrap = wrapEnabled;
+  state.preferences.logWrap = wrapEnabled;
+  savePreference("logWrap", wrapEnabled);
+  syncLogWrapControls(wrapEnabled);
+  syncLogViewerWrap(wrapEnabled);
+}
+
+function syncLogWrapControls(wrapEnabled) {
+  const inputs = document.querySelectorAll('[data-input="log-wrap"]');
+  for (const input of inputs) {
+    if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") {
+      continue;
+    }
+
+    input.checked = wrapEnabled;
+  }
+
+  syncSegmentedSelection("set-log-wrap", wrapEnabled ? "wrap" : "nowrap");
+}
+
+function syncLogViewerWrap(wrapEnabled) {
+  const viewers = document.querySelectorAll("[data-log-viewer]");
+  for (const viewer of viewers) {
+    if (!(viewer instanceof HTMLElement)) {
+      continue;
+    }
+
+    viewer.classList.toggle("wrap", wrapEnabled);
+  }
 }
 
 function handlePointerDown(event) {
@@ -716,11 +1005,51 @@ function buildQuickJumpResults() {
 }
 
 async function copyToClipboard(value) {
+  const normalizedValue = String(value ?? "");
+
   try {
-    await navigator.clipboard.writeText(value);
-    setNotice("Copied to clipboard");
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(normalizedValue);
+      setNotice("Copied to clipboard");
+      return true;
+    }
   } catch {
-    setNotice("Clipboard write failed");
+    // Fall back to a selection-based copy path when clipboard APIs are unavailable.
+  }
+
+  if (copyUsingFallback(normalizedValue)) {
+    setNotice("Copied to clipboard");
+    return true;
+  }
+
+  setNotice("Clipboard write failed");
+  return false;
+}
+
+function copyUsingFallback(value) {
+  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const input = document.createElement("textarea");
+  input.setAttribute("aria-hidden", "true");
+  input.readOnly = true;
+  input.value = value;
+  input.style.left = "0";
+  input.style.opacity = "0";
+  input.style.pointerEvents = "none";
+  input.style.position = "fixed";
+  input.style.top = "0";
+
+  document.body.append(input);
+
+  try {
+    input.focus({ preventScroll: true });
+    input.select();
+    input.setSelectionRange(0, input.value.length);
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    input.remove();
+    activeElement?.focus({ preventScroll: true });
   }
 }
 
@@ -769,6 +1098,416 @@ function restoreFocusedTextInput(root, snapshot) {
   nextInput.focus({ preventScroll: true });
   nextInput.setSelectionRange(selectionStart, selectionEnd, snapshot.selectionDirection);
   nextInput.scrollLeft = snapshot.scrollLeft;
+}
+
+function restorePersistedDetails(root) {
+  const persistedDetails = root.querySelectorAll("details[data-persist-id]");
+  for (const detail of persistedDetails) {
+    if (!(detail instanceof HTMLDetailsElement)) {
+      continue;
+    }
+
+    const disclosureId = detail.dataset.persistId;
+    if (!disclosureId || !(disclosureId in state.ui.detailDisclosures)) {
+      continue;
+    }
+
+    detail.open = state.ui.detailDisclosures[disclosureId];
+  }
+}
+
+function createInitialLiveLogState() {
+  return {
+    autoScroll: true,
+    content: "",
+    error: "",
+    message: "Select a running session to stream logs.",
+    sessionId: "",
+    source: "none",
+    status: "idle",
+  };
+}
+
+function reconcileLiveLogState() {
+  const liveState = state.ui.liveLogs;
+  if (!liveState.sessionId) {
+    return;
+  }
+
+  const trackedSession = getSessionById(liveState.sessionId);
+  const routeSession =
+    state.route.name === "session-detail" ? getSessionById(state.route.sessionId) : null;
+
+  if (liveLogSubscription && (!trackedSession?.artifacts.liveLogs || routeSession?.id !== liveState.sessionId)) {
+    stopLiveLogSubscription();
+  }
+
+  if (!trackedSession || !trackedSession.artifacts.liveLogs) {
+    if (liveState.status !== "inactive") {
+      state.ui.liveLogs = {
+        ...liveState,
+        error: "",
+        message: "Session is no longer active.",
+        status: "inactive",
+      };
+    }
+  }
+}
+
+function mergeLogStateIntoDataset(dataset) {
+  for (const log of dataset.logs) {
+    const cached = state.ui.logFiles[log.filename];
+    if (!cached) {
+      continue;
+    }
+
+    log.content = cached.content;
+    log.contentError = cached.error;
+    log.contentLoaded = cached.loaded;
+  }
+
+  return dataset;
+}
+
+function syncLogEffects(root) {
+  void ensureSavedLogLoadedForCurrentRoute();
+
+  const liveSession = getSessionDetailLiveLogSession();
+  if (liveSession) {
+    ensureLiveLogSubscription(liveSession);
+    syncLiveLogViewerPosition(root);
+    return;
+  }
+
+  stopLiveLogSubscription();
+}
+
+function startConsoleDataSubscription() {
+  if (consoleDataSubscription) {
+    return;
+  }
+
+  try {
+    consoleDataSubscription = subscribeToConsoleData({
+      onDataset(nextDataset) {
+        state.data = mergeLogStateIntoDataset(nextDataset);
+        syncArtifactHistoryState(state.data.settings.artifactHistory);
+        render();
+      },
+    });
+  } catch {
+    consoleDataSubscription = null;
+  }
+}
+
+function stopConsoleDataSubscription() {
+  if (!consoleDataSubscription) {
+    return;
+  }
+
+  consoleDataSubscription.close();
+  consoleDataSubscription = null;
+}
+
+async function ensureSavedLogLoadedForCurrentRoute() {
+  const filename = getCurrentSavedLogFilename();
+  if (!filename) {
+    return;
+  }
+
+  await ensureLogFileLoaded(filename);
+}
+
+async function ensureLogFileLoaded(filename) {
+  const existing = getLogFileState(filename);
+  if (!filename || existing.loading || existing.loaded || existing.error) {
+    return;
+  }
+
+  state.ui.logFiles[filename] = {
+    content: existing.content,
+    error: "",
+    loaded: false,
+    loading: true,
+  };
+  render();
+
+  try {
+    const content = await loadLogFileContent(filename);
+    state.ui.logFiles[filename] = {
+      content,
+      error: "",
+      loaded: true,
+      loading: false,
+    };
+  } catch (error) {
+    state.ui.logFiles[filename] = {
+      content: existing.content,
+      error: error instanceof Error ? error.message : "Failed to load log file",
+      loaded: false,
+      loading: false,
+    };
+  }
+
+  render();
+}
+
+function ensureLiveLogSubscription(session) {
+  if (!session?.artifacts.liveLogs) {
+    return;
+  }
+
+  if (liveLogSubscription && state.ui.liveLogs.sessionId === session.id) {
+    return;
+  }
+
+  stopLiveLogSubscription();
+
+  state.ui.liveLogs = {
+    ...createInitialLiveLogState(),
+    autoScroll: state.ui.liveLogs.sessionId === session.id ? state.ui.liveLogs.autoScroll : true,
+    content: state.ui.liveLogs.sessionId === session.id ? state.ui.liveLogs.content : "",
+    message: "Connecting to live log stream.",
+    sessionId: session.id,
+    source: "live",
+    status: "connecting",
+  };
+
+  const token = ++liveLogSubscriptionToken;
+  liveLogSubscription = subscribeToLiveLogs(session.id, {
+    onChunk(chunk) {
+      if (token !== liveLogSubscriptionToken) {
+        return;
+      }
+
+      appendLiveLogChunk(session.id, chunk);
+    },
+    onError(error) {
+      if (token !== liveLogSubscriptionToken) {
+        return;
+      }
+
+      state.ui.liveLogs = {
+        ...state.ui.liveLogs,
+        error: error instanceof Error ? error.message : "Live log stream unavailable",
+      };
+      queueLiveLogRender();
+    },
+    onStatusChange(nextStatus) {
+      if (token !== liveLogSubscriptionToken) {
+        return;
+      }
+
+      state.ui.liveLogs = {
+        ...state.ui.liveLogs,
+        error:
+          nextStatus.status === "open" || nextStatus.status === "streaming"
+            ? ""
+            : state.ui.liveLogs.error,
+        message: nextStatus.message,
+        sessionId: session.id,
+        source: "live",
+        status: nextStatus.status,
+      };
+      render();
+    },
+  });
+}
+
+function stopLiveLogSubscription() {
+  if (!liveLogSubscription) {
+    return;
+  }
+
+  liveLogSubscriptionToken += 1;
+  const subscription = liveLogSubscription;
+  liveLogSubscription = null;
+  subscription.close();
+}
+
+function appendLiveLogChunk(sessionId, chunk) {
+  if (!chunk) {
+    return;
+  }
+
+  if (state.ui.liveLogs.sessionId !== sessionId) {
+    state.ui.liveLogs = {
+      ...createInitialLiveLogState(),
+      content: chunk,
+      message: "Streaming live log output.",
+      sessionId,
+      source: "live",
+      status: "streaming",
+    };
+  } else {
+    state.ui.liveLogs.content += chunk;
+    state.ui.liveLogs.error = "";
+    state.ui.liveLogs.status = "streaming";
+    state.ui.liveLogs.message = "Streaming live log output.";
+  }
+
+  queueLiveLogRender();
+}
+
+function queueLiveLogRender() {
+  if (liveLogRenderFrame) {
+    return;
+  }
+
+  liveLogRenderFrame = window.requestAnimationFrame(() => {
+    liveLogRenderFrame = 0;
+    render();
+  });
+}
+
+function getCurrentSavedLogFilename() {
+  if (state.route.name === "logs") {
+    return state.ui.selectedArtifacts.logs;
+  }
+
+  if (state.route.name !== "session-detail") {
+    return "";
+  }
+
+  const session = getSessionById(state.route.sessionId);
+  if (!session?.artifacts.savedLogs || session.artifacts.liveLogs) {
+    return "";
+  }
+
+  return session.metadata.logFilename || "";
+}
+
+function getSessionDetailLiveLogSession() {
+  if (state.route.name !== "session-detail") {
+    return null;
+  }
+
+  const session = getSessionById(state.route.sessionId);
+  return session?.artifacts.liveLogs ? session : null;
+}
+
+function getLogFileState(filename) {
+  return state.ui.logFiles[filename] || {
+    content: "",
+    error: "",
+    loaded: false,
+    loading: false,
+  };
+}
+
+function getSessionById(sessionId) {
+  return state.data.sessions.find((session) => session.id === sessionId) || null;
+}
+
+function copyCurrentLogContent(filename) {
+  const logContent = filename ? getLogFileState(filename).content : state.ui.liveLogs.content;
+  if (!logContent) {
+    setNotice("No log content available");
+    return;
+  }
+
+  void copyToClipboard(logContent);
+}
+
+function captureLogViewerSnapshot() {
+  const viewer = getCurrentLogViewer();
+  if (!(viewer instanceof HTMLElement)) {
+    return null;
+  }
+
+  return {
+    scrollLeft: viewer.scrollLeft,
+    scrollTop: viewer.scrollTop,
+  };
+}
+
+function restoreLogViewerSnapshot(root, snapshot) {
+  if (!snapshot) {
+    return;
+  }
+
+  const viewer = root.querySelector("[data-log-viewer]");
+  if (!(viewer instanceof HTMLElement)) {
+    return;
+  }
+
+  viewer.scrollLeft = snapshot.scrollLeft;
+  viewer.scrollTop = snapshot.scrollTop;
+}
+
+function syncLiveLogViewerPosition(root) {
+  if (!state.ui.liveLogs.autoScroll) {
+    return;
+  }
+
+  const viewer = root.querySelector("[data-live-log-viewer]");
+  if (!(viewer instanceof HTMLElement)) {
+    return;
+  }
+
+  viewer.scrollTop = viewer.scrollHeight;
+}
+
+function getCurrentLogViewer() {
+  return document.querySelector("[data-log-viewer]");
+}
+
+function startRelativeTimeTicker() {
+  if (relativeTimeTimer) {
+    return;
+  }
+
+  syncRelativeTimeLabels(document);
+  relativeTimeTimer = window.setInterval(() => {
+    syncRelativeTimeLabels(document);
+  }, 1000);
+}
+
+function syncRelativeTimeLabels(root) {
+  syncDurationLabels(root);
+  syncTimeAgoLabels(root);
+}
+
+function syncDurationLabels(root) {
+  const durationNodes = root.querySelectorAll("[data-duration-started-at]");
+  const now = Date.now();
+
+  for (const node of durationNodes) {
+    if (!(node instanceof HTMLElement)) {
+      continue;
+    }
+
+    const startedAt = Date.parse(node.dataset.durationStartedAt || "");
+    if (!Number.isFinite(startedAt)) {
+      continue;
+    }
+
+    const finishedAt = node.dataset.durationFinishedAt ? Date.parse(node.dataset.durationFinishedAt) : now;
+    const durationMs = Math.max(0, (Number.isFinite(finishedAt) ? finishedAt : now) - startedAt);
+    node.textContent = formatDuration(durationMs);
+  }
+}
+
+function syncTimeAgoLabels(root) {
+  const relativeTimeNodes = root.querySelectorAll("[data-time-ago]");
+  const now = Date.now();
+
+  for (const node of relativeTimeNodes) {
+    if (!(node instanceof HTMLElement)) {
+      continue;
+    }
+
+    const value = node.dataset.timeAgo;
+    if (!value) {
+      continue;
+    }
+
+    node.textContent = timeAgo(value, now);
+  }
+}
+
+function isViewerNearEnd(viewer) {
+  return viewer.scrollHeight - (viewer.scrollTop + viewer.clientHeight) <= 24;
 }
 
 function isRestorableTextInput(element) {

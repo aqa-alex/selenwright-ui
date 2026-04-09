@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VNC Viewer · Selenwright UI</title>
+    <script>
+      (function () {
+        var themeMode = localStorage.getItem("selenwright-ui.theme-mode") || "system";
+        var density = localStorage.getItem("selenwright-ui.density") || "compact";
+        var isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var resolvedTheme = themeMode === "system" ? (isDark ? "dark" : "light") : themeMode;
+        document.documentElement.dataset.themeMode = themeMode;
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.dataset.density = density;
+      })();
+    </script>
+    <link rel="stylesheet" href="/src/styles/app.css" />
+  </head>
+  <body>
+    <main class="vnc-page">
+      <header class="vnc-page__header">
+        <div class="vnc-page__title">
+          <h1 id="vnc-page-title">Session VNC</h1>
+          <p>Read-only VNC stream for the selected session.</p>
+        </div>
+        <a class="button secondary" href="/sessions">Session list</a>
+      </header>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Viewer</h2>
+        </div>
+        <div class="vnc-toolbar">
+          <div class="vnc-toolbar__status">
+            <span class="artifact-chip">VNC</span>
+            <div class="vnc-status-copy">
+              <strong class="mono" id="vnc-session-label">Loading</strong>
+              <span class="vnc-status" data-state="connecting" id="vnc-status">Connecting</span>
+            </div>
+          </div>
+          <button class="viewer-mode-toggle" id="vnc-viewer-mode" type="button" aria-label="Toggle read-only mode" aria-pressed="true" data-read-only="true">
+            <svg class="icon viewer-mode-toggle__icon viewer-mode-toggle__icon--lock" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4.25" y="8" width="9.5" height="6.5" rx="1.5"></rect>
+              <path d="M6.5 8V6.25a2.5 2.5 0 0 1 5 0V8"></path>
+            </svg>
+            <svg class="icon viewer-mode-toggle__icon viewer-mode-toggle__icon--unlock" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4.25" y="8" width="9.5" height="6.5" rx="1.5"></rect>
+              <path d="M6.5 8V6.25a2.5 2.5 0 0 1 4.2-1.78"></path>
+              <path d="M11.8 4.47 13.2 3.1"></path>
+            </svg>
+            <span id="vnc-viewer-mode-label">Read only</span>
+          </button>
+        </div>
+        <div class="vnc-screen-shell">
+          <div class="vnc-screen" id="vnc-screen"></div>
+        </div>
+        <div class="vnc-footer">
+          <span class="vnc-endpoint mono">Endpoint <code id="vnc-endpoint">Pending</code></span>
+          <a class="button secondary" id="vnc-open-session" href="/sessions">Open session detail</a>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/vnc-viewer.js"></script>
+  </body>
+</html>
