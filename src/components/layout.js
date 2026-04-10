@@ -18,12 +18,14 @@ export function renderLayout(state, pageContent) {
   const { preferences } = state;
   const routeName = state.route.name;
 
+  document.title = pageTitles[routeName] || "Selenwright";
+
   return `
     <div class="shell">
       <header class="topbar" role="banner">
         <div class="brand-block">
           <a class="brand-link" href="/sessions" data-link>
-            <span class="brand-mark">${icon("sessions")}</span>
+            <span class="brand-mark"><img src="/favicon.ico" alt="Selenwright logo" class="brand-favicon" /></span>
             <span class="brand-copy">
               <strong>Selenwright</strong>
               <span>Browser session console</span>

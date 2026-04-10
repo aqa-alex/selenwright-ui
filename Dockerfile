@@ -17,6 +17,9 @@ RUN if [ -f package-lock.json ]; then \
 
 COPY index.html ./
 COPY server.mjs ./
+COPY favicon.ico ./
+COPY favicon.svg ./
+COPY favicon.png ./
 COPY src ./src
 COPY vnc.html ./
 COPY vendor ./vendor
