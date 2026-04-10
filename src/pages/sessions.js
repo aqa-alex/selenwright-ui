@@ -1,5 +1,4 @@
 import { compareValues, formatDateTime, formatDateTimeLong, formatDuration, formatStatus, timeAgo } from "../lib/format.js";
-import { buildSessionPath } from "../lib/router.js";
 import { icon } from "../components/icons.js";
 import { escapeHtml, renderEmptyState, renderPageIntro, renderPanel } from "../components/layout.js";
 
@@ -488,10 +487,6 @@ function sortSessions(left, right, sort) {
 
 function titleCase(value) {
   return String(value).charAt(0).toUpperCase() + String(value).slice(1);
-}
-
-function lastLines(content, count) {
-  return content.split("\n").slice(-count).join("\n");
 }
 
 function getSavedLogState(state, filename) {
