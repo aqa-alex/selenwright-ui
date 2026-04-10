@@ -77,7 +77,7 @@ export function buildConsoleDatasetFromSnapshot(snapshot = {}) {
 
     if (payload?.browsers && typeof payload.browsers === "object") {
       dataset.system.browserUsage = buildBrowserUsageFromStatus(payload.browsers);
-      dataset.browsers = buildBrowserInventoryFromStatus(payload.browsers);
+      dataset.browsers = buildBrowserInventoryFromStatus(payload.browsers, dataset.configuration.raw.browserCatalog);
       dataset.sessions = buildSessionsFromStatus(payload.browsers, snapshot?.fetchedAt);
     }
   } else {
@@ -750,17 +750,26 @@ function enrichArtifactRecord(artifact, session, type) {
   };
 }
 
-function buildBrowserInventoryFromStatus(browserTree) {
-  const rows = [];
+function buildBrowserInventoryFromStatus(browserTree, browserCatalog = []) {
+  const catalogMap = new Map();
+  for (const entry of browserCatalog) {
+    if (!entry?.name || !Array.isArray(entry.versions)) {
+      continue;
+    }
+    const versionMap = new Map(
+      entry.versions.filter((v) => v?.version).map((v) => [v.version, v.image || "—"]),
+    );
+    catalogMap.set(entry.name, versionMap);
+  }
 
+  const rows = [];
   for (const [browser, versions] of Object.entries(browserTree)) {
     for (const version of Object.keys(versions || {})) {
       rows.push({
         browser,
         version,
         protocol: inferProtocol(browser),
-        source: "Configured in Selenwright",
-        capabilities: "n/a",
+        source: catalogMap.get(browser)?.get(version) || "—",
         status: "ready",
       });
     }
@@ -771,6 +780,11 @@ function buildBrowserInventoryFromStatus(browserTree) {
 
 function inferProtocol(browser) {
   return browser === "chromium" || browser === "webkit" ? "playwright" : "selenium";
+}
+
+function normalizeSessionStatus(raw) {
+  const status = typeof raw?.status === "string" ? raw.status.trim().toLowerCase() : "";
+  return status || "running";
 }
 
 function buildSessionsFromStatus(browserTree, referenceTime = new Date().toISOString()) {
@@ -791,6 +805,7 @@ function buildSessionsFromStatus(browserTree, referenceTime = new Date().toISOSt
           const startedAt = raw?.started || nowIso;
           const durationMs = Math.max(0, Date.now() - new Date(startedAt).getTime());
           const screen = raw?.screen || "1920x1080x24";
+          const status = normalizeSessionStatus(raw);
           const vncEnabled = Boolean(raw?.vnc);
           const vncEndpoint = vncEnabled ? `/api/vnc/${encodedId}` : "";
           const resolvedVersion = raw?.caps?.version || version || "latest";
@@ -858,7 +873,7 @@ function buildSessionsFromStatus(browserTree, referenceTime = new Date().toISOSt
             protocol,
             protocolVersion: resolvedVersion,
             startedAt,
-            status: raw?.status,
+            status,
           });
         }
       }

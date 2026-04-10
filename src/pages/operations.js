@@ -20,7 +20,6 @@ export function renderBrowsersPage(state) {
                         <th>Version</th>
                         <th>Protocol</th>
                         <th>Image / source</th>
-                        <th>Capabilities</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -32,7 +31,6 @@ export function renderBrowsersPage(state) {
                               <td class="mono">${entry.version}</td>
                               <td>${renderProtocolBadge(entry.protocol)}</td>
                               <td class="mono">${entry.source}</td>
-                              <td>${entry.capabilities}</td>
                               <td>${renderStatusBadge(entry.status === "ready" ? "running" : "pending", entry.status)}</td>
                             </tr>
                           `,
