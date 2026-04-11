@@ -10,9 +10,24 @@ export default [
     },
   },
   {
+    files: ["playwright.config.mjs"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ["src/**/*.js"],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    files: ["tests/e2e/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
     },
   },
   {

@@ -2,6 +2,8 @@
 
 Readable, dense operator console for Selenwright browser sessions and artifacts.
 
+The UI is a Vite-built Vue + TypeScript app served by `server.mjs`.
+
 ## Run locally
 
 ```bash
@@ -16,7 +18,7 @@ By default it will try a lightweight proxy connection to `http://localhost:4444`
 SELENWRIGHT_TARGET=http://localhost:4444 npm run dev
 ```
 
-The local server also proxies `/api/vnc/<session-id>` as a WebSocket endpoint so the bundled noVNC viewer in `vnc.html` can watch live sessions with `vnc: true`.
+The local server also proxies `/api/vnc/<session-id>` as a WebSocket endpoint so the Vue noVNC viewer entry in `vnc.html` can watch live sessions with `vnc: true`.
 
 If the target is unavailable, the UI falls back to an embedded demo dataset so layout and navigation remain fully usable.
 
@@ -55,13 +57,14 @@ bash build.sh
 ## Checks
 
 ```bash
+npm run build
 npm run check
 ```
 
 ## CI / Release / Docker Push
 
 - CI scripts are in `ci/`:
-  - `ci/test.sh` — install deps + `npm run check`
+  - `ci/test.sh` — install deps + `npm run build` + `npm run check`
   - `ci/build.sh` — test + docker build validation
   - `ci/docker-push.sh <tag>` — push image to Docker Hub (`$GITHUB_REPOSITORY`)
 - GitHub Actions workflows:
@@ -78,5 +81,7 @@ Required GitHub secrets for image publishing:
 
 - `index.html` bootstraps the app and applies theme + density preferences before paint.
 - `server.mjs` serves the static app and proxies lightweight API requests.
-- `src/` contains the console UI, data adapters, renderers, and pages.
+- `src/app/` contains the main console shell and Vue pages.
+- `src/vnc/` contains the separate Vue noVNC viewer entry.
+- `src/data/` contains typed data adapters and normalization.
 - `codex-skills/` contains project-local skill definitions for future agent work.

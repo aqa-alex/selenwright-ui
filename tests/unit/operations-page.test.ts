@@ -1,0 +1,199 @@
+import { renderToString } from "@vue/server-renderer";
+import { createSSRApp } from "vue";
+import { describe, expect, it } from "vitest";
+import OperationsPage from "../../src/app/pages/OperationsPage.vue";
+import type { OperationsPageModel, OperationsRouteName } from "../../src/app/operations/operationsPage";
+import { createEmptyDataset } from "../../src/data/service";
+
+describe("OperationsPage", () => {
+  it("renders browser inventory grouped by browser", async () => {
+    const html = await renderOperationsPage({
+      browsers: [
+        {
+          browser: "chromium",
+          protocol: "playwright",
+          source: "chromium:latest",
+          status: "ready",
+          version: "latest",
+        },
+      ],
+      routeName: "browsers",
+    });
+
+    expect(html).toContain("<h1>Browsers</h1>");
+    expect(html).toContain("Chromium");
+    expect(html).toContain('class="protocol-badge protocol-badge-playwright"');
+    expect(html).toContain('class="status-badge status-running"');
+  });
+
+  it("keeps raw configuration collapsed unless detail panels are expanded", async () => {
+    const collapsedHtml = await renderOperationsPage({
+      configuration: buildConfiguration(),
+      routeName: "configuration",
+    });
+    const expandedHtml = await renderOperationsPage({
+      configuration: buildConfiguration(),
+      preferences: { detailPanel: "expanded" },
+      routeName: "configuration",
+    });
+
+    expect(collapsedHtml).toContain("<h1>Configuration</h1>");
+    expect(collapsedHtml).toContain("Browser catalog JSON");
+    expect(collapsedHtml).not.toContain('<details data-persist-id="configuration:browser-catalog" open>');
+    expect(expandedHtml).toContain('<details data-persist-id="configuration:browser-catalog" open>');
+  });
+
+  it("renders system usage as a compact operational view", async () => {
+    const html = await renderOperationsPage({
+      routeName: "system",
+      system: {
+        ...createEmptyDataset().system,
+        browserUsage: [{ browser: "chromium", count: 14, running: 14 }],
+        healthNotes: ["Fixture status ready"],
+        usageSummary: [
+          { label: "Queued requests", value: "1" },
+          { label: "Pending starts", value: "0" },
+          { label: "Active sessions", value: "14" },
+          { label: "Ready state", value: "Ready" },
+        ],
+      },
+    });
+
+    expect(html).toContain("<h1>System</h1>");
+    expect(html.match(/class="summary-card"/g)).toHaveLength(4);
+    expect(html).toContain("Browser usage");
+    expect(html).toContain("Fixture status ready");
+  });
+
+  it("renders settings state changes and dirty artifact history controls", async () => {
+    const html = await renderOperationsPage({
+      artifactHistoryUi: {
+        dirty: true,
+        draftEnabled: false,
+        draftRetentionDays: "21",
+        error: "",
+        loaded: true,
+        saving: false,
+      },
+      preferences: {
+        density: "comfortable",
+        detailPanel: "expanded",
+        themeMode: "dark",
+        timeFormat: "12h",
+        timezone: "utc",
+      },
+      routeName: "settings",
+      settings: {
+        artifactHistory: {
+          available: true,
+          enabled: true,
+          reason: "",
+          retentionDays: 7,
+        },
+      },
+    });
+
+    expect(html).toContain("<h1>Settings</h1>");
+    expect(html).toMatch(/class="segmented-option selected"[^>]*data-action="set-density"[^>]*data-value="comfortable"/);
+    expect(html).toContain('value="21"');
+    expect(html).toMatch(/data-action="save-artifact-history-settings"[^>]*>Save settings/);
+    expect(html).not.toMatch(/data-action="save-artifact-history-settings"[^>]*disabled/);
+  });
+
+  it("disables artifact history controls when the backend setting is unavailable", async () => {
+    const html = await renderOperationsPage({
+      routeName: "settings",
+      settings: {
+        artifactHistory: {
+          available: false,
+          enabled: false,
+          reason: "Blocked upstream",
+          retentionDays: 7,
+        },
+      },
+    });
+
+    expect(html).toContain("Blocked upstream");
+    expect(html).toMatch(/data-action="save-artifact-history-settings"[^>]*disabled/);
+    expect(html).toMatch(/data-input="artifact-history-retention-days"[^>]*disabled/);
+  });
+});
+
+async function renderOperationsPage(overrides: Partial<OperationsPageModel> = {}) {
+  return renderToString(createSSRApp(OperationsPage, { model: buildModel(overrides) }));
+}
+
+function buildModel(overrides: Partial<OperationsPageModel> = {}): OperationsPageModel {
+  const dataset = createEmptyDataset("fixture");
+  const routeName: OperationsRouteName = overrides.routeName || "settings";
+
+  return {
+    artifactHistoryUi: {
+      dirty: false,
+      draftEnabled: true,
+      draftRetentionDays: "7",
+      error: "",
+      loaded: true,
+      saving: false,
+    },
+    browsers: [],
+    configuration: dataset.configuration,
+    connection: dataset.connection,
+    preferences: {
+      density: "compact",
+      detailPanel: "collapsed",
+      themeMode: "system",
+      timeFormat: "24h",
+      timezone: "utc",
+    },
+    routeName,
+    settings: dataset.settings,
+    system: dataset.system,
+    ...overrides,
+    artifactHistoryUi: {
+      dirty: false,
+      draftEnabled: true,
+      draftRetentionDays: "7",
+      error: "",
+      loaded: true,
+      saving: false,
+      ...(overrides.artifactHistoryUi || {}),
+    },
+    preferences: {
+      density: "compact",
+      detailPanel: "collapsed",
+      themeMode: "system",
+      timeFormat: "24h",
+      timezone: "utc",
+      ...(overrides.preferences || {}),
+    },
+    routeName,
+    settings: {
+      artifactHistory: {
+        ...dataset.settings.artifactHistory,
+        ...(overrides.settings?.artifactHistory || {}),
+      },
+    },
+  };
+}
+
+function buildConfiguration(): OperationsPageModel["configuration"] {
+  return {
+    available: true,
+    featureAvailability: [{ key: "downloads", label: "Downloads", value: "true" }],
+    limits: [{ key: "maxSessions", label: "Max sessions", value: "20" }],
+    logging: [{ key: "level", label: "Level", value: "info" }],
+    message: "",
+    paths: [{ key: "downloadsPath", label: "Downloads path", value: "/tmp/downloads" }],
+    raw: {
+      browserCatalog: [
+        {
+          name: "chromium",
+          versions: [{ image: "chromium:latest", version: "latest" }],
+        },
+      ],
+      flags: { video: true },
+      reloadStatus: { state: "ready" },
+    },
+  };
+}

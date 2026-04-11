@@ -1,3 +1,20 @@
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+COPY package.json ./
+COPY package-lock.json* ./
+
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install --no-audit --no-fund; \
+    fi
+
+COPY . .
+
+RUN npm run build
+
 FROM node:22-alpine
 
 WORKDIR /app
@@ -15,14 +32,8 @@ RUN if [ -f package-lock.json ]; then \
       npm install --omit=dev --no-audit --no-fund; \
     fi
 
-COPY index.html ./
 COPY server.mjs ./
-COPY favicon.ico ./
-COPY favicon.svg ./
-COPY favicon.png ./
-COPY src ./src
-COPY vnc.html ./
-COPY vendor ./vendor
+COPY --from=build /app/dist ./dist
 
 EXPOSE 4173
 

@@ -8,4 +8,5 @@ else
   npm install --no-audit --no-fund
 fi
 
+npm run build
 npm run check

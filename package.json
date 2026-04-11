@@ -4,14 +4,34 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "DEMO_MODE=true node server.mjs",
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "DEMO_MODE=true node server.mjs",
+    "dev:vite": "vite",
+    "build": "vite build",
     "start": "node server.mjs",
-    "check": "node scripts/check.mjs",
-    "lint": "eslint src/ server.mjs scripts/"
+    "typecheck": "vue-tsc --noEmit",
+    "test:unit": "vitest run",
+    "check": "node scripts/check.mjs && npm run typecheck && npm run test:unit && playwright test",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
+    "lint": "eslint src/ server.mjs scripts/ tests/ playwright.config.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
-    "eslint": "^9.0.0"
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "eslint": "^9.0.0",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4",
+    "vue-tsc": "^3.1.1"
+  },
+  "dependencies": {
+    "@tanstack/vue-query": "^5.97.0",
+    "@tanstack/vue-table": "^8.21.3",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.22",
+    "vue-router": "^4.6.3"
   }
 }
-

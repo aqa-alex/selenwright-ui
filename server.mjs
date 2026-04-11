@@ -8,9 +8,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
+const distDir = path.join(rootDir, "dist");
 const target = process.env.SELENWRIGHT_TARGET || "http://localhost:4444";
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "127.0.0.1";
+const apiOnlyMode = process.env.SELENWRIGHT_API_ONLY === "true";
 const consoleStreamPath = "/api/stream/console";
 const consoleWatchIntervalMs = Number(process.env.SELENWRIGHT_WATCH_INTERVAL_MS || 3000);
 const consoleHeartbeatIntervalMs = 15000;
@@ -18,6 +20,7 @@ const upstreamRequestTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_UPSTREAM_
 const upstreamArtifactTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_ARTIFACT_TIMEOUT_MS, 15000);
 const terminateAttemptTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_TERMINATE_TIMEOUT_MS, 3000);
 const demoMode = process.env.DEMO_MODE === "true";
+const staticRootDir = resolveStaticRootDir();
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -25,6 +28,7 @@ const mimeTypes = {
   ".ico": "image/x-icon",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
@@ -736,13 +740,27 @@ function stableSerialize(value) {
   return JSON.stringify(value);
 }
 
+function resolveStaticRootDir() {
+  const explicitRoot = process.env.SELENWRIGHT_STATIC_ROOT;
+  if (explicitRoot) {
+    return path.resolve(rootDir, explicitRoot);
+  }
+
+  const builtIndexPath = path.join(distDir, "index.html");
+  if (existsSync(builtIndexPath)) {
+    return distDir;
+  }
+
+  return rootDir;
+}
+
 function resolveStaticFile(urlPath) {
   const trimmedPath = urlPath === "/" ? "/index.html" : urlPath;
   const decoded = decodeURIComponent(trimmedPath);
   const normalized = path.normalize(decoded).replace(/^(\.\.(\/|\\|$))+/, "");
-  const absolutePath = path.join(rootDir, normalized);
+  const absolutePath = path.join(staticRootDir, normalized);
 
-  if (!absolutePath.startsWith(rootDir)) {
+  if (!absolutePath.startsWith(staticRootDir)) {
     return null;
   }
 
@@ -751,7 +769,7 @@ function resolveStaticFile(urlPath) {
   }
 
   if (!path.extname(absolutePath)) {
-    return path.join(rootDir, "index.html");
+    return path.join(staticRootDir, "index.html");
   }
 
   return null;
@@ -1331,6 +1349,12 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (apiOnlyMode) {
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Not found");
+    return;
+  }
+
   const filePath = resolveStaticFile(requestUrl.pathname);
   if (!filePath) {
     res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
@@ -1369,5 +1393,6 @@ server.on("upgrade", (req, socket, head) => {
 server.listen(port, host, () => {
   const packageJson = JSON.parse(readFileSync(path.join(rootDir, "package.json"), "utf8"));
   console.log(`${packageJson.name} listening on http://${host}:${port}`);
+  console.log(apiOnlyMode ? "Static mode: disabled (API proxy only)" : `Static root: ${path.relative(rootDir, staticRootDir) || "."}`);
   console.log(demoMode ? "Demo mode: serving built-in demo data" : `Proxy target: ${target}`);
 });

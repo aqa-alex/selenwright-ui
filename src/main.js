@@ -1,4 +1,3 @@
-import { renderLayout } from "./components/layout.js";
 import {
   subscribeToConsoleData,
   createEmptyDataset,
@@ -7,7 +6,7 @@ import {
   saveArtifactHistorySettings,
   subscribeToLiveLogs,
   terminateSession,
-} from "./data/service.js";
+} from "./data/service.ts";
 import { formatDuration, formatStatus, timeAgo } from "./lib/format.js";
 import {
   applyDensity,
@@ -19,9 +18,8 @@ import {
   watchSystemTheme,
 } from "./lib/preferences.js";
 import { buildSessionPath, navGroups, navigate, parseRoute } from "./lib/router.js";
-import { renderDownloadsPage, renderLogsPage, renderVideosPage } from "./pages/artifacts.js";
-import { renderBrowsersPage, renderConfigurationPage, renderNotFoundPage, renderSettingsPage, renderSystemPage } from "./pages/operations.js";
-import { getFilteredSessions, renderSessionDetailPage, renderSessionsPage } from "./pages/sessions.js";
+import { getFilteredSessionsForState } from "./app/sessions/sessionTable.ts";
+import { mountConsoleShell, updateConsoleShell } from "./main.ts";
 
 const initialPreferences = loadPreferences();
 const state = {
@@ -68,6 +66,7 @@ const state = {
 let noticeTimeout = 0;
 const restorableTextInputTypes = new Set(["email", "password", "search", "tel", "text", "url"]);
 const artifactPageKeys = new Set(["videos", "logs", "downloads"]);
+const operationsPageKeys = new Set(["browsers", "configuration", "settings", "system"]);
 const artifactDesktopBreakpoint = 1180;
 const artifactSplitterWidth = 8;
 const artifactMinIndexWidth = 420;
@@ -79,7 +78,13 @@ let liveLogSubscription = null;
 let liveLogSubscriptionToken = 0;
 let liveLogRenderFrame = 0;
 let relativeTimeTimer = 0;
+let renderVersion = 0;
 let suppressDisclosureTracking = false;
+
+const root = document.getElementById("app");
+if (root instanceof HTMLElement) {
+  mountConsoleShell(root, { onRouteChange: handleRouteChange });
+}
 
 applyPreferences(state.preferences);
 bindGlobalEvents();
@@ -105,20 +110,20 @@ async function refreshData() {
 }
 
 function bindGlobalEvents() {
-  window.addEventListener("popstate", handleRouteChange);
+  const eventRoot = root instanceof HTMLElement ? root : document;
+
   window.addEventListener("pagehide", handlePageHide);
-  window.addEventListener("selenwright:navigate", handleRouteChange);
   window.addEventListener("pointermove", handlePointerMove);
   window.addEventListener("pointerup", handlePointerUp);
   window.addEventListener("pointercancel", handlePointerUp);
   window.addEventListener("resize", handleWindowResize);
-  document.addEventListener("click", handleClick);
-  document.addEventListener("pointerdown", handlePointerDown);
-  document.addEventListener("input", handleInput);
-  document.addEventListener("change", handleInput);
+  eventRoot.addEventListener("click", handleClick);
+  eventRoot.addEventListener("pointerdown", handlePointerDown);
+  eventRoot.addEventListener("input", handleInput);
+  eventRoot.addEventListener("change", handleInput);
   document.addEventListener("keydown", handleKeyDown);
-  document.addEventListener("scroll", handleScroll, true);
-  document.addEventListener("toggle", handleToggle, true);
+  eventRoot.addEventListener("scroll", handleScroll, true);
+  eventRoot.addEventListener("toggle", handleToggle, true);
 }
 
 function handlePageHide() {
@@ -132,9 +137,9 @@ function handlePageHide() {
   relativeTimeTimer = 0;
 }
 
-function handleRouteChange() {
+function handleRouteChange(pathname = window.location.pathname) {
   stopArtifactResize({ commit: true });
-  state.route = parseRoute(window.location.pathname);
+  state.route = parseRoute(pathname);
   if (state.route.name !== "logs") {
     state.ui.logSearch = "";
   }
@@ -142,7 +147,8 @@ function handleRouteChange() {
 }
 
 function handleClick(event) {
-  const link = event.target.closest("a[data-link]");
+  const target = event.target instanceof Element ? event.target : null;
+  const link = target?.closest("a[data-link]");
   if (link) {
     event.preventDefault();
     state.ui.quickJumpQuery = "";
@@ -150,7 +156,7 @@ function handleClick(event) {
     return;
   }
 
-  const actionTarget = event.target.closest("[data-action]");
+  const actionTarget = target?.closest("[data-action]");
   if (!actionTarget) {
     return;
   }
@@ -247,7 +253,7 @@ function handleClick(event) {
     case "set-theme":
       state.preferences.themeMode = value;
       applyTheme(value);
-      syncSegmentedSelection("set-theme", value);
+      render();
       break;
     case "set-time-format":
       state.preferences.timeFormat = value;
@@ -290,7 +296,7 @@ function handleClick(event) {
 
 function handleInput(event) {
   const target = event.target;
-  if (!target.dataset.input) {
+  if (!(target instanceof HTMLElement) || !target.dataset.input) {
     return;
   }
 
@@ -526,7 +532,7 @@ function handleKeyDown(event) {
     return;
   }
 
-  const filteredSessions = getFilteredSessions(state);
+  const filteredSessions = getFilteredSessionsForState(state.data.sessions, state.filters);
   if (!filteredSessions.length) {
     return;
   }
@@ -560,49 +566,42 @@ function render(options = {}) {
   reconcileLiveLogState();
   syncSelections();
   state.ui.quickJumpResults = buildQuickJumpResults();
+  document.title = getPageTitle(state.route.name);
 
-  const root = document.getElementById("app");
-  if (!root) {
+  if (!(root instanceof HTMLElement)) {
     return;
   }
 
   const focusedTextInput = options.focusSelectedSession ? null : captureFocusedTextInput();
   const logViewerSnapshot = options.focusSelectedSession ? null : captureLogViewerSnapshot();
-  suppressDisclosureTracking = true;
+  const currentRenderVersion = ++renderVersion;
 
-  try {
-    root.innerHTML = renderLayout(state, renderCurrentPage());
-    syncArtifactPaneLayout(root);
-    restorePersistedDetails(root);
-  } finally {
-    suppressDisclosureTracking = false;
-  }
-
-  if (options.focusSelectedSession) {
-    const selectedRow = root.querySelector(".session-row.selected");
-    if (selectedRow instanceof HTMLElement) {
-      selectedRow.focus();
-    }
-    return;
-  }
-
-  restoreFocusedTextInput(root, focusedTextInput);
-  restoreLogViewerSnapshot(root, logViewerSnapshot);
-  syncLogEffects(root);
-  syncRelativeTimeLabels(root);
-}
-
-function syncSegmentedSelection(action, selectedValue) {
-  const buttons = document.querySelectorAll(`[data-action="${action}"][data-value]`);
-  for (const button of buttons) {
-    if (!(button instanceof HTMLButtonElement)) {
-      continue;
+  void updateConsoleShell(createShellSnapshot()).then(() => {
+    if (!(root instanceof HTMLElement) || currentRenderVersion !== renderVersion) {
+      return;
     }
 
-    const isSelected = button.dataset.value === selectedValue;
-    button.classList.toggle("selected", isSelected);
-    button.setAttribute("aria-pressed", isSelected ? "true" : "false");
-  }
+    suppressDisclosureTracking = true;
+    try {
+      syncArtifactPaneLayout(root);
+      restorePersistedDetails(root);
+    } finally {
+      suppressDisclosureTracking = false;
+    }
+
+    if (options.focusSelectedSession) {
+      const selectedRow = root.querySelector(".session-row.selected");
+      if (selectedRow instanceof HTMLElement) {
+        selectedRow.focus();
+      }
+      return;
+    }
+
+    restoreFocusedTextInput(root, focusedTextInput);
+    restoreLogViewerSnapshot(root, logViewerSnapshot);
+    syncLogEffects(root);
+    syncRelativeTimeLabels(root);
+  });
 }
 
 function handlePointerDown(event) {
@@ -896,29 +895,124 @@ function isArtifactDesktopMode() {
   return window.innerWidth > artifactDesktopBreakpoint;
 }
 
-function renderCurrentPage() {
-  switch (state.route.name) {
-    case "browsers":
-      return renderBrowsersPage(state);
-    case "configuration":
-      return renderConfigurationPage(state);
-    case "downloads":
-      return renderDownloadsPage(state);
-    case "logs":
-      return renderLogsPage(state);
-    case "session-detail":
-      return renderSessionDetailPage(state);
-    case "sessions":
-      return renderSessionsPage(state);
-    case "settings":
-      return renderSettingsPage(state);
-    case "system":
-      return renderSystemPage(state);
-    case "videos":
-      return renderVideosPage(state);
-    default:
-      return renderNotFoundPage(state);
-  }
+function isArtifactRoute(routeName) {
+  return artifactPageKeys.has(routeName);
+}
+
+function isOperationsRoute(routeName) {
+  return operationsPageKeys.has(routeName);
+}
+
+function createShellSnapshot() {
+  return {
+    artifactPage: isArtifactRoute(state.route.name) ? createArtifactPageSnapshot(state.route.name) : null,
+    notice: state.ui.notice,
+    operationsPage: isOperationsRoute(state.route.name) ? createOperationsPageSnapshot(state.route.name) : null,
+    pageTitle: getPageTitle(state.route.name),
+    preferences: {
+      ...state.preferences,
+      artifactPaneWidths: { ...(state.preferences.artifactPaneWidths || {}) },
+    },
+    quickJumpQuery: state.ui.quickJumpQuery,
+    quickJumpResults: state.ui.quickJumpResults.map((result) => ({ ...result })),
+    routeName: state.route.name,
+    sessionDetailPage: state.route.name === "session-detail" ? createSessionDetailPageSnapshot() : null,
+    sessionsPage: state.route.name === "sessions" ? createSessionsPageSnapshot() : null,
+  };
+}
+
+function createOperationsPageSnapshot(routeName) {
+  return {
+    artifactHistoryUi: { ...state.ui.artifactHistory },
+    browsers: [...state.data.browsers],
+    configuration: state.data.configuration,
+    connection: state.data.connection,
+    preferences: {
+      ...state.preferences,
+      artifactPaneWidths: { ...(state.preferences.artifactPaneWidths || {}) },
+    },
+    routeName,
+    settings: {
+      artifactHistory: { ...state.data.settings.artifactHistory },
+    },
+    system: state.data.system,
+  };
+}
+
+function createArtifactPageSnapshot(pageKey) {
+  return {
+    artifactSessionFilter: state.ui.artifactSessionFilter,
+    downloads: [...state.data.downloads],
+    logFiles: Object.fromEntries(
+      Object.entries(state.ui.logFiles).map(([filename, logState]) => [
+        filename,
+        { ...logState },
+      ]),
+    ),
+    logs: [...state.data.logs],
+    logsPage: state.ui.logsPage,
+    logsPerPage: state.ui.logsPerPage,
+    logSearch: state.ui.logSearch,
+    pageKey,
+    preferences: {
+      artifactPaneWidths: { ...(state.preferences.artifactPaneWidths || {}) },
+      timeFormat: state.preferences.timeFormat,
+      timezone: state.preferences.timezone,
+    },
+    selectedArtifacts: { ...state.ui.selectedArtifacts },
+    sessions: [...state.data.sessions],
+    videos: [...state.data.videos],
+  };
+}
+
+function createSessionDetailPageSnapshot() {
+  return {
+    liveLogs: { ...state.ui.liveLogs },
+    logFiles: Object.fromEntries(
+      Object.entries(state.ui.logFiles).map(([filename, logState]) => [
+        filename,
+        { ...logState },
+      ]),
+    ),
+    logSearch: state.ui.logSearch,
+    logs: [...state.data.logs],
+    preferences: {
+      timeFormat: state.preferences.timeFormat,
+      timezone: state.preferences.timezone,
+    },
+    routeSessionId: state.route.sessionId,
+    session: getSessionById(state.route.sessionId),
+    terminatingSessionId: state.ui.terminatingSessionId,
+  };
+}
+
+function createSessionsPageSnapshot() {
+  return {
+    filters: { ...state.filters },
+    preferences: {
+      timeFormat: state.preferences.timeFormat,
+      timezone: state.preferences.timezone,
+    },
+    selectedSessionId: state.ui.selectedSessionId,
+    sessions: [...state.data.sessions],
+  };
+}
+
+function getPageTitle(routeName) {
+  const titles = {
+    browsers: "Browsers",
+    configuration: "Configuration",
+    downloads: "Downloads",
+    logs: "Logs",
+    "not-found": "Not found",
+    "session-detail": "Session Details",
+    sessions: "Sessions",
+    settings: "Settings",
+    system: "System",
+    videos: "Videos",
+  };
+
+  return titles[routeName] || "Selenwright";
 }
 
 function syncSelections() {
@@ -927,7 +1021,7 @@ function syncSelections() {
   }
 
   if (state.route.name === "sessions") {
-    const filteredSessions = getFilteredSessions(state);
+    const filteredSessions = getFilteredSessionsForState(state.data.sessions, state.filters);
     if (!filteredSessions.find((session) => session.id === state.ui.selectedSessionId)) {
       state.ui.selectedSessionId = filteredSessions[0]?.id || null;
     }
@@ -1184,6 +1278,10 @@ function stopConsoleDataSubscription() {
 }
 
 async function ensureSavedLogLoadedForCurrentRoute() {
+  if (state.route.name === "session-detail") {
+    return;
+  }
+
   const filename = getCurrentSavedLogFilename();
   if (!filename) {
     return;
