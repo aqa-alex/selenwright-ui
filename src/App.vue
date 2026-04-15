@@ -10,15 +10,11 @@ useConsoleStream();
 
 const shellStore = useShellStore();
 const {
-  artifactPage,
   notice,
-  operationsPage,
   pageTitle,
   quickJumpQuery,
   quickJumpResults,
   routeName,
-  sessionDetailPage,
-  sessionsPage,
 } = storeToRefs(shellStore);
 </script>
 
@@ -31,13 +27,8 @@ const {
     <div class="workspace">
       <AppSidebar :route-name="routeName" />
       <PageFrame
-        :artifact-page="artifactPage"
         :notice="notice"
-        :operations-page="operationsPage"
         :page-title="pageTitle"
-        :route-name="routeName"
-        :session-detail-page="sessionDetailPage"
-        :sessions-page="sessionsPage"
       />
     </div>
   </div>
