@@ -29,17 +29,34 @@ const artifactPaneStorageKeys = {
 
 const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage may be unavailable (Safari private mode, quota exceeded).
+    // Fail silently — preferences fall back to defaults on next read.
+  }
+}
+
 export function loadPreferences() {
   return {
-    density: normalizeDensity(localStorage.getItem(storageKeys.density)),
+    density: normalizeDensity(readStorage(storageKeys.density)),
     detailPanel: normalizeDetailPanel(
-      localStorage.getItem(storageKeys.detailPanel),
+      readStorage(storageKeys.detailPanel),
     ),
-    themeMode: normalizeThemeMode(localStorage.getItem(storageKeys.themeMode)),
+    themeMode: normalizeThemeMode(readStorage(storageKeys.themeMode)),
     timeFormat: normalizeTimeFormat(
-      localStorage.getItem(storageKeys.timeFormat),
+      readStorage(storageKeys.timeFormat),
     ),
-    timezone: normalizeTimezone(localStorage.getItem(storageKeys.timezone)),
+    timezone: normalizeTimezone(readStorage(storageKeys.timezone)),
     artifactPaneWidths: loadArtifactPaneWidths(),
   };
 }
@@ -56,7 +73,7 @@ export function savePreference(key, value) {
   if (!storageKey) {
     return;
   }
-  localStorage.setItem(storageKey, String(value));
+  writeStorage(storageKey, String(value));
 }
 
 export function applyPreferences(preferences) {
@@ -91,7 +108,7 @@ export function saveArtifactPaneWidth(pageKey, ratio) {
   }
 
   const normalizedRatio = normalizeArtifactPaneRatio(ratio);
-  localStorage.setItem(storageKey, String(normalizedRatio));
+  writeStorage(storageKey, String(normalizedRatio));
   return normalizedRatio;
 }
 
@@ -128,13 +145,13 @@ function normalizeTimezone(value) {
 function loadArtifactPaneWidths() {
   return {
     videos: normalizeArtifactPaneRatio(
-      localStorage.getItem(artifactPaneStorageKeys.videos),
+      readStorage(artifactPaneStorageKeys.videos),
     ),
     logs: normalizeArtifactPaneRatio(
-      localStorage.getItem(artifactPaneStorageKeys.logs),
+      readStorage(artifactPaneStorageKeys.logs),
     ),
     downloads: normalizeArtifactPaneRatio(
-      localStorage.getItem(artifactPaneStorageKeys.downloads),
+      readStorage(artifactPaneStorageKeys.downloads),
     ),
   };
 }

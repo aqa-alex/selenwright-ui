@@ -21,6 +21,37 @@ const upstreamArtifactTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_ARTIFACT
 const terminateAttemptTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_TERMINATE_TIMEOUT_MS, 3000);
 const demoMode = process.env.DEMO_MODE === "true";
 const staticRootDir = resolveStaticRootDir();
+const maxRequestBodyBytes = Number(process.env.SELENWRIGHT_MAX_BODY_BYTES || 1024 * 1024);
+const maxSseClients = Number(process.env.SELENWRIGHT_MAX_SSE_CLIENTS || 64);
+const maxSseClientAgeMs = Number(process.env.SELENWRIGHT_MAX_SSE_CLIENT_AGE_MS || 4 * 60 * 60 * 1000);
+
+const baseSecurityHeaders = {
+  "Referrer-Policy": "no-referrer",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+};
+
+const htmlContentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join("; ");
+
+function withSecurityHeaders(headers = {}) {
+  const contentType = headers["Content-Type"] || headers["content-type"] || "";
+  const merged = { ...baseSecurityHeaders, ...headers };
+  if (/html/i.test(contentType) && !merged["Content-Security-Policy"]) {
+    merged["Content-Security-Policy"] = htmlContentSecurityPolicy;
+  }
+  return merged;
+}
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -51,10 +82,10 @@ let consoleSnapshotSignature = "";
 let consoleWatchTimer = null;
 
 function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, {
+  res.writeHead(statusCode, withSecurityHeaders({
     "Cache-Control": "no-store",
     "Content-Type": "application/json; charset=utf-8",
-  });
+  }));
   res.end(JSON.stringify(payload));
 }
 
@@ -152,7 +183,11 @@ function broadcastConsoleSnapshot(snapshot) {
   const message = formatSseEvent("snapshot", snapshot);
   for (const client of consoleStreamClients) {
     try {
-      client.response.write(message);
+      const writeResult = client.response.write(message);
+      if (!writeResult) {
+        // Slow client — drop rather than buffer indefinitely.
+        closeConsoleClient(client);
+      }
     } catch {
       closeConsoleClient(client);
     }
@@ -166,26 +201,52 @@ function formatSseEvent(eventName, payload) {
 
 function handleConsoleStream(req, res) {
   if ((req.method || "GET").toUpperCase() !== "GET") {
-    res.writeHead(405, { Allow: "GET", "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(405, withSecurityHeaders({ Allow: "GET", "Content-Type": "text/plain; charset=utf-8" }));
     res.end("Method Not Allowed");
     return;
   }
 
-  res.writeHead(200, {
+  if (consoleStreamClients.size >= maxSseClients) {
+    res.writeHead(503, withSecurityHeaders({
+      "Content-Type": "text/plain; charset=utf-8",
+      "Retry-After": "5",
+    }));
+    res.end("Console SSE is at capacity. Try again shortly.");
+    return;
+  }
+
+  res.writeHead(200, withSecurityHeaders({
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
     "Content-Type": "text/event-stream; charset=utf-8",
     "X-Accel-Buffering": "no",
-  });
+  }));
   res.flushHeaders?.();
   res.write(`retry: ${Math.max(1000, consoleWatchIntervalMs)}\n\n`);
 
   const client = {
-    heartbeatTimer: setInterval(() => {
-      res.write(": keep-alive\n\n");
-    }, consoleHeartbeatIntervalMs),
+    connectedAt: Date.now(),
+    heartbeatTimer: 0,
     response: res,
   };
+  client.heartbeatTimer = setInterval(() => {
+    if (Date.now() - client.connectedAt > maxSseClientAgeMs) {
+      try {
+        res.write(formatSseEvent("shutdown", { reason: "max_age" }));
+      } catch {
+        // response may already be destroyed
+      }
+      closeConsoleClient(client);
+      return;
+    }
+    try {
+      if (!res.write(": keep-alive\n\n")) {
+        closeConsoleClient(client);
+      }
+    } catch {
+      closeConsoleClient(client);
+    }
+  }, consoleHeartbeatIntervalMs);
 
   consoleStreamClients.add(client);
   startConsoleWatcher();
@@ -213,11 +274,16 @@ function closeConsoleClient(client) {
   consoleStreamClients.delete(client);
   clearInterval(client.heartbeatTimer);
   stopConsoleWatcher();
+  try {
+    client.response.end();
+  } catch {
+    // response may already be destroyed
+  }
 }
 
 function handleLiveLogStream(req, res, requestUrl) {
   if ((req.method || "GET").toUpperCase() !== "GET") {
-    res.writeHead(405, { Allow: "GET", "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(405, withSecurityHeaders({ Allow: "GET", "Content-Type": "text/plain; charset=utf-8" }));
     res.end("Method Not Allowed");
     return;
   }
@@ -231,12 +297,12 @@ function handleLiveLogStream(req, res, requestUrl) {
     return;
   }
 
-  res.writeHead(200, {
+  res.writeHead(200, withSecurityHeaders({
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
     "Content-Type": "text/event-stream; charset=utf-8",
     "X-Accel-Buffering": "no",
-  });
+  }));
   res.flushHeaders?.();
   res.write("retry: 1500\n\n");
 
@@ -255,7 +321,13 @@ function handleLiveLogStream(req, res, requestUrl) {
     }
 
     try {
-      res.write(payload);
+      const ok = res.write(payload);
+      if (!ok) {
+        // Slow client — buffer is already queuing; drop to avoid unbounded memory.
+        closeResponse();
+        destroyUpstreamSocket();
+        return false;
+      }
       return true;
     } catch {
       closeResponse();
@@ -756,11 +828,16 @@ function resolveStaticRootDir() {
 
 function resolveStaticFile(urlPath) {
   const trimmedPath = urlPath === "/" ? "/index.html" : urlPath;
-  const decoded = decodeURIComponent(trimmedPath);
-  const normalized = path.normalize(decoded).replace(/^(\.\.(\/|\\|$))+/, "");
-  const absolutePath = path.join(staticRootDir, normalized);
+  let decoded;
+  try {
+    decoded = decodeURIComponent(trimmedPath);
+  } catch {
+    return null;
+  }
+  const absolutePath = path.resolve(staticRootDir, `.${decoded.startsWith("/") ? decoded : `/${decoded}`}`);
+  const rootWithSep = staticRootDir.endsWith(path.sep) ? staticRootDir : staticRootDir + path.sep;
 
-  if (!absolutePath.startsWith(staticRootDir)) {
+  if (absolutePath !== staticRootDir && !absolutePath.startsWith(rootWithSep)) {
     return null;
   }
 
@@ -768,6 +845,7 @@ function resolveStaticFile(urlPath) {
     return absolutePath;
   }
 
+  // SPA fallback: only for extension-less paths that look like client routes.
   if (!path.extname(absolutePath)) {
     return path.join(staticRootDir, "index.html");
   }
@@ -848,8 +926,9 @@ function resolveUpgradeHandler(requestUrl) {
 }
 
 function buildUpstreamVncUrl(requestUrl) {
-  const sessionPath = requestUrl.pathname.slice("/api/vnc/".length);
-  return new URL(`/vnc/${sessionPath}${requestUrl.search}`, target);
+  const rawSessionPath = requestUrl.pathname.slice("/api/vnc/".length);
+  const encodedSessionPath = encodePathPreservingSlashes(rawSessionPath);
+  return new URL(`/vnc/${encodedSessionPath}${requestUrl.search}`, target);
 }
 
 function buildUpstreamLogFileUrl(requestUrl) {
@@ -934,10 +1013,9 @@ function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
     "Upgrade: websocket",
   ];
 
-  const originHeader = req.headers.origin || buildSyntheticOrigin(req);
-  if (originHeader) {
-    upstreamHeaders.push(`origin: ${originHeader}`);
-  }
+  // Issue our own Origin for the upstream handshake rather than forwarding the
+  // browser-side origin; upstream CORS logic (if any) should see us, not the UI.
+  upstreamHeaders.push(`origin: ${buildUpstreamOrigin(upstreamUrl)}`);
 
   for (const headerName of [
     "sec-websocket-key",
@@ -945,7 +1023,6 @@ function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
     "sec-websocket-extensions",
     "sec-websocket-protocol",
     "user-agent",
-    "cookie",
   ]) {
     const headerValue = req.headers[headerName];
     if (headerValue) {
@@ -955,13 +1032,15 @@ function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
 
   upstreamHeaders.push("\r\n");
 
-  upstreamSocket.once("error", () => {
+  upstreamSocket.on("error", () => {
     if (!clientClosed && !proxyReady) {
       sendUpgradeFailure(socket, 502, "Bad Gateway");
       return;
     }
 
-    socket.destroy();
+    if (!socket.destroyed) {
+      socket.destroy();
+    }
   });
 
   const connectEvent =
@@ -979,25 +1058,27 @@ function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
     upstreamSocket.pipe(socket);
   });
 
+  socket.on("error", () => {
+    clientClosed = true;
+    if (!upstreamSocket.destroyed) {
+      upstreamSocket.destroy();
+    }
+  });
+
   socket.once("close", () => {
     clientClosed = true;
-    upstreamSocket.destroy();
+    if (!upstreamSocket.destroyed) {
+      upstreamSocket.destroy();
+    }
   });
 
-  socket.once("error", () => {
-    clientClosed = true;
-    upstreamSocket.destroy();
+  upstreamSocket.once("close", () => {
+    if (!socket.destroyed) {
+      socket.destroy();
+    }
   });
 }
 
-function buildSyntheticOrigin(req) {
-  const hostHeader = req.headers.host;
-  if (!hostHeader) {
-    return "";
-  }
-
-  return `http://${hostHeader}`;
-}
 
 async function handleApi(req, res, route, requestUrl) {
   if (route.error) {
@@ -1075,9 +1156,9 @@ async function handleApi(req, res, route, requestUrl) {
       return;
     }
 
-    res.writeHead(upstreamResponse.status, {
+    res.writeHead(upstreamResponse.status, withSecurityHeaders({
       "Content-Type": contentType,
-    });
+    }));
 
     if (req.method === "HEAD") {
       res.end();
@@ -1103,6 +1184,13 @@ async function handleApi(req, res, route, requestUrl) {
     );
     res.end(buffer);
   } catch (error) {
+    if (error instanceof Error && error.code === "REQUEST_TOO_LARGE") {
+      sendJson(res, 413, {
+        error: "request_too_large",
+        message: error.message,
+      });
+      return;
+    }
     sendJson(res, isUpstreamTimeoutError(error) ? 504 : 502, {
       error: isUpstreamTimeoutError(error) ? "upstream_timeout" : "upstream_unavailable",
       message: error instanceof Error ? error.message : "Failed to reach Selenwright target",
@@ -1113,7 +1201,7 @@ async function handleApi(req, res, route, requestUrl) {
 
 async function handleSessionTerminate(req, res, route, requestUrl) {
   if ((req.method || "GET").toUpperCase() !== "DELETE") {
-    res.writeHead(405, { Allow: "DELETE", "Content-Type": "application/json; charset=utf-8" });
+    res.writeHead(405, withSecurityHeaders({ Allow: "DELETE", "Content-Type": "application/json; charset=utf-8" }));
     res.end(JSON.stringify({ error: "method_not_allowed", message: "Use DELETE to terminate a session." }));
     return;
   }
@@ -1305,8 +1393,22 @@ async function withTimeout(promise, timeoutMs, contextLabel) {
 }
 
 async function readRequestBody(req) {
+  const contentLength = Number(req.headers["content-length"]);
+  if (Number.isFinite(contentLength) && contentLength > maxRequestBodyBytes) {
+    const error = new Error(`Request body exceeds ${maxRequestBodyBytes} bytes`);
+    error.code = "REQUEST_TOO_LARGE";
+    throw error;
+  }
+
   const chunks = [];
+  let totalBytes = 0;
   for await (const chunk of req) {
+    totalBytes += chunk.length;
+    if (totalBytes > maxRequestBodyBytes) {
+      const error = new Error(`Request body exceeds ${maxRequestBodyBytes} bytes`);
+      error.code = "REQUEST_TOO_LARGE";
+      throw error;
+    }
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
@@ -1344,20 +1446,20 @@ const server = createServer(async (req, res) => {
   }
 
   if (resolveUpgradeHandler(requestUrl)) {
-    res.writeHead(426, { "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(426, withSecurityHeaders({ "Content-Type": "text/plain; charset=utf-8" }));
     res.end("Upgrade Required");
     return;
   }
 
   if (apiOnlyMode) {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(404, withSecurityHeaders({ "Content-Type": "text/plain; charset=utf-8" }));
     res.end("Not found");
     return;
   }
 
   const filePath = resolveStaticFile(requestUrl.pathname);
   if (!filePath) {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(404, withSecurityHeaders({ "Content-Type": "text/plain; charset=utf-8" }));
     res.end("Not found");
     return;
   }
@@ -1365,10 +1467,10 @@ const server = createServer(async (req, res) => {
   const extension = path.extname(filePath);
   const contentType = mimeTypes[extension] || "application/octet-stream";
 
-  res.writeHead(200, {
+  res.writeHead(200, withSecurityHeaders({
     "Cache-Control": "no-store",
     "Content-Type": contentType,
-  });
+  }));
 
   if (req.method === "HEAD") {
     res.end();

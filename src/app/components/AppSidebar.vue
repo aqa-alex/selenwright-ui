@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { icon } from "../../components/icons.js";
-import { navGroups } from "../../lib/router.js";
+import { navGroups } from "../router";
 
 const props = defineProps<{
   routeName: string;

@@ -25,16 +25,26 @@ interface VncRfb {
   resizeSession: boolean;
   viewOnly: boolean;
   addEventListener(type: string, listener: (event: VncRfbEvent) => void): void;
+  removeEventListener(type: string, listener: (event: VncRfbEvent) => void): void;
   disconnect(): void;
 }
+
+const VNC_INITIAL_RECONNECT_MS = 1000;
+const VNC_MAX_RECONNECT_MS = 30_000;
+const VNC_MAX_RECONNECT_ATTEMPTS = 6;
 
 const params = readVncViewerParams(window.location.search);
 const screenElement = ref<HTMLElement | null>(null);
 const desktopName = ref("");
 const pendingReconnect = ref(0);
+const reconnectAttempt = ref(0);
 const status = ref<VncStatus>(getInitialVncStatus(params.sessionId));
 const viewOnly = ref(true);
 let rfb: VncRfb | null = null;
+let attachedListeners: Array<{
+  type: string;
+  listener: (event: VncRfbEvent) => void;
+}> = [];
 
 const endpoint = computed(() =>
   buildVncWebSocketUrl(params.sessionId, window.location.origin),
@@ -63,9 +73,15 @@ onBeforeUnmount(() => {
 
 function connectViewer(wsUrl: string) {
   window.clearTimeout(pendingReconnect.value);
+  pendingReconnect.value = 0;
   disconnectViewer();
   screenElement.value?.replaceChildren();
-  setStatus("Connecting to VNC stream", "connecting");
+  setStatus(
+    reconnectAttempt.value > 0
+      ? `Reconnecting to VNC stream (attempt ${reconnectAttempt.value}/${VNC_MAX_RECONNECT_ATTEMPTS}).`
+      : "Connecting to VNC stream",
+    "connecting",
+  );
 
   if (!screenElement.value) {
     setStatus("Viewer target is unavailable", "error");
@@ -83,19 +99,41 @@ function connectViewer(wsUrl: string) {
   rfb.resizeSession = false;
   rfb.viewOnly = viewOnly.value;
 
-  rfb.addEventListener("connect", handleConnect);
-  rfb.addEventListener("desktopname", handleDesktopName);
-  rfb.addEventListener("disconnect", handleDisconnect);
-  rfb.addEventListener("credentialsrequired", handleCredentialsRequired);
+  attachListener("connect", handleConnect);
+  attachListener("desktopname", handleDesktopName);
+  attachListener("disconnect", handleDisconnect);
+  attachListener("credentialsrequired", handleCredentialsRequired);
+}
+
+function attachListener(type: string, listener: (event: VncRfbEvent) => void) {
+  if (!rfb) {
+    return;
+  }
+  rfb.addEventListener(type, listener);
+  attachedListeners.push({ type, listener });
+}
+
+function detachAllListeners(target: VncRfb) {
+  for (const { type, listener } of attachedListeners) {
+    try {
+      target.removeEventListener(type, listener);
+    } catch {
+      // RFB may not expose removeEventListener in older builds; ignore.
+    }
+  }
+  attachedListeners = [];
 }
 
 function disconnectViewer() {
   if (!rfb) {
+    attachedListeners = [];
     return;
   }
 
   const activeRfb = rfb;
   rfb = null;
+
+  detachAllListeners(activeRfb);
 
   try {
     activeRfb.disconnect();
@@ -105,6 +143,7 @@ function disconnectViewer() {
 }
 
 function handleConnect() {
+  reconnectAttempt.value = 0;
   setStatus(
     desktopName.value ? `Connected to ${desktopName.value}` : "Connected to VNC stream",
     "connected",
@@ -123,19 +162,43 @@ function handleDesktopName(event: VncRfbEvent) {
 
 function handleDisconnect(event: VncRfbEvent) {
   if (event.detail?.clean) {
+    reconnectAttempt.value = 0;
     setStatus("Viewer disconnected", "disconnected");
     return;
   }
 
-  setStatus("VNC stream closed unexpectedly. Retrying in 2s.", "error");
+  if (!params.sessionId) {
+    setStatus("VNC stream closed unexpectedly.", "error");
+    return;
+  }
+
+  if (reconnectAttempt.value >= VNC_MAX_RECONNECT_ATTEMPTS) {
+    setStatus(
+      "VNC stream unavailable after several reconnect attempts. Reload to retry.",
+      "error",
+    );
+    return;
+  }
+
+  reconnectAttempt.value += 1;
+  const delayMs = Math.min(
+    VNC_MAX_RECONNECT_MS,
+    VNC_INITIAL_RECONNECT_MS * 2 ** (reconnectAttempt.value - 1),
+  );
+  setStatus(
+    `VNC stream closed. Reconnecting in ${Math.round(delayMs / 1000)}s (attempt ${reconnectAttempt.value}/${VNC_MAX_RECONNECT_ATTEMPTS}).`,
+    "error",
+  );
   pendingReconnect.value = window.setTimeout(() => {
+    pendingReconnect.value = 0;
     if (params.sessionId) {
       connectViewer(buildVncWebSocketUrl(params.sessionId, window.location.origin));
     }
-  }, 2000);
+  }, delayMs);
 }
 
 function handleCredentialsRequired() {
+  reconnectAttempt.value = VNC_MAX_RECONNECT_ATTEMPTS;
   setStatus("This VNC stream requires credentials, which are not configured in the viewer.", "error");
 }
 
@@ -152,6 +215,8 @@ function setStatus(message: string, state: VncStatus["state"]) {
 
 function handleBeforeUnload() {
   window.clearTimeout(pendingReconnect.value);
+  pendingReconnect.value = 0;
+  reconnectAttempt.value = 0;
   disconnectViewer();
 }
 </script>

@@ -17,7 +17,8 @@ import {
   savePreference,
   watchSystemTheme,
 } from "./lib/preferences.js";
-import { buildSessionPath, navGroups, navigate, parseRoute } from "./lib/router.js";
+import { buildSessionPath, navGroups, parseRoute } from "./app/router.ts";
+import { navigate } from "./lib/router.js";
 import { getFilteredSessionsForState } from "./app/sessions/sessionTable.ts";
 import { mountConsoleShell, updateConsoleShell } from "./main.ts";
 
@@ -88,8 +89,43 @@ if (root instanceof HTMLElement) {
 
 applyPreferences(state.preferences);
 bindGlobalEvents();
+bindGlobalErrorHandlers();
 render();
-bootstrap();
+bootstrap().catch((error) => {
+  reportBootstrapError(error);
+});
+
+function reportBootstrapError(error) {
+  const message =
+    error instanceof Error ? error.message : "Failed to load console data";
+  setNotice(message);
+  if (typeof console !== "undefined" && typeof console.error === "function") {
+    console.error("Bootstrap failed:", error);
+  }
+}
+
+function bindGlobalErrorHandlers() {
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    const message =
+      reason instanceof Error
+        ? reason.message
+        : typeof reason === "string"
+          ? reason
+          : "Unhandled promise rejection";
+    setNotice(message);
+    if (typeof console !== "undefined" && typeof console.error === "function") {
+      console.error("Unhandled rejection:", reason);
+    }
+  });
+  window.addEventListener("error", (event) => {
+    if (event.error instanceof Error) {
+      if (typeof console !== "undefined" && typeof console.error === "function") {
+        console.error("Unhandled error:", event.error);
+      }
+    }
+  });
+}
 
 watchSystemTheme(() => {
   if (state.preferences.themeMode === "system") {

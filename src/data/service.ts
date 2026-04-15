@@ -617,6 +617,10 @@ export async function terminateSession(
   return payload;
 }
 
+const LIVE_LOG_INITIAL_RECONNECT_MS = 1000;
+const LIVE_LOG_MAX_RECONNECT_MS = 30_000;
+const LIVE_LOG_MAX_RECONNECT_ATTEMPTS = 6;
+
 export function subscribeToLiveLogs(
   sessionId: string,
   handlers: LiveLogHandlers = {},
@@ -638,11 +642,13 @@ export function subscribeToLiveLogs(
 
   let disposed = false;
   let sawChunk = false;
+  let attempt = 0;
+  let reconnectTimer = 0;
   let source: EventSource | null = null;
 
   const emitStatus = (status: string, message: string, extra: JsonRecord = {}) => {
     onStatusChange({
-      attempt: 0,
+      attempt,
       message,
       sessionId,
       status,
@@ -661,6 +667,43 @@ export function subscribeToLiveLogs(
     source = null;
   };
 
+  const cancelPendingReconnect = () => {
+    if (reconnectTimer) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = 0;
+    }
+  };
+
+  const scheduleReconnect = () => {
+    if (disposed || reconnectTimer) {
+      return;
+    }
+
+    if (attempt >= LIVE_LOG_MAX_RECONNECT_ATTEMPTS) {
+      const giveUpMessage =
+        "Live log stream unavailable after several attempts. Reconnect manually.";
+      onError(new Error(giveUpMessage));
+      emitStatus("error", giveUpMessage, { gaveUp: true });
+      return;
+    }
+
+    attempt += 1;
+    const delayMs = Math.min(
+      LIVE_LOG_MAX_RECONNECT_MS,
+      LIVE_LOG_INITIAL_RECONNECT_MS * 2 ** (attempt - 1),
+    );
+    emitStatus(
+      "reconnecting",
+      `Reconnecting live log stream (attempt ${attempt}/${LIVE_LOG_MAX_RECONNECT_ATTEMPTS}).`,
+      { delayMs },
+    );
+
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = 0;
+      connect();
+    }, delayMs);
+  };
+
   const parseStreamPayload = (event: MessageEvent<string>): JsonRecord | null => {
     try {
       const payload = JSON.parse(event.data) as unknown;
@@ -670,74 +713,90 @@ export function subscribeToLiveLogs(
     }
   };
 
-  source = new EventSource(buildLiveLogApiPath(sessionId));
-
-  source.addEventListener("chunk", (event: MessageEvent<string>) => {
-    const payload = parseStreamPayload(event);
-    const chunk = typeof payload?.chunk === "string" ? payload.chunk : "";
-    if (!chunk) {
-      return;
-    }
-
-    sawChunk = true;
-    onChunk(chunk);
-    emitStatus("streaming", "Streaming live log output.");
-  });
-
-  source.addEventListener("status", (event: MessageEvent<string>) => {
-    const payload = parseStreamPayload(event);
-    if (!payload) {
-      return;
-    }
-
-    const nextStatus =
-      typeof payload.status === "string" ? payload.status : "open";
-    const nextMessage =
-      typeof payload.message === "string" && payload.message.trim()
-        ? payload.message
-        : nextStatus === "closed"
-          ? "Live log stream closed."
-          : nextStatus === "error"
-            ? "Live log stream unavailable."
-            : "Live stream connected, waiting for first line.";
-
-    if (nextStatus === "closed") {
-      onClose(payload);
-    }
-
-    if (nextStatus === "error") {
-      onError(new Error(nextMessage));
-    }
-
-    emitStatus(nextStatus, nextMessage, payload);
-  });
-
-  source.onopen = () => {
-    emitStatus(
-      sawChunk ? "streaming" : "open",
-      sawChunk
-        ? "Streaming live log output."
-        : "Live stream connected, waiting for first line.",
-    );
-  };
-
-  source.onerror = () => {
+  const connect = () => {
     if (disposed) {
       return;
     }
 
-    const errorMessage = sawChunk
-      ? "Live log stream dropped. Reconnecting."
-      : "Live log stream unavailable.";
-    onError(
-      new Error(sawChunk ? "Live log stream dropped" : "Live log stream unavailable"),
-    );
-    emitStatus("reconnecting", errorMessage);
+    closeSource();
+    source = new EventSource(buildLiveLogApiPath(sessionId));
+
+    source.addEventListener("chunk", (event: MessageEvent<string>) => {
+      const payload = parseStreamPayload(event);
+      const chunk = typeof payload?.chunk === "string" ? payload.chunk : "";
+      if (!chunk) {
+        return;
+      }
+
+      sawChunk = true;
+      onChunk(chunk);
+      emitStatus("streaming", "Streaming live log output.");
+    });
+
+    source.addEventListener("status", (event: MessageEvent<string>) => {
+      const payload = parseStreamPayload(event);
+      if (!payload) {
+        return;
+      }
+
+      const nextStatus =
+        typeof payload.status === "string" ? payload.status : "open";
+      const nextMessage =
+        typeof payload.message === "string" && payload.message.trim()
+          ? payload.message
+          : nextStatus === "closed"
+            ? "Live log stream closed."
+            : nextStatus === "error"
+              ? "Live log stream unavailable."
+              : "Live stream connected, waiting for first line.";
+
+      if (nextStatus === "closed") {
+        onClose(payload);
+      }
+
+      if (nextStatus === "error") {
+        onError(new Error(nextMessage));
+      }
+
+      emitStatus(nextStatus, nextMessage, payload);
+    });
+
+    source.onopen = () => {
+      attempt = 0;
+      emitStatus(
+        sawChunk ? "streaming" : "open",
+        sawChunk
+          ? "Streaming live log output."
+          : "Live stream connected, waiting for first line.",
+      );
+    };
+
+    source.onerror = () => {
+      if (disposed) {
+        return;
+      }
+
+      // Browser EventSource auto-reconnects without backoff. Close the source
+      // and schedule a manual exponential retry with a cap.
+      closeSource();
+
+      const errorMessage = sawChunk
+        ? "Live log stream dropped. Reconnecting."
+        : "Live log stream unavailable.";
+      onError(
+        new Error(sawChunk ? "Live log stream dropped" : "Live log stream unavailable"),
+      );
+      emitStatus("reconnecting", errorMessage);
+      scheduleReconnect();
+    };
   };
+
+  connect();
 
   return {
     close() {
       disposed = true;
+      cancelPendingReconnect();
       closeSource();
       emitStatus("closed", "Live log stream closed.", {
         clean: true,

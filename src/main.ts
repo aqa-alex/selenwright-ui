@@ -1,6 +1,6 @@
 import { createPinia } from "pinia";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
-import { createApp, nextTick } from "vue";
+import { type App as VueApp, createApp, nextTick } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
 import { useShellStore } from "./app/stores/shell";
@@ -10,6 +10,7 @@ import { setNavigator } from "./lib/router.js";
 let routeChangeHandler: ((pathname: string) => void) | null = null;
 let removeRouteListener: (() => void) | null = null;
 let shellStore: ReturnType<typeof useShellStore> | null = null;
+let shellApp: VueApp | null = null;
 let shellMounted = false;
 
 const router = createConsoleRouter();
@@ -36,11 +37,11 @@ export function mountConsoleShell(
   const pinia = createPinia();
   shellStore = useShellStore(pinia);
 
-  const app = createApp(App);
-  app.use(pinia);
-  app.use(VueQueryPlugin, { queryClient });
-  app.use(router);
-  app.mount(container);
+  shellApp = createApp(App);
+  shellApp.use(pinia);
+  shellApp.use(VueQueryPlugin, { queryClient });
+  shellApp.use(router);
+  shellApp.mount(container);
 
   removeRouteListener = router.afterEach((to) => {
     routeChangeHandler?.(to.fullPath);
@@ -71,6 +72,14 @@ export function unmountConsoleShell() {
   removeRouteListener?.();
   removeRouteListener = null;
   routeChangeHandler = null;
+  if (shellApp) {
+    try {
+      shellApp.unmount();
+    } catch {
+      // ignore unmount errors during teardown
+    }
+    shellApp = null;
+  }
   shellStore = null;
   setNavigator(null);
   shellMounted = false;

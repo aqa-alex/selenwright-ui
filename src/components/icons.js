@@ -23,9 +23,23 @@ const icons = {
     '<rect x="3" y="4.5" width="8.5" height="8" rx="2"/><path d="m7 7.2 2.5 1.3L7 9.8z"/><path d="M11.5 7 15 5.5v6L11.5 10z"/>',
 };
 
+function escapeAttribute(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+const safeIconName = /^[a-z][a-z0-9-]*$/i;
+
 export function icon(name, label = "") {
-  const pathMarkup = icons[name] || icons.sessions;
-  const ariaLabel = label ? `aria-label="${label}" role="img"` : 'aria-hidden="true"';
-  return `<svg class="icon icon-${name}" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" ${ariaLabel}>${pathMarkup}</svg>`;
+  const safeName = safeIconName.test(name) && Object.prototype.hasOwnProperty.call(icons, name) ? name : 'sessions';
+  const pathMarkup = icons[safeName];
+  const ariaLabel = label
+    ? `aria-label="${escapeAttribute(label)}" role="img"`
+    : 'aria-hidden="true"';
+  return `<svg class="icon icon-${safeName}" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" ${ariaLabel}>${pathMarkup}</svg>`;
 }
 
