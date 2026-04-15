@@ -17,6 +17,7 @@ import {
   canTerminateSession,
   isTerminatePending,
 } from "../session-detail/sessionDetail";
+import { useClipboard } from "../composables/useClipboard";
 import { useTerminateSessionMutation } from "../queries/useTerminateSessionMutation";
 import { useConsoleStore } from "../stores/console";
 
@@ -28,6 +29,7 @@ const consoleStore = useConsoleStore();
 const { terminatingSessionId } = storeToRefs(consoleStore);
 const terminateMutation = useTerminateSessionMutation();
 const router = useRouter();
+const copy = useClipboard();
 
 const session = computed(() => props.model.session);
 const terminatePending = computed(() =>
@@ -81,9 +83,9 @@ async function terminate() {
         <button
           v-if="session.artifacts.devtools"
           class="button secondary"
-          data-action="copy"
           :data-copy="session.metadata.devtoolsEndpoint"
           type="button"
+          @click="copy(session.metadata.devtoolsEndpoint)"
         >
           Copy DevTools endpoint
         </button>

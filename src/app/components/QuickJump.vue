@@ -1,16 +1,17 @@
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
+import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue";
+import { useRoute } from "vue-router";
 import { icon } from "../../components/icons.js";
 import { navigate } from "../../lib/router.js";
+import { useQuickJumpResults } from "../composables/useQuickJumpResults";
 import { useUiStore } from "../stores/ui";
-import type { ShellQuickJumpResult } from "../types";
-
-defineProps<{
-  quickJumpQuery: string;
-  quickJumpResults: ShellQuickJumpResult[];
-}>();
 
 const uiStore = useUiStore();
+const { quickJumpQuery } = storeToRefs(uiStore);
+const quickJumpResults = useQuickJumpResults();
 const searchIcon = icon("search");
+const inputRef = useTemplateRef<HTMLInputElement>("inputRef");
 
 function onQueryInput(event: Event) {
   const target = event.target as HTMLInputElement | null;
@@ -22,12 +23,62 @@ function openResult(path: string) {
   uiStore.clearQuickJumpQuery();
   navigate(path);
 }
+
+function onKeyDown(event: KeyboardEvent) {
+  const activeElement = document.activeElement;
+  const isTyping =
+    activeElement instanceof HTMLElement &&
+    (activeElement.tagName === "INPUT" ||
+      activeElement.tagName === "TEXTAREA" ||
+      activeElement.tagName === "SELECT" ||
+      activeElement.isContentEditable);
+
+  if (event.key === "/" && !isTyping) {
+    event.preventDefault();
+    const input = inputRef.value;
+    if (input) {
+      input.focus();
+      input.select();
+    }
+    return;
+  }
+
+  if (quickJumpQuery.value && event.key === "Escape") {
+    uiStore.clearQuickJumpQuery();
+    return;
+  }
+
+  if (activeElement === inputRef.value && event.key === "Enter") {
+    const firstResult = quickJumpResults.value[0];
+    if (firstResult) {
+      event.preventDefault();
+      openResult(firstResult.path);
+    }
+  }
+}
+
+const route = useRoute();
+watch(
+  () => route.path,
+  () => {
+    uiStore.clearQuickJumpQuery();
+  },
+);
+
+onMounted(() => {
+  document.addEventListener("keydown", onKeyDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("keydown", onKeyDown);
+});
 </script>
 
 <template>
   <div class="quick-jump">
     <span v-html="searchIcon"></span>
     <input
+      ref="inputRef"
       aria-label="Global search and quick jump"
       placeholder="Quick jump"
       spellcheck="false"

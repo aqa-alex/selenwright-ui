@@ -1,3 +1,4 @@
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { renderToString } from "@vue/server-renderer";
 import { createSSRApp } from "vue";
 import ArtifactsPage from "../../src/app/pages/ArtifactsPage.vue";
@@ -127,7 +128,12 @@ describe("artifact page helpers", () => {
 });
 
 async function renderArtifactsPage(overrides: Partial<ArtifactPageModel> = {}) {
-  return renderToString(createSSRApp(ArtifactsPage, { model: buildModel(overrides) }));
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const app = createSSRApp(ArtifactsPage, { model: buildModel(overrides) });
+  app.use(VueQueryPlugin, { queryClient });
+  return renderToString(app);
 }
 
 function buildModel(overrides: Partial<ArtifactPageModel> = {}): ArtifactPageModel {

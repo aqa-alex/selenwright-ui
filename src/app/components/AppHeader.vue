@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import QuickJump from "./QuickJump.vue";
 import ThemeSwitcher from "./ThemeSwitcher.vue";
-import type { ShellQuickJumpResult } from "../types";
-
-defineProps<{
-  quickJumpQuery: string;
-  quickJumpResults: ShellQuickJumpResult[];
-}>();
 </script>
 
 <template>
@@ -23,7 +17,7 @@ defineProps<{
       </a>
     </div>
     <div class="topbar-tools">
-      <QuickJump :quick-jump-query="quickJumpQuery" :quick-jump-results="quickJumpResults" />
+      <QuickJump />
       <ThemeSwitcher />
     </div>
   </header>

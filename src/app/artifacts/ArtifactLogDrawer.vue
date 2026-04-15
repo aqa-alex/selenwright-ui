@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, useTemplateRef } from "vue";
 import type { LogArtifact } from "../../data/service";
-import type { ArtifactPageModel } from "./artifactsPage";
+import type { ArtifactLogFileState, ArtifactPageModel } from "./artifactsPage";
 import {
   buildLogDownloadHref,
   filterLogContent,
@@ -9,6 +9,8 @@ import {
   getSavedLogState,
   getSelectedArtifact,
 } from "./artifactsPage";
+import { useClipboard } from "../composables/useClipboard";
+import { useLogFileContentQuery } from "../queries/useLogFileContentQuery";
 import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
@@ -16,6 +18,8 @@ const props = defineProps<{
 }>();
 
 const uiStore = useUiStore();
+const copy = useClipboard();
+const logViewer = useTemplateRef<HTMLPreElement>("logViewer");
 
 function onLogSearchInput(event: Event) {
   const target = event.target as HTMLInputElement | null;
@@ -24,15 +28,54 @@ function onLogSearchInput(event: Event) {
 }
 
 const selected = computed(() => getSelectedArtifact(props.model) as LogArtifact | null);
-const logState = computed(() =>
+const selectedFilename = computed(() => selected.value?.filename || "");
+const cachedLogState = computed<ArtifactLogFileState>(() =>
   selected.value
     ? getSavedLogState(props.model, selected.value.filename)
     : { content: "", error: "", loaded: false, loading: false },
 );
+
+const logFileQuery = useLogFileContentQuery(selectedFilename, {
+  enabled: computed(
+    () =>
+      typeof window !== "undefined" &&
+      Boolean(selectedFilename.value) &&
+      !cachedLogState.value.loaded &&
+      !cachedLogState.value.loading &&
+      !cachedLogState.value.error,
+  ),
+});
+
+const queryError = computed(() =>
+  logFileQuery.error.value instanceof Error ? logFileQuery.error.value.message : "",
+);
+const logState = computed<ArtifactLogFileState>(() => {
+  const cached = cachedLogState.value;
+  if (cached.loaded || cached.loading || cached.error || cached.content) {
+    return cached;
+  }
+  return {
+    content: typeof logFileQuery.data.value === "string" ? logFileQuery.data.value : "",
+    error: queryError.value,
+    loaded: logFileQuery.isSuccess.value,
+    loading: logFileQuery.isFetching.value,
+  };
+});
 const filteredContent = computed(() =>
   selected.value ? filterLogContent(logState.value.content, props.model.logSearch) : "",
 );
 const hasContent = computed(() => Boolean(filteredContent.value));
+
+function refetchLog() {
+  void logFileQuery.refetch();
+}
+
+function jumpToEnd() {
+  const viewer = logViewer.value;
+  if (viewer) {
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+}
 </script>
 
 <template>
@@ -53,21 +96,19 @@ const hasContent = computed(() => Boolean(filteredContent.value));
       <button
         class="button secondary"
         :disabled="!hasContent"
-        data-action="copy-log-content"
-        :data-filename="selected.filename"
         type="button"
+        @click="copy(logState.content)"
       >
         Copy block
       </button>
-      <button class="button secondary" data-action="jump-log-end" type="button">
+      <button class="button secondary" type="button" @click="jumpToEnd">
         Jump to end
       </button>
       <button
         v-if="logState.error"
         class="button secondary"
-        data-action="retry-log-file"
-        :data-filename="selected.filename"
         type="button"
+        @click="refetchLog"
       >
         Retry
       </button>
@@ -87,8 +128,8 @@ const hasContent = computed(() => Boolean(filteredContent.value));
     </div>
     <pre
       v-if="hasContent"
+      ref="logViewer"
       class="code-block log-viewer wrap"
-      data-log-viewer
       id="log-viewer-content"
     >{{ filteredContent }}</pre>
     <p v-else class="hint-text">

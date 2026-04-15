@@ -1,6 +1,6 @@
 import { createPinia } from "pinia";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
-import { type App as VueApp, createApp, nextTick } from "vue";
+import { type App as VueApp, createApp } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
 import { useConsoleStore } from "./app/stores/console";
@@ -9,7 +9,6 @@ import { useSessionsStore } from "./app/stores/sessions";
 import { useSettingsStore } from "./app/stores/settings";
 import { useShellStore } from "./app/stores/shell";
 import { useUiStore } from "./app/stores/ui";
-import type { ShellSnapshot } from "./app/types";
 import { setNavigator } from "./lib/router.js";
 
 let routeChangeHandler: ((pathname: string) => void) | null = null;
@@ -75,13 +74,8 @@ export function mountConsoleShell(
   shellMounted = true;
 }
 
-export async function updateConsoleShell(snapshot: ShellSnapshot) {
-  if (!shellStore) {
-    return;
-  }
-
-  shellStore.applySnapshot(snapshot);
-  await nextTick();
+export function getShellStore() {
+  return shellStore;
 }
 
 export function getPreferencesStore() {
@@ -112,7 +106,7 @@ export function unmountConsoleShell() {
     try {
       shellApp.unmount();
     } catch {
-      // ignore unmount errors during teardown
+      /* ignore unmount errors */
     }
     shellApp = null;
   }

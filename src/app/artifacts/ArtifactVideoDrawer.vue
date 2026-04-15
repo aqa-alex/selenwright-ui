@@ -5,11 +5,13 @@ import { formatBytes, formatDateTime, formatDuration, titleCase } from "../../li
 import ArtifactKeyValueRow from "./ArtifactKeyValueRow.vue";
 import type { ArtifactPageModel } from "./artifactsPage";
 import { getSelectedArtifact } from "./artifactsPage";
+import { useClipboard } from "../composables/useClipboard";
 
 const props = defineProps<{
   model: ArtifactPageModel;
 }>();
 
+const copy = useClipboard();
 const selected = computed(() => getSelectedArtifact(props.model) as VideoArtifact | null);
 const created = computed(() =>
   selected.value?.createdAt ? formatDateTime(selected.value.createdAt, props.model.preferences) : "—",
@@ -33,9 +35,9 @@ const created = computed(() =>
     <div class="drawer-actions">
       <button
         class="button secondary"
-        data-action="copy"
         :data-copy="selected.filename"
         type="button"
+        @click="copy(selected.filename)"
       >
         Copy filename
       </button>

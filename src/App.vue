@@ -9,27 +9,15 @@ import { useShellStore } from "./app/stores/shell";
 useConsoleStream();
 
 const shellStore = useShellStore();
-const {
-  notice,
-  pageTitle,
-  quickJumpQuery,
-  quickJumpResults,
-  routeName,
-} = storeToRefs(shellStore);
+const { notice, pageTitle, routeName } = storeToRefs(shellStore);
 </script>
 
 <template>
   <div class="shell">
-    <AppHeader
-      :quick-jump-query="quickJumpQuery"
-      :quick-jump-results="quickJumpResults"
-    />
+    <AppHeader />
     <div class="workspace">
       <AppSidebar :route-name="routeName" />
-      <PageFrame
-        :notice="notice"
-        :page-title="pageTitle"
-      />
+      <PageFrame :notice="notice" :page-title="pageTitle" />
     </div>
   </div>
 </template>
