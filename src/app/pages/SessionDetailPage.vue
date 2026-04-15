@@ -85,7 +85,7 @@ async function terminate() {
           v-if="session.artifacts.vnc"
           class="button secondary"
           :href="buildVncViewerHref(session)"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           target="_blank"
         >
           Open VNC

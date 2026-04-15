@@ -21,6 +21,9 @@ const statusLabels: Record<SessionStatus, string> = {
 };
 
 export function formatDuration(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds)) {
+    return "—";
+  }
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -90,7 +93,11 @@ export function formatDateTimeLong(
 }
 
 export function timeAgo(value: string | number | Date, now: number = Date.now()): string {
-  const diff = Math.max(0, now - new Date(value).getTime());
+  const parsed = new Date(value).getTime();
+  if (!Number.isFinite(parsed)) {
+    return "—";
+  }
+  const diff = Math.max(0, now - parsed);
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) {
     return "just now";
