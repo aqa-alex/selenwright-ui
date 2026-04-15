@@ -13,14 +13,19 @@ import type {
 export async function saveArtifactHistorySettings(
   settings: ArtifactHistorySettingsUpdate,
 ): Promise<ArtifactHistorySettings> {
-  const response = await fetch("/api/history/settings", {
-    body: JSON.stringify(settings),
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
+  const response = await fetchWithTimeout(
+    "/api/history/settings",
+    {
+      body: JSON.stringify(settings),
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      method: "PUT",
     },
-    method: "PUT",
-  });
+    DEFAULT_REQUEST_TIMEOUT_MS,
+    "Artifact history update",
+  );
 
   const payload = await readJsonResponse(response, "Artifact history update");
 

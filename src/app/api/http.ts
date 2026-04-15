@@ -3,6 +3,7 @@ import type { JsonRecord } from "./types";
 
 export const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
 export const TERMINATE_REQUEST_TIMEOUT_MS = 8000;
+export const ARTIFACT_REQUEST_TIMEOUT_MS = 15_000;
 
 export async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetchWithTimeout(
