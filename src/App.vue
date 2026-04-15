@@ -3,10 +3,20 @@ import { storeToRefs } from "pinia";
 import AppHeader from "./app/components/AppHeader.vue";
 import AppSidebar from "./app/components/AppSidebar.vue";
 import PageFrame from "./app/components/PageFrame.vue";
+import { useArtifactSplitter } from "./app/composables/useArtifactSplitter";
 import { useConsoleStream } from "./app/composables/useConsoleStream";
+import { useDataLinkInterceptor } from "./app/composables/useDataLinkInterceptor";
+import { useGlobalErrorHandler } from "./app/composables/useGlobalErrorHandler";
+import { useRelativeTimeTicker } from "./app/composables/useRelativeTimeTicker";
+import { useRouteSideEffects } from "./app/composables/useRouteSideEffects";
 import { useShellStore } from "./app/stores/shell";
 
 useConsoleStream();
+useRouteSideEffects();
+useArtifactSplitter();
+useRelativeTimeTicker();
+useGlobalErrorHandler();
+useDataLinkInterceptor();
 
 const shellStore = useShellStore();
 const { notice, pageTitle, routeName } = storeToRefs(shellStore);

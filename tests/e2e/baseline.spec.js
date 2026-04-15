@@ -133,7 +133,7 @@ test("theme modes persist and inline bootstrap applies before app paint", async 
     const page = await context.newPage();
 
     await setPreferences(page, { density: "compact", themeMode: "system" });
-    await page.route("**/src/main.js", async (route) => {
+    await page.route("**/src/main.ts", async (route) => {
       await route.fulfill({
         body: "window.__selenwrightMainStubLoaded = true;",
         contentType: "text/javascript; charset=utf-8",
