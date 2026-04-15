@@ -5,6 +5,10 @@ import { createConnection as createNetConnection } from "node:net";
 import path from "node:path";
 import { connect as createTlsConnection } from "node:tls";
 import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_MAX_WS_FRAME_BYTES,
+  readWebSocketFrame,
+} from "./server-ws-frame.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
@@ -29,6 +33,12 @@ const staticRootDir = resolveStaticRootDir();
 const maxRequestBodyBytes = Number(process.env.SELENWRIGHT_MAX_BODY_BYTES || 1024 * 1024);
 const maxSseClients = Number(process.env.SELENWRIGHT_MAX_SSE_CLIENTS || 64);
 const maxSseClientAgeMs = Number(process.env.SELENWRIGHT_MAX_SSE_CLIENT_AGE_MS || 4 * 60 * 60 * 1000);
+const maxWsFrameBytes = Number(
+  process.env.SELENWRIGHT_WS_MAX_FRAME_BYTES || DEFAULT_MAX_WS_FRAME_BYTES,
+);
+const maxWsFragmentedBytes = Number(
+  process.env.SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES || 4 << 20,
+);
 
 const baseSecurityHeaders = {
   "Referrer-Policy": "no-referrer",
@@ -319,6 +329,7 @@ function handleLiveLogStream(req, res, requestUrl) {
   let upstreamBuffer = Buffer.alloc(0);
   let fragmentedOpcode = 0;
   let fragmentedFrames = [];
+  let fragmentedBytes = 0;
 
   const safeWriteSse = (payload) => {
     if (responseClosed) {
@@ -435,7 +446,7 @@ function handleLiveLogStream(req, res, requestUrl) {
       }
 
       while (true) {
-        const frame = readWebSocketFrame(upstreamBuffer);
+        const frame = readWebSocketFrame(upstreamBuffer, { maxFrameBytes: maxWsFrameBytes });
         if (!frame) {
           break;
         }
@@ -462,11 +473,20 @@ function handleLiveLogStream(req, res, requestUrl) {
             continue;
           }
 
+          fragmentedBytes += frame.payload.length;
+          if (fragmentedBytes > maxWsFragmentedBytes) {
+            sendUpstreamCloseCode(upstreamSocket, 1009, "fragmented message too large");
+            failStream(
+              `Fragmented WebSocket message exceeded ${maxWsFragmentedBytes} bytes.`,
+            );
+            return;
+          }
           fragmentedFrames.push(frame.payload);
           if (frame.fin) {
             forwardPayload(fragmentedOpcode, Buffer.concat(fragmentedFrames));
             fragmentedOpcode = 0;
             fragmentedFrames = [];
+            fragmentedBytes = 0;
           }
           continue;
         }
@@ -475,6 +495,14 @@ function handleLiveLogStream(req, res, requestUrl) {
           if (!frame.fin) {
             fragmentedOpcode = frame.opcode;
             fragmentedFrames = [frame.payload];
+            fragmentedBytes = frame.payload.length;
+            if (fragmentedBytes > maxWsFragmentedBytes) {
+              sendUpstreamCloseCode(upstreamSocket, 1009, "fragmented message too large");
+              failStream(
+                `Fragmented WebSocket message exceeded ${maxWsFragmentedBytes} bytes.`,
+              );
+              return;
+            }
             continue;
           }
 
@@ -554,62 +582,6 @@ function consumeUpstreamWebSocketHandshake(buffer) {
   };
 }
 
-function readWebSocketFrame(buffer) {
-  if (buffer.length < 2) {
-    return null;
-  }
-
-  const firstByte = buffer[0];
-  const secondByte = buffer[1];
-  const fin = Boolean(firstByte & 0x80);
-  const opcode = firstByte & 0x0f;
-  const masked = Boolean(secondByte & 0x80);
-  let offset = 2;
-  let payloadLength = secondByte & 0x7f;
-
-  if (payloadLength === 126) {
-    if (buffer.length < offset + 2) {
-      return null;
-    }
-    payloadLength = buffer.readUInt16BE(offset);
-    offset += 2;
-  } else if (payloadLength === 127) {
-    if (buffer.length < offset + 8) {
-      return null;
-    }
-
-    const extendedLength = Number(buffer.readBigUInt64BE(offset));
-    if (!Number.isSafeInteger(extendedLength)) {
-      throw new Error("Live log frame is too large to decode safely.");
-    }
-    payloadLength = extendedLength;
-    offset += 8;
-  }
-
-  const maskLength = masked ? 4 : 0;
-  if (buffer.length < offset + maskLength + payloadLength) {
-    return null;
-  }
-
-  const mask = masked ? buffer.subarray(offset, offset + 4) : null;
-  const payloadStart = offset + maskLength;
-  const payloadEnd = payloadStart + payloadLength;
-  const payload = Buffer.from(buffer.subarray(payloadStart, payloadEnd));
-
-  if (mask) {
-    for (let index = 0; index < payload.length; index += 1) {
-      payload[index] ^= mask[index % 4];
-    }
-  }
-
-  return {
-    fin,
-    opcode,
-    payload,
-    remaining: buffer.subarray(payloadEnd),
-  };
-}
-
 function createClientWebSocketFrame(opcode, payload = Buffer.alloc(0)) {
   const body = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
   const mask = randomBytes(4);
@@ -645,6 +617,21 @@ function createClientWebSocketFrame(opcode, payload = Buffer.alloc(0)) {
   }
 
   return frame;
+}
+
+function sendUpstreamCloseCode(socket, code, reason) {
+  if (socket.destroyed) {
+    return;
+  }
+  try {
+    const reasonBytes = Buffer.from(reason || "", "utf8");
+    const payload = Buffer.alloc(2 + reasonBytes.length);
+    payload.writeUInt16BE(code, 0);
+    reasonBytes.copy(payload, 2);
+    socket.write(createClientWebSocketFrame(0x8, payload));
+  } catch {
+    // Upstream may already be torn down; caller will destroy the socket.
+  }
 }
 
 function parseWebSocketCloseFrame(payload) {
