@@ -14,6 +14,7 @@ import {
   getVisibleArtifactItems,
 } from "../artifacts/artifactsPage";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
+import { useAutoSelectArtifact } from "../composables/useAutoSelectArtifact";
 import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
@@ -46,6 +47,9 @@ const drawerTitle = computed(() => {
 const showPagination = computed(
   () => props.model.pageKey === "logs" && filteredItems.value.length > 0,
 );
+
+const pageKey = computed(() => props.model.pageKey);
+useAutoSelectArtifact(pageKey, filteredItems);
 </script>
 
 <template>
@@ -76,7 +80,11 @@ const showPagination = computed(
           <div v-if="showPagination" class="pagination-bar">
             <label class="filter-select">
               <span>Per page</span>
-              <select :value="model.logsPerPage" @change="onPerPageChange">
+              <select
+                data-input="logs-per-page"
+                :value="model.logsPerPage"
+                @change="onPerPageChange"
+              >
                 <option v-for="option in logsPerPageOptions" :key="option" :value="option">
                   {{ option }}
                 </option>

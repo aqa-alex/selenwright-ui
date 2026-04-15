@@ -95,6 +95,7 @@ function jumpToEnd() {
     <div class="drawer-actions">
       <button
         class="button secondary"
+        :data-filename="selected.filename"
         :disabled="!hasContent"
         type="button"
         @click="copy(logState.content)"
