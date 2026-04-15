@@ -6,7 +6,6 @@ import type { ShellQuickJumpResult } from "../types";
 defineProps<{
   quickJumpQuery: string;
   quickJumpResults: ShellQuickJumpResult[];
-  themeMode: string;
 }>();
 </script>
 
@@ -25,7 +24,7 @@ defineProps<{
     </div>
     <div class="topbar-tools">
       <QuickJump :quick-jump-query="quickJumpQuery" :quick-jump-results="quickJumpResults" />
-      <ThemeSwitcher :theme-mode="themeMode" />
+      <ThemeSwitcher />
     </div>
   </header>
 </template>

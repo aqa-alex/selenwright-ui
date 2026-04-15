@@ -1,31 +1,43 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { storeToRefs } from "pinia";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import SegmentedControl from "../components/ui/SegmentedControl.vue";
+import {
+  type Density,
+  type DetailPanel,
+  type ThemeMode,
+  type TimeFormat,
+  type Timezone,
+  usePreferencesStore,
+} from "../stores/preferences";
 import type { OperationsPageModel } from "./operationsPage";
 
 const props = defineProps<{
   model: OperationsPageModel;
 }>();
 
-const themeOptions = [
+const preferencesStore = usePreferencesStore();
+const { density, detailPanel, themeMode, timeFormat, timezone } = storeToRefs(preferencesStore);
+
+const themeOptions: Array<{ value: ThemeMode; label: string }> = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
-const densityOptions = [
+const densityOptions: Array<{ value: Density; label: string }> = [
   { value: "compact", label: "Compact" },
   { value: "comfortable", label: "Comfortable" },
 ];
-const detailPanelOptions = [
+const detailPanelOptions: Array<{ value: DetailPanel; label: string }> = [
   { value: "collapsed", label: "Collapsed" },
   { value: "expanded", label: "Expanded" },
 ];
-const timezoneOptions = [
+const timezoneOptions: Array<{ value: Timezone; label: string }> = [
   { value: "local", label: "Local" },
   { value: "utc", label: "UTC" },
 ];
-const timeFormatOptions = [
+const timeFormatOptions: Array<{ value: TimeFormat; label: string }> = [
   { value: "24h", label: "24h" },
   { value: "12h", label: "12h" },
 ];
@@ -63,17 +75,17 @@ const unavailableReason = computed(
     <ConsolePanel title="Theme mode">
       <p class="hint-text">Follow system theme or override it manually.</p>
       <SegmentedControl
-        action="set-theme"
         :options="themeOptions"
-        :selected-value="model.preferences.themeMode"
+        :selected-value="themeMode"
+        @select="(value) => preferencesStore.setThemeMode(value as ThemeMode)"
       />
     </ConsolePanel>
     <ConsolePanel title="Density">
       <p class="hint-text">Compact keeps the sessions list denser without collapsing readability.</p>
       <SegmentedControl
-        action="set-density"
         :options="densityOptions"
-        :selected-value="model.preferences.density"
+        :selected-value="density"
+        @select="(value) => preferencesStore.setDensity(value as Density)"
       />
     </ConsolePanel>
     <ConsolePanel title="Viewer behavior">
@@ -81,25 +93,25 @@ const unavailableReason = computed(
         <div>
           <h3>Detail panels</h3>
           <SegmentedControl
-            action="set-detail-panel"
             :options="detailPanelOptions"
-            :selected-value="model.preferences.detailPanel || 'collapsed'"
+            :selected-value="detailPanel"
+            @select="(value) => preferencesStore.setDetailPanel(value as DetailPanel)"
           />
         </div>
         <div>
           <h3>Timezone</h3>
           <SegmentedControl
-            action="set-timezone"
             :options="timezoneOptions"
-            :selected-value="model.preferences.timezone || 'local'"
+            :selected-value="timezone"
+            @select="(value) => preferencesStore.setTimezone(value as Timezone)"
           />
         </div>
         <div>
           <h3>Time format</h3>
           <SegmentedControl
-            action="set-time-format"
             :options="timeFormatOptions"
-            :selected-value="model.preferences.timeFormat || '24h'"
+            :selected-value="timeFormat"
+            @select="(value) => preferencesStore.setTimeFormat(value as TimeFormat)"
           />
         </div>
       </div>

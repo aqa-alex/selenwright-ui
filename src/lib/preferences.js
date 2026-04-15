@@ -27,7 +27,17 @@ const artifactPaneStorageKeys = {
   videos: 'selenwright-ui.artifact-drawer-width.videos',
 };
 
-const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+let cachedThemeMediaQuery = null;
+function getThemeMediaQuery() {
+  if (cachedThemeMediaQuery) {
+    return cachedThemeMediaQuery;
+  }
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return null;
+  }
+  cachedThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  return cachedThemeMediaQuery;
+}
 
 function readStorage(key) {
   try {
@@ -83,21 +93,26 @@ export function applyPreferences(preferences) {
 
 export function applyTheme(themeMode) {
   const normalizedThemeMode = normalizeThemeMode(themeMode);
+  const mediaQuery = getThemeMediaQuery();
   const resolvedTheme =
     normalizedThemeMode === 'system'
-      ? themeMediaQuery.matches
+      ? mediaQuery && mediaQuery.matches
         ? 'dark'
         : 'light'
       : normalizedThemeMode;
 
-  document.documentElement.dataset.themeMode = normalizedThemeMode;
-  document.documentElement.dataset.theme = resolvedTheme;
+  if (typeof document !== 'undefined') {
+    document.documentElement.dataset.themeMode = normalizedThemeMode;
+    document.documentElement.dataset.theme = resolvedTheme;
+  }
   savePreference('themeMode', normalizedThemeMode);
 }
 
 export function applyDensity(density) {
   const normalizedDensity = normalizeDensity(density);
-  document.documentElement.dataset.density = normalizedDensity;
+  if (typeof document !== 'undefined') {
+    document.documentElement.dataset.density = normalizedDensity;
+  }
   savePreference('density', normalizedDensity);
 }
 
@@ -113,9 +128,13 @@ export function saveArtifactPaneWidth(pageKey, ratio) {
 }
 
 export function watchSystemTheme(onChange) {
-  const listener = () => onChange(themeMediaQuery.matches ? 'dark' : 'light');
-  themeMediaQuery.addEventListener('change', listener);
-  return () => themeMediaQuery.removeEventListener('change', listener);
+  const mediaQuery = getThemeMediaQuery();
+  if (!mediaQuery) {
+    return () => {};
+  }
+  const listener = () => onChange(mediaQuery.matches ? 'dark' : 'light');
+  mediaQuery.addEventListener('change', listener);
+  return () => mediaQuery.removeEventListener('change', listener);
 }
 
 function normalizeThemeMode(value) {

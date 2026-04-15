@@ -3,6 +3,7 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { type App as VueApp, createApp, nextTick } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
+import { usePreferencesStore } from "./app/stores/preferences";
 import { useShellStore } from "./app/stores/shell";
 import type { ShellSnapshot } from "./app/types";
 import { setNavigator } from "./lib/router.js";
@@ -10,6 +11,7 @@ import { setNavigator } from "./lib/router.js";
 let routeChangeHandler: ((pathname: string) => void) | null = null;
 let removeRouteListener: (() => void) | null = null;
 let shellStore: ReturnType<typeof useShellStore> | null = null;
+let preferencesStore: ReturnType<typeof usePreferencesStore> | null = null;
 let shellApp: VueApp | null = null;
 let shellMounted = false;
 
@@ -36,6 +38,8 @@ export function mountConsoleShell(
 
   const pinia = createPinia();
   shellStore = useShellStore(pinia);
+  preferencesStore = usePreferencesStore(pinia);
+  preferencesStore.initialize();
 
   shellApp = createApp(App);
   shellApp.use(pinia);
@@ -68,6 +72,10 @@ export async function updateConsoleShell(snapshot: ShellSnapshot) {
   await nextTick();
 }
 
+export function getPreferencesStore() {
+  return preferencesStore;
+}
+
 export function unmountConsoleShell() {
   removeRouteListener?.();
   removeRouteListener = null;
@@ -81,6 +89,7 @@ export function unmountConsoleShell() {
     shellApp = null;
   }
   shellStore = null;
+  preferencesStore = null;
   setNavigator(null);
   shellMounted = false;
 }

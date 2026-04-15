@@ -11,7 +11,6 @@ const {
   notice,
   operationsPage,
   pageTitle,
-  preferences,
   quickJumpQuery,
   quickJumpResults,
   routeName,
@@ -25,7 +24,6 @@ const {
     <AppHeader
       :quick-jump-query="quickJumpQuery"
       :quick-jump-results="quickJumpResults"
-      :theme-mode="preferences.themeMode"
     />
     <div class="workspace">
       <AppSidebar :route-name="routeName" />

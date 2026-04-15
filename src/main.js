@@ -8,21 +8,20 @@ import {
   terminateSession,
 } from "./data/service.ts";
 import { formatDuration, formatStatus, timeAgo } from "./lib/format.js";
-import {
-  applyDensity,
-  applyPreferences,
-  applyTheme,
-  loadPreferences,
-  saveArtifactPaneWidth,
-  savePreference,
-  watchSystemTheme,
-} from "./lib/preferences.js";
+import { saveArtifactPaneWidth } from "./lib/preferences.js";
 import { buildSessionPath, navGroups, parseRoute } from "./app/router.ts";
 import { navigate } from "./lib/router.js";
 import { getFilteredSessionsForState } from "./app/sessions/sessionTable.ts";
-import { mountConsoleShell, updateConsoleShell } from "./main.ts";
+import { getPreferencesStore, mountConsoleShell, updateConsoleShell } from "./main.ts";
 
-const initialPreferences = loadPreferences();
+const defaultPreferencesShape = {
+  density: "compact",
+  detailPanel: "collapsed",
+  themeMode: "system",
+  timeFormat: "24h",
+  timezone: "local",
+  artifactPaneWidths: { videos: 0.37, logs: 0.37, downloads: 0.37 },
+};
 const state = {
   data: createEmptyDataset(),
   filters: {
@@ -33,7 +32,10 @@ const state = {
     sort: "started",
     status: "all",
   },
-  preferences: initialPreferences,
+  // Mirror of the preferences Pinia store. Kept around so createShellSnapshot
+  // can read preferences synchronously; updated via a $subscribe wired up
+  // after Vue mounts (see bindPreferencesMirror below).
+  preferences: defaultPreferencesShape,
   route: parseRoute(window.location.pathname),
   ui: {
     artifactSessionFilter: "",
@@ -87,13 +89,37 @@ if (root instanceof HTMLElement) {
   mountConsoleShell(root, { onRouteChange: handleRouteChange });
 }
 
-applyPreferences(state.preferences);
+bindPreferencesMirror();
 bindGlobalEvents();
 bindGlobalErrorHandlers();
 render();
 bootstrap().catch((error) => {
   reportBootstrapError(error);
 });
+
+function bindPreferencesMirror() {
+  const preferencesStore = getPreferencesStore();
+  if (!preferencesStore) {
+    return;
+  }
+  syncPreferencesFromStore(preferencesStore);
+  preferencesStore.$subscribe(() => {
+    syncPreferencesFromStore(preferencesStore);
+    render();
+  });
+}
+
+function syncPreferencesFromStore(preferencesStore) {
+  const next = preferencesStore.$state;
+  state.preferences = {
+    density: next.density,
+    detailPanel: next.detailPanel,
+    themeMode: next.themeMode,
+    timeFormat: next.timeFormat,
+    timezone: next.timezone,
+    artifactPaneWidths: { ...next.artifactPaneWidths },
+  };
+}
 
 function reportBootstrapError(error) {
   const message =
@@ -126,12 +152,6 @@ function bindGlobalErrorHandlers() {
     }
   });
 }
-
-watchSystemTheme(() => {
-  if (state.preferences.themeMode === "system") {
-    applyTheme("system");
-  }
-});
 
 async function bootstrap() {
   await refreshData();
@@ -269,36 +289,11 @@ function handleClick(event) {
       state.ui.artifactHistory.error = "";
       render();
       break;
-    case "set-density":
-      state.preferences.density = value;
-      applyDensity(value);
-      render();
-      break;
     case "save-artifact-history-settings":
       void saveArtifactHistorySettingsFromUi();
       break;
-    case "set-detail-panel":
-      state.preferences.detailPanel = value;
-      savePreference("detailPanel", value);
-      render();
-      break;
     case "set-sort":
       state.filters.sort = sort;
-      render();
-      break;
-    case "set-theme":
-      state.preferences.themeMode = value;
-      applyTheme(value);
-      render();
-      break;
-    case "set-time-format":
-      state.preferences.timeFormat = value;
-      savePreference("timeFormat", value);
-      render();
-      break;
-    case "set-timezone":
-      state.preferences.timezone = value;
-      savePreference("timezone", value);
       render();
       break;
     case "terminate-session":

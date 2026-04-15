@@ -5,9 +5,12 @@ interface SegmentedOption {
 }
 
 defineProps<{
-  action: string;
   options: SegmentedOption[];
   selectedValue: string;
+}>();
+
+const emit = defineEmits<{
+  select: [value: string];
 }>();
 </script>
 
@@ -18,9 +21,8 @@ defineProps<{
       :key="option.value"
       :aria-pressed="selectedValue === option.value ? 'true' : 'false'"
       :class="['segmented-option', { selected: selectedValue === option.value }]"
-      :data-action="action"
-      :data-value="option.value"
       type="button"
+      @click="emit('select', option.value)"
     >
       {{ option.label }}
     </button>

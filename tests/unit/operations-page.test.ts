@@ -1,11 +1,24 @@
 import { renderToString } from "@vue/server-renderer";
+import { createPinia, setActivePinia } from "pinia";
 import { createSSRApp } from "vue";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import OperationsPage from "../../src/app/pages/OperationsPage.vue";
 import type { OperationsPageModel, OperationsRouteName } from "../../src/app/operations/operationsPage";
+import {
+  type Density,
+  type DetailPanel,
+  type ThemeMode,
+  type TimeFormat,
+  type Timezone,
+  usePreferencesStore,
+} from "../../src/app/stores/preferences";
 import { createEmptyDataset } from "../../src/data/service";
 
 describe("OperationsPage", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   it("renders browser inventory grouped by browser", async () => {
     const html = await renderOperationsPage({
       browsers: [
@@ -66,6 +79,14 @@ describe("OperationsPage", () => {
   });
 
   it("renders settings state changes and dirty artifact history controls", async () => {
+    const preferencesStore = usePreferencesStore();
+    preferencesStore.$patch({
+      density: "comfortable" as Density,
+      detailPanel: "expanded" as DetailPanel,
+      themeMode: "dark" as ThemeMode,
+      timeFormat: "12h" as TimeFormat,
+      timezone: "utc" as Timezone,
+    });
     const html = await renderOperationsPage({
       artifactHistoryUi: {
         dirty: true,
@@ -74,13 +95,6 @@ describe("OperationsPage", () => {
         error: "",
         loaded: true,
         saving: false,
-      },
-      preferences: {
-        density: "comfortable",
-        detailPanel: "expanded",
-        themeMode: "dark",
-        timeFormat: "12h",
-        timezone: "utc",
       },
       routeName: "settings",
       settings: {
@@ -94,7 +108,8 @@ describe("OperationsPage", () => {
     });
 
     expect(html).toContain("<h1>Settings</h1>");
-    expect(html).toMatch(/class="segmented-option selected"[^>]*data-action="set-density"[^>]*data-value="comfortable"/);
+    // Comfortable density button is the selected one in the density panel.
+    expect(html).toMatch(/Density[\s\S]*?segmented-option selected[^>]*>Comfortable/);
     expect(html).toContain('value="21"');
     expect(html).toMatch(/data-action="save-artifact-history-settings"[^>]*>Save settings/);
     expect(html).not.toMatch(/data-action="save-artifact-history-settings"[^>]*disabled/);
