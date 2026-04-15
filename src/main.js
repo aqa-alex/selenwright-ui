@@ -15,8 +15,10 @@ import { getFilteredSessionsForState } from "./app/sessions/sessionTable.ts";
 import {
   getPreferencesStore,
   getSessionsStore,
+  getSettingsStore,
   getUiStore,
   mountConsoleShell,
+  setSaveArtifactHistoryHandler,
   updateConsoleShell,
 } from "./main.ts";
 
@@ -98,6 +100,8 @@ if (root instanceof HTMLElement) {
 bindPreferencesMirror();
 bindUiMirror();
 bindSessionsMirror();
+bindSettingsMirror();
+setSaveArtifactHistoryHandler(saveArtifactHistorySettingsFromUi);
 bindGlobalEvents();
 bindGlobalErrorHandlers();
 render();
@@ -165,6 +169,22 @@ function bindSessionsMirror() {
 
 function syncSessionsFromStore(sessionsStore) {
   state.filters = { ...sessionsStore.$state.filters };
+}
+
+function bindSettingsMirror() {
+  const settingsStore = getSettingsStore();
+  if (!settingsStore) {
+    return;
+  }
+  syncSettingsFromStore(settingsStore);
+  settingsStore.$subscribe(() => {
+    syncSettingsFromStore(settingsStore);
+    render();
+  });
+}
+
+function syncSettingsFromStore(settingsStore) {
+  state.ui.artifactHistory = { ...settingsStore.$state.artifactHistory };
 }
 
 function reportBootstrapError(error) {
@@ -263,7 +283,7 @@ function handleClick(event) {
     return;
   }
 
-  const { action, sessionId, value, filename } = actionTarget.dataset;
+  const { action, sessionId, filename } = actionTarget.dataset;
 
   switch (action) {
     case "copy":
@@ -305,15 +325,6 @@ function handleClick(event) {
         render();
       }
       break;
-    case "set-artifact-history-enabled":
-      state.ui.artifactHistory.draftEnabled = value === "enabled";
-      state.ui.artifactHistory.dirty = true;
-      state.ui.artifactHistory.error = "";
-      render();
-      break;
-    case "save-artifact-history-settings":
-      void saveArtifactHistorySettingsFromUi();
-      break;
     case "terminate-session":
       if (sessionId) {
         void terminateSessionFromUi(sessionId);
@@ -339,12 +350,6 @@ function handleInput(event) {
   }
 
   switch (target.dataset.input) {
-    case "artifact-history-retention-days":
-      state.ui.artifactHistory.draftRetentionDays = target.value;
-      state.ui.artifactHistory.dirty = true;
-      state.ui.artifactHistory.error = "";
-      render();
-      break;
     default:
       break;
   }
@@ -357,52 +362,57 @@ function syncArtifactHistoryState(settings) {
     reason: "Artifact history settings unavailable",
     retentionDays: 7,
   };
-  const uiSettings = state.ui.artifactHistory;
-
-  if (!uiSettings.loaded || !uiSettings.dirty) {
-    uiSettings.draftEnabled = nextSettings.enabled;
-    uiSettings.draftRetentionDays = String(nextSettings.retentionDays);
-    uiSettings.loaded = true;
-    if (!uiSettings.saving) {
-      uiSettings.error = "";
-    }
+  const settingsStore = getSettingsStore();
+  if (!settingsStore) {
+    return;
+  }
+  const draft = settingsStore.$state.artifactHistory;
+  if (!draft.loaded || !draft.dirty) {
+    settingsStore.syncFromBackend({
+      enabled: nextSettings.enabled,
+      retentionDays: nextSettings.retentionDays,
+    });
   }
 }
 
 async function saveArtifactHistorySettingsFromUi() {
-  const retentionInput = state.ui.artifactHistory.draftRetentionDays.trim();
+  const settingsStore = getSettingsStore();
+  if (!settingsStore) {
+    return;
+  }
+  const draft = settingsStore.$state.artifactHistory;
+  const retentionInput = draft.draftRetentionDays.trim();
   if (!/^\d+$/.test(retentionInput)) {
-    state.ui.artifactHistory.error = "Retention days must be a whole number.";
-    render();
+    settingsStore.setHistoryError("Retention days must be a whole number.");
     return;
   }
 
   const nextRetentionDays = Number.parseInt(retentionInput, 10);
   if (nextRetentionDays < 1 || nextRetentionDays > 365) {
-    state.ui.artifactHistory.error = "Retention days must stay between 1 and 365.";
-    render();
+    settingsStore.setHistoryError("Retention days must stay between 1 and 365.");
     return;
   }
 
-  state.ui.artifactHistory.saving = true;
-  state.ui.artifactHistory.error = "";
-  render();
+  settingsStore.setHistorySaving(true);
+  settingsStore.setHistoryError("");
 
   try {
     await saveArtifactHistorySettings({
-      enabled: state.ui.artifactHistory.draftEnabled,
+      enabled: draft.draftEnabled,
       retentionDays: nextRetentionDays,
     });
-    state.ui.artifactHistory.dirty = false;
+    settingsStore.syncFromBackend({
+      enabled: draft.draftEnabled,
+      retentionDays: nextRetentionDays,
+    });
     await refreshData();
     setNotice("Artifact history settings saved");
   } catch (error) {
-    state.ui.artifactHistory.error =
-      error instanceof Error ? error.message : "Artifact history settings update failed";
-    render();
+    settingsStore.setHistoryError(
+      error instanceof Error ? error.message : "Artifact history settings update failed",
+    );
   } finally {
-    state.ui.artifactHistory.saving = false;
-    render();
+    settingsStore.setHistorySaving(false);
   }
 }
 

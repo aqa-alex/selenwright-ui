@@ -11,11 +11,15 @@ import {
   type Timezone,
   usePreferencesStore,
 } from "../stores/preferences";
+import { useSettingsStore } from "../stores/settings";
+import { requestSaveArtifactHistory } from "../lib/handlers";
 import type { OperationsPageModel } from "./operationsPage";
 
 const props = defineProps<{
   model: OperationsPageModel;
 }>();
+
+const settingsStore = useSettingsStore();
 
 const preferencesStore = usePreferencesStore();
 const { density, detailPanel, themeMode, timeFormat, timezone } = storeToRefs(preferencesStore);
@@ -128,19 +132,17 @@ const unavailableReason = computed(
           >
             <button
               :class="['segmented-option', { selected: !enableSelected }]"
-              data-action="set-artifact-history-enabled"
-              data-value="disabled"
               :disabled="controlsDisabled"
               type="button"
+              @click="settingsStore.setHistoryEnabled(false)"
             >
               Disabled
             </button>
             <button
               :class="['segmented-option', { selected: enableSelected }]"
-              data-action="set-artifact-history-enabled"
-              data-value="enabled"
               :disabled="controlsDisabled"
               type="button"
+              @click="settingsStore.setHistoryEnabled(true)"
             >
               Enabled
             </button>
@@ -158,13 +160,13 @@ const unavailableReason = computed(
             ]"
           >
             <input
-              data-input="artifact-history-retention-days"
               inputmode="numeric"
               pattern="[0-9]*"
               placeholder="7"
               :disabled="controlsDisabled"
               type="text"
               :value="retentionValue"
+              @input="(event) => settingsStore.setHistoryRetentionDays(((event.target as HTMLInputElement).value))"
             />
           </label>
         </div>
@@ -173,9 +175,9 @@ const unavailableReason = computed(
         <div class="drawer-actions settings-actions">
           <button
             class="button"
-            data-action="save-artifact-history-settings"
             :disabled="controlsDisabled || !artifactHistoryUi.dirty"
             type="button"
+            @click="requestSaveArtifactHistory()"
           >
             {{ artifactHistoryUi.saving ? "Saving…" : "Save settings" }}
           </button>

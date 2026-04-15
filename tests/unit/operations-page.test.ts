@@ -111,8 +111,8 @@ describe("OperationsPage", () => {
     // Comfortable density button is the selected one in the density panel.
     expect(html).toMatch(/Density[\s\S]*?segmented-option selected[^>]*>Comfortable/);
     expect(html).toContain('value="21"');
-    expect(html).toMatch(/data-action="save-artifact-history-settings"[^>]*>Save settings/);
-    expect(html).not.toMatch(/data-action="save-artifact-history-settings"[^>]*disabled/);
+    // Save button is enabled when the draft is dirty and history is available.
+    expect(html).toMatch(/<button[^>]*class="button"(?![^>]*disabled)[^>]*>\s*Save settings/);
   });
 
   it("disables artifact history controls when the backend setting is unavailable", async () => {
@@ -129,8 +129,10 @@ describe("OperationsPage", () => {
     });
 
     expect(html).toContain("Blocked upstream");
-    expect(html).toMatch(/data-action="save-artifact-history-settings"[^>]*disabled/);
-    expect(html).toMatch(/data-input="artifact-history-retention-days"[^>]*disabled/);
+    // Save button is disabled when the backend setting is unavailable.
+    expect(html).toMatch(/<button[^>]*class="button"[^>]*disabled[^>]*>\s*Save settings/);
+    // The retention-days input is also disabled.
+    expect(html).toMatch(/<input[^>]*placeholder="7"[^>]*disabled/);
   });
 });
 

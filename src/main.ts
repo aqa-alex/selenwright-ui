@@ -3,8 +3,10 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { type App as VueApp, createApp, nextTick } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
+import { setSaveArtifactHistoryHandler as setSaveHandler } from "./app/lib/handlers";
 import { usePreferencesStore } from "./app/stores/preferences";
 import { useSessionsStore } from "./app/stores/sessions";
+import { useSettingsStore } from "./app/stores/settings";
 import { useShellStore } from "./app/stores/shell";
 import { useUiStore } from "./app/stores/ui";
 import type { ShellSnapshot } from "./app/types";
@@ -16,6 +18,7 @@ let shellStore: ReturnType<typeof useShellStore> | null = null;
 let preferencesStore: ReturnType<typeof usePreferencesStore> | null = null;
 let uiStore: ReturnType<typeof useUiStore> | null = null;
 let sessionsStore: ReturnType<typeof useSessionsStore> | null = null;
+let settingsStore: ReturnType<typeof useSettingsStore> | null = null;
 let shellApp: VueApp | null = null;
 let shellMounted = false;
 
@@ -46,6 +49,7 @@ export function mountConsoleShell(
   preferencesStore.initialize();
   uiStore = useUiStore(pinia);
   sessionsStore = useSessionsStore(pinia);
+  settingsStore = useSettingsStore(pinia);
 
   shellApp = createApp(App);
   shellApp.use(pinia);
@@ -90,6 +94,14 @@ export function getSessionsStore() {
   return sessionsStore;
 }
 
+export function getSettingsStore() {
+  return settingsStore;
+}
+
+export function setSaveArtifactHistoryHandler(handler: (() => void | Promise<void>) | null) {
+  setSaveHandler(handler);
+}
+
 export function unmountConsoleShell() {
   removeRouteListener?.();
   removeRouteListener = null;
@@ -106,6 +118,8 @@ export function unmountConsoleShell() {
   preferencesStore = null;
   uiStore = null;
   sessionsStore = null;
+  settingsStore = null;
+  setSaveHandler(null);
   setNavigator(null);
   shellMounted = false;
 }
