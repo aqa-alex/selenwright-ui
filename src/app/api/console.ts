@@ -33,6 +33,9 @@ import type {
 
 const DEFAULT_TARGET = "";
 const CONSOLE_STREAM_PATH = "/api/stream/console";
+const CONSOLE_STREAM_INITIAL_RECONNECT_MS = 1000;
+const CONSOLE_STREAM_MAX_RECONNECT_MS = 30_000;
+const CONSOLE_STREAM_MAX_RECONNECT_ATTEMPTS = 6;
 
 export function createEmptyDataset(target = DEFAULT_TARGET): ConsoleDataset {
   return {
@@ -166,32 +169,103 @@ export function subscribeToConsoleData(
   }
 
   const { onDataset = () => {}, onError = () => {} } = handlers;
-  const source = new EventSource(CONSOLE_STREAM_PATH);
-  let closed = false;
 
-  source.addEventListener("snapshot", (event: MessageEvent<string>) => {
-    try {
-      const snapshot = JSON.parse(event.data) as ConsoleSnapshot;
-      onDataset(buildConsoleDatasetFromSnapshot(snapshot));
-    } catch (error) {
-      onError(
-        error instanceof Error
-          ? error
-          : new Error("Failed to parse console stream payload"),
-      );
+  let disposed = false;
+  let sawSnapshot = false;
+  let attempt = 0;
+  let reconnectTimer = 0;
+  let source: EventSource | null = null;
+
+  const closeSource = () => {
+    if (!source) {
+      return;
     }
-  });
+    source.onopen = null;
+    source.onerror = null;
+    source.close();
+    source = null;
+  };
 
-  source.onerror = () => {
-    if (!closed) {
-      onError(new Error("Console stream disconnected"));
+  const cancelPendingReconnect = () => {
+    if (reconnectTimer) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = 0;
     }
   };
 
+  const scheduleReconnect = () => {
+    if (disposed || reconnectTimer) {
+      return;
+    }
+
+    if (attempt >= CONSOLE_STREAM_MAX_RECONNECT_ATTEMPTS) {
+      onError(
+        new Error(
+          "Console stream unavailable after several attempts. Reload to retry.",
+        ),
+      );
+      return;
+    }
+
+    attempt += 1;
+    const delayMs = Math.min(
+      CONSOLE_STREAM_MAX_RECONNECT_MS,
+      CONSOLE_STREAM_INITIAL_RECONNECT_MS * 2 ** (attempt - 1),
+    );
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = 0;
+      connect();
+    }, delayMs);
+  };
+
+  const connect = () => {
+    if (disposed) {
+      return;
+    }
+
+    closeSource();
+    source = new EventSource(CONSOLE_STREAM_PATH);
+
+    source.addEventListener("snapshot", (event: MessageEvent<string>) => {
+      try {
+        const snapshot = JSON.parse(event.data) as ConsoleSnapshot;
+        sawSnapshot = true;
+        attempt = 0;
+        onDataset(buildConsoleDatasetFromSnapshot(snapshot));
+      } catch (error) {
+        onError(
+          error instanceof Error
+            ? error
+            : new Error("Failed to parse console stream payload"),
+        );
+      }
+    });
+
+    source.onopen = () => {
+      attempt = 0;
+    };
+
+    source.onerror = () => {
+      if (disposed) {
+        return;
+      }
+      closeSource();
+      onError(
+        new Error(
+          sawSnapshot ? "Console stream dropped" : "Console stream unavailable",
+        ),
+      );
+      scheduleReconnect();
+    };
+  };
+
+  connect();
+
   return {
     close() {
-      closed = true;
-      source.close();
+      disposed = true;
+      cancelPendingReconnect();
+      closeSource();
     },
   };
 }

@@ -16,7 +16,10 @@ export function useDataLinkInterceptor() {
     const link = target?.closest<HTMLAnchorElement>("a[data-link]");
     if (!link) return;
     const href = link.getAttribute("href");
-    if (!href) return;
+    // Only intercept absolute in-app paths. External (`https://…`, `mailto:`,
+    // etc.) fall through to the browser's default handling so clicks are
+    // never silently swallowed.
+    if (!href || !href.startsWith("/")) return;
     event.preventDefault();
     void router.push(href);
   }
