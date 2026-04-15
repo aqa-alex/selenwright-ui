@@ -19,10 +19,6 @@ export function useTerminateSessionMutation() {
       consoleStore.setTerminating(id);
     },
     onSuccess: (_data, { id }) => {
-      // Optimistically drop the session from the cached snapshot so the UI
-      // updates immediately. The SSE stream is the source of truth and will
-      // deliver the authoritative snapshot within one watch interval, so we
-      // deliberately skip the redundant invalidateQueries refetch here.
       queryClient.setQueryData<ConsoleDataset>(
         CONSOLE_SNAPSHOT_QUERY_KEY,
         (previous) =>

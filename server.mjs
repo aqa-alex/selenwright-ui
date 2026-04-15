@@ -202,7 +202,6 @@ function broadcastConsoleSnapshot(snapshot) {
     try {
       const writeResult = client.response.write(message);
       if (!writeResult) {
-        // Slow client — drop rather than buffer indefinitely.
         closeConsoleClient(client);
       }
     } catch {
@@ -251,7 +250,6 @@ function handleConsoleStream(req, res) {
       try {
         res.write(formatSseEvent("shutdown", { reason: "max_age" }));
       } catch {
-        // response may already be destroyed
       }
       closeConsoleClient(client);
       return;
@@ -294,7 +292,6 @@ function closeConsoleClient(client) {
   try {
     client.response.end();
   } catch {
-    // response may already be destroyed
   }
 }
 
@@ -341,7 +338,6 @@ function handleLiveLogStream(req, res, requestUrl) {
     try {
       const ok = res.write(payload);
       if (!ok) {
-        // Slow client — buffer is already queuing; drop to avoid unbounded memory.
         closeResponse();
         destroyUpstreamSocket();
         return false;
@@ -632,7 +628,6 @@ function sendUpstreamCloseCode(socket, code, reason) {
     reasonBytes.copy(payload, 2);
     socket.write(createClientWebSocketFrame(0x8, payload));
   } catch {
-    // Upstream may already be torn down; caller will destroy the socket.
   }
 }
 
@@ -839,7 +834,6 @@ function resolveStaticFile(urlPath) {
     return absolutePath;
   }
 
-  // SPA fallback: only for extension-less paths that look like client routes.
   if (!path.extname(absolutePath)) {
     return path.join(staticRootDir, "index.html");
   }
@@ -1007,8 +1001,6 @@ function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
     "Upgrade: websocket",
   ];
 
-  // Issue our own Origin for the upstream handshake rather than forwarding the
-  // browser-side origin; upstream CORS logic (if any) should see us, not the UI.
   upstreamHeaders.push(`origin: ${buildUpstreamOrigin(upstreamUrl)}`);
 
   for (const headerName of [
@@ -1296,7 +1288,6 @@ function extractUpstreamResponseMessage(responseText) {
       }
     }
   } catch {
-    // Fall back to a short text preview when upstream returns plain text.
   }
 
   return truncateBodyPreview(trimmed);

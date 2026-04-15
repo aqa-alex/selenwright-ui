@@ -21,13 +21,6 @@ function getPageTitle(routeName: string): string {
   return routeTitles[routeName] || "Selenwright";
 }
 
-/**
- * Syncs the document title and the shell store's `routeName` / `pageTitle`
- * whenever the router route changes. Runs `immediate` so the initial
- * render picks up the current route before paint.
- *
- * Call once from `App.vue` inside `<script setup>`.
- */
 export function useRouteSideEffects() {
   const route = useRoute();
   const shellStore = useShellStore();

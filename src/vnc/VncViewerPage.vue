@@ -118,7 +118,6 @@ function detachAllListeners(target: VncRfb) {
     try {
       target.removeEventListener(type, listener);
     } catch {
-      // RFB may not expose removeEventListener in older builds; ignore.
     }
   }
   attachedListeners = [];

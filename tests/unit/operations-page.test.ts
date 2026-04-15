@@ -109,10 +109,8 @@ describe("OperationsPage", () => {
     });
 
     expect(html).toContain("<h1>Settings</h1>");
-    // Comfortable density button is the selected one in the density panel.
     expect(html).toMatch(/Density[\s\S]*?segmented-option selected[^>]*>Comfortable/);
     expect(html).toContain('value="21"');
-    // Save button is enabled when the draft is dirty and history is available.
     expect(html).toMatch(/<button[^>]*class="button"(?![^>]*disabled)[^>]*>\s*Save settings/);
   });
 
@@ -130,9 +128,7 @@ describe("OperationsPage", () => {
     });
 
     expect(html).toContain("Blocked upstream");
-    // Save button is disabled when the backend setting is unavailable.
     expect(html).toMatch(/<button[^>]*class="button"[^>]*disabled[^>]*>\s*Save settings/);
-    // The retention-days input is also disabled.
     expect(html).toMatch(/<input[^>]*placeholder="7"[^>]*disabled/);
   });
 });

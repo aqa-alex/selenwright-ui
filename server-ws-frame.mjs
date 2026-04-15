@@ -1,19 +1,6 @@
-// Pure WebSocket frame parser extracted from server.mjs so it can be unit-tested
-// in isolation. The server module itself owns the upstream socket lifecycle and
-// fragmented-payload accumulation; this file only decodes a single frame out of
-// a buffer.
 
 export const DEFAULT_MAX_WS_FRAME_BYTES = 1 << 20; // 1 MiB
 
-/**
- * Decode one WebSocket frame from the head of `buffer`. Returns `null` if the
- * buffer does not yet contain a complete frame. Throws when the frame declares
- * a payload that exceeds `maxFrameBytes` (or is too large to index safely in
- * Node's buffer API).
- *
- * The returned `remaining` slice is what comes after the frame, so callers can
- * accumulate and call again.
- */
 export function readWebSocketFrame(buffer, { maxFrameBytes = DEFAULT_MAX_WS_FRAME_BYTES } = {}) {
   if (buffer.length < 2) {
     return null;

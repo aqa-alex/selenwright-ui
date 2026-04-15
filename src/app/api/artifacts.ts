@@ -209,8 +209,6 @@ export function subscribeToLiveLogs(
         return;
       }
 
-      // Browser EventSource auto-reconnects without backoff. Close the source
-      // and schedule a manual exponential retry with a cap.
       closeSource();
 
       const errorMessage = sawChunk

@@ -64,7 +64,6 @@ export function parseRoute(pathname: string): ParsedRoute {
     try {
       sessionId = decodeURIComponent(raw);
     } catch {
-      // Leave the raw slice if it isn't a valid percent-encoded string.
     }
     return {
       name: "session-detail",

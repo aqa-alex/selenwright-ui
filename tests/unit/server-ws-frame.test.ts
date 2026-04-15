@@ -5,7 +5,6 @@ import {
   readWebSocketFrame,
 } from "../../server-ws-frame.mjs";
 
-// Build an unmasked text frame (as a server would send to a client).
 function buildUnmaskedTextFrame(payload: Buffer): Buffer {
   const fin = 0x80;
   const opcode = 0x1;
@@ -36,9 +35,6 @@ function buildUnmaskedTextFrame(payload: Buffer): Buffer {
   return frame;
 }
 
-// Build just the header for an oversized declared payload. Callers don't need
-// to supply the full body — the parser should reject the frame based on the
-// declared length before attempting to read the body.
 function buildHeaderWithDeclaredLength(declaredLength: number): Buffer {
   const fin = 0x80;
   const opcode = 0x1;
@@ -76,13 +72,10 @@ describe("readWebSocketFrame", () => {
     const payload = Buffer.from("incomplete", "utf8");
     const frame = buildUnmaskedTextFrame(payload);
 
-    // Feed only the header and the first byte of the body.
     expect(readWebSocketFrame(frame.subarray(0, 3))).toBeNull();
   });
 
   it("rejects frames whose declared length exceeds maxFrameBytes", () => {
-    // Declared length (2 MiB) is greater than the 1 MiB default. The parser
-    // must throw before trying to read the body (we don't even provide one).
     const oversized = buildHeaderWithDeclaredLength(2 * 1024 * 1024);
 
     expect(() => readWebSocketFrame(oversized)).toThrow(/exceeds configured maximum/);
@@ -101,7 +94,6 @@ describe("readWebSocketFrame", () => {
   });
 
   it("rejects 64-bit payload lengths that cannot be indexed safely", () => {
-    // Declared length at exactly 2^53 is not a safe integer for Node buffers.
     const header = Buffer.alloc(10);
     header[0] = 0x81;
     header[1] = 127;
@@ -111,7 +103,6 @@ describe("readWebSocketFrame", () => {
   });
 
   it("exposes a conservative DEFAULT_MAX_WS_FRAME_BYTES", () => {
-    // Guard against an accidental removal of the default cap.
     expect(DEFAULT_MAX_WS_FRAME_BYTES).toBe(1 << 20);
   });
 });

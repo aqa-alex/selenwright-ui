@@ -29,7 +29,6 @@ describe("applyLiveLogBuffer", () => {
 
     expect(result.content.length).toBe(MAX_LIVE_LOG_CHARS);
     expect(result.truncated).toBe(true);
-    // The tail of the new chunk must survive; the head of existing must be dropped.
     expect(result.content.endsWith(chunk)).toBe(true);
   });
 });
@@ -48,7 +47,6 @@ describe("console store live log buffer", () => {
 
     expect(store.liveLogs.content.length).toBe(MAX_LIVE_LOG_CHARS);
     expect(store.liveLogs.truncated).toBe(true);
-    // The tail of the final chunk must be preserved.
     expect(store.liveLogs.content.endsWith("a".repeat(100))).toBe(true);
   });
 

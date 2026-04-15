@@ -25,14 +25,6 @@ interface ResizeState {
   splitter: HTMLElement;
 }
 
-/**
- * Installs all global listeners for resizing the artifact page splitter:
- * pointer events for mouse/touch drag, arrow/Home/End keyboard support,
- * window-resize re-layout, and route-change re-layout. Persists the
- * committed drawer ratio through the preferences Pinia store.
- *
- * Call once from `App.vue` inside `<script setup>`.
- */
 export function useArtifactSplitter() {
   const preferencesStore = usePreferencesStore();
   const route = useRoute();
@@ -239,8 +231,6 @@ export function useArtifactSplitter() {
     stopResize({ commit: true });
   });
 
-  // Re-sync the pane layout whenever the route changes (including on
-  // initial mount) so a new artifact page picks up the persisted ratio.
   watch(
     () => route.fullPath,
     () => {

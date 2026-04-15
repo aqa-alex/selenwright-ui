@@ -71,8 +71,6 @@ function writeStorage(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch {
-    // Storage may be unavailable (Safari private mode, quota exceeded).
-    // Fail silently — preferences fall back to defaults on next read.
   }
 }
 

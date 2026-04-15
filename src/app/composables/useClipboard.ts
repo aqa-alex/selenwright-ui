@@ -39,7 +39,6 @@ export function useClipboard() {
         return true;
       }
     } catch {
-      /* fall through to textarea fallback */
     }
     if (copyUsingFallback(text)) {
       shellStore.setNotice("Copied to clipboard");

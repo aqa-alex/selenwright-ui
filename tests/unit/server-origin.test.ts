@@ -37,12 +37,10 @@ describe("isOriginAllowed", () => {
       isOriginAllowed("http://127.0.0.1:4173", "127.0.0.1:4173", null),
     ).toBe(true);
 
-    // Different host.
     expect(
       isOriginAllowed("https://evil.example", "127.0.0.1:4173", null),
     ).toBe(false);
 
-    // Different port on the same host counts as a different origin.
     expect(
       isOriginAllowed("http://127.0.0.1:9999", "127.0.0.1:4173", null),
     ).toBe(false);
@@ -57,7 +55,6 @@ describe("isOriginAllowed", () => {
     expect(isOriginAllowed("https://ops.example", "proxy.internal", allow)).toBe(true);
     expect(isOriginAllowed("https://staff.example", "proxy.internal", allow)).toBe(true);
 
-    // Even when host matches, allowlist is the only source of truth once set.
     expect(isOriginAllowed("https://proxy.internal", "proxy.internal", allow)).toBe(false);
     expect(isOriginAllowed("https://attacker.example", "proxy.internal", allow)).toBe(false);
   });

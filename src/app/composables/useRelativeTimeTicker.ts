@@ -3,19 +3,6 @@ import { formatDuration, timeAgo } from "../../lib/format";
 
 const TICK_INTERVAL_MS = 1000;
 
-/**
- * Refreshes relative-time labels (`[data-time-ago]`,
- * `[data-duration-started-at]`) every second without re-rendering Vue.
- * Labels still come from server-provided ISO timestamps; this keeps them
- * visually fresh while the upstream snapshot is unchanged.
- *
- * Updates only dirty labels (compare with `textContent` before writing) so
- * we don't trigger layout on tickers that haven't changed value. Pauses the
- * interval when the tab is hidden and re-syncs on wakeup so we don't burn
- * CPU on a backgrounded console.
- *
- * Call once from `App.vue` inside `<script setup>`.
- */
 export function useRelativeTimeTicker() {
   let timer = 0;
 

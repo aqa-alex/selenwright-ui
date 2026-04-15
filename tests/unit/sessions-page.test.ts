@@ -75,7 +75,6 @@ describe("SessionsPage", () => {
     });
 
     expect(html).toContain("No matching sessions");
-    // Reset action now lives on a button click handler, not data-action.
     expect(html).toMatch(/<button[^>]*>\s*Reset filters/);
   });
 });

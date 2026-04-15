@@ -17,9 +17,6 @@ const queryClient = new QueryClient({
 });
 
 const pinia = createPinia();
-// Preferences are read from localStorage and applied to the document
-// dataset before any component mounts, so theme / density are in place
-// by the time Vue paints.
 usePreferencesStore(pinia).initialize();
 
 const app = createApp(App);

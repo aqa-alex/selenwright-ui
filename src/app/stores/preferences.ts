@@ -54,10 +54,6 @@ export const usePreferencesStore = defineStore("preferences", {
     systemThemeWatcherInstalled: false,
   }),
   actions: {
-    /**
-     * Apply current preferences to the DOM and start watching the system
-     * colour scheme. Idempotent — safe to call from app bootstrap.
-     */
     initialize() {
       applyTheme(this.themeMode);
       applyDensity(this.density);
