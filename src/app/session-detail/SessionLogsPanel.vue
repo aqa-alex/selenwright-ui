@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { storeToRefs } from "pinia";
+import { computed, nextTick, useTemplateRef, watch } from "vue";
 import type { ConsoleSession } from "../../data/service";
 import type { SessionDetailLogFileState, SessionDetailPageModel } from "./sessionDetail";
 import {
@@ -11,8 +12,10 @@ import {
   getSavedLogEmptyText,
   getSavedLogState,
 } from "./sessionDetail";
+import { useLiveLog } from "../composables/useLiveLog";
 import { useOpenArtifactPage } from "../composables/useOpenArtifactPage";
 import { useLogFileContentQuery } from "../queries/useLogFileContentQuery";
+import { useConsoleStore } from "../stores/console";
 import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
@@ -21,7 +24,13 @@ const props = defineProps<{
 }>();
 
 const uiStore = useUiStore();
+const consoleStore = useConsoleStore();
+const { liveLogs: liveLogsRef } = storeToRefs(consoleStore);
 const openArtifactPage = useOpenArtifactPage();
+const sessionIdForLiveLog = computed(() =>
+  props.session.artifacts.liveLogs ? props.session.id : null,
+);
+const { reconnect } = useLiveLog(sessionIdForLiveLog);
 
 function onLogSearchInput(event: Event) {
   const target = event.target as HTMLInputElement | null;
@@ -30,9 +39,54 @@ function onLogSearchInput(event: Event) {
 }
 
 const liveState = computed(() =>
-  props.model.liveLogs.sessionId === props.session.id ? props.model.liveLogs : null,
+  liveLogsRef.value.sessionId === props.session.id ? liveLogsRef.value : null,
 );
 const liveContent = computed(() => liveState.value?.content || "");
+const liveViewer = useTemplateRef<HTMLPreElement>("liveViewer");
+const savedViewer = useTemplateRef<HTMLPreElement>("savedViewer");
+
+function isViewerNearEnd(viewer: HTMLElement) {
+  return viewer.scrollHeight - (viewer.scrollTop + viewer.clientHeight) <= 24;
+}
+
+function onLiveScroll(event: Event) {
+  const target = event.target as HTMLElement | null;
+  if (!target) return;
+  consoleStore.setLiveLogAutoScroll(isViewerNearEnd(target));
+}
+
+function jumpLiveToEnd() {
+  consoleStore.setLiveLogAutoScroll(true);
+  const viewer = liveViewer.value;
+  if (viewer) {
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+}
+
+function jumpSavedToEnd() {
+  const viewer = savedViewer.value;
+  if (viewer) {
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+}
+
+async function copyText(value: string) {
+  if (!value) return;
+  try {
+    await navigator.clipboard?.writeText(value);
+  } catch {
+    /* no-op */
+  }
+}
+
+watch(liveContent, async () => {
+  if (!liveLogsRef.value.autoScroll) return;
+  await nextTick();
+  const viewer = liveViewer.value;
+  if (viewer) {
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+});
 const showReconnect = computed(
   () =>
     props.session.artifacts.liveLogs &&
@@ -118,19 +172,19 @@ function refetchLog() {
       <button
         class="button secondary"
         :disabled="!liveContent"
-        data-action="copy-log-content"
         type="button"
+        @click="copyText(liveContent)"
       >
         Copy block
       </button>
-      <button class="button secondary" data-action="jump-log-end" type="button">
+      <button class="button secondary" type="button" @click="jumpLiveToEnd">
         Jump to end
       </button>
       <button
         v-if="showReconnect"
         class="button secondary"
-        data-action="reconnect-live-log"
         type="button"
+        @click="reconnect"
       >
         Reconnect
       </button>
@@ -140,10 +194,10 @@ function refetchLog() {
     </div>
     <p v-if="!liveContent" class="hint-text">{{ getLiveLogEmptyText(liveState) }}</p>
     <pre
+      ref="liveViewer"
       class="code-block log-viewer wrap"
-      :data-live-log-viewer="session.id"
-      data-log-viewer
       id="log-viewer-content"
+      @scroll="onLiveScroll"
     >{{ liveContent }}</pre>
   </div>
 
@@ -181,19 +235,17 @@ function refetchLog() {
         class="button secondary"
         :data-copy="effectiveLogState.content"
         :disabled="!hasContent"
-        data-action="copy"
         type="button"
+        @click="copyText(effectiveLogState.content)"
       >
         Copy block
       </button>
-      <button class="button secondary" data-action="jump-log-end" type="button">
+      <button class="button secondary" type="button" @click="jumpSavedToEnd">
         Jump to end
       </button>
       <button
         v-if="effectiveLogState.error"
         class="button secondary"
-        data-action="retry-log-file"
-        :data-filename="filename"
         type="button"
         @click="refetchLog"
       >
@@ -209,8 +261,8 @@ function refetchLog() {
     </div>
     <pre
       v-if="hasContent"
+      ref="savedViewer"
       class="code-block log-viewer wrap"
-      data-log-viewer
       id="log-viewer-content"
     >{{ filteredContent }}</pre>
     <p v-else class="hint-text">

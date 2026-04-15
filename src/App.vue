@@ -3,7 +3,10 @@ import { storeToRefs } from "pinia";
 import AppHeader from "./app/components/AppHeader.vue";
 import AppSidebar from "./app/components/AppSidebar.vue";
 import PageFrame from "./app/components/PageFrame.vue";
+import { useConsoleStream } from "./app/composables/useConsoleStream";
 import { useShellStore } from "./app/stores/shell";
+
+useConsoleStream();
 
 const shellStore = useShellStore();
 const {

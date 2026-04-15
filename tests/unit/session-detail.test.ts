@@ -11,6 +11,7 @@ import {
   filterLogContent,
   getLiveLogStatusText,
 } from "../../src/app/session-detail/sessionDetail";
+import { useConsoleStore } from "../../src/app/stores/console";
 import type { ConsoleSession } from "../../src/data/service";
 
 describe("SessionDetailPage", () => {
@@ -132,6 +133,10 @@ async function renderSessionDetailPage(overrides: Partial<SessionDetailPageModel
       },
     },
   });
+  if (overrides.liveLogs) {
+    const consoleStore = useConsoleStore();
+    consoleStore.setLiveLogState(overrides.liveLogs);
+  }
   const app = createSSRApp(SessionDetailPage, { model: buildModel(overrides) });
   app.use(VueQueryPlugin, { queryClient });
   return renderToString(app);

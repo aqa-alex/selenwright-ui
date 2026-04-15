@@ -4,7 +4,6 @@ import {
   loadConsoleData,
   loadLogFileContent,
   saveArtifactHistorySettings,
-  subscribeToLiveLogs,
   terminateSession,
 } from "./data/service.ts";
 import { formatDuration, formatStatus, timeAgo } from "./lib/format.js";
@@ -60,7 +59,6 @@ const state = {
     logSearch: "",
     logsPage: 1,
     logsPerPage: 10,
-    liveLogs: createInitialLiveLogState(),
     notice: "",
     quickJumpQuery: "",
     quickJumpResults: [],
@@ -85,9 +83,6 @@ const artifactMinDrawerWidth = 360;
 const artifactKeyboardStep = 24;
 let artifactResizeState = null;
 let consoleDataSubscription = null;
-let liveLogSubscription = null;
-let liveLogSubscriptionToken = 0;
-let liveLogRenderFrame = 0;
 let relativeTimeTimer = 0;
 let renderVersion = 0;
 let suppressDisclosureTracking = false;
@@ -250,11 +245,6 @@ function bindGlobalEvents() {
 
 function handlePageHide() {
   stopConsoleDataSubscription();
-  stopLiveLogSubscription();
-  if (liveLogRenderFrame) {
-    window.cancelAnimationFrame(liveLogRenderFrame);
-    liveLogRenderFrame = 0;
-  }
   window.clearInterval(relativeTimeTimer);
   relativeTimeTimer = 0;
 }
@@ -302,22 +292,6 @@ function handleClick(event) {
       }
       break;
     }
-    case "reconnect-live-log": {
-      const session = getSessionById(state.route.sessionId);
-      if (session?.artifacts.liveLogs) {
-        stopLiveLogSubscription();
-        state.ui.liveLogs = {
-          ...state.ui.liveLogs,
-          error: "",
-          message: "Connecting to live log stream.",
-          sessionId: session.id,
-          status: "connecting",
-        };
-        ensureLiveLogSubscription(session);
-        render();
-      }
-      break;
-    }
     case "retry-log-file":
       if (filename) {
         delete state.ui.logFiles[filename];
@@ -333,7 +307,6 @@ function handleClick(event) {
     case "jump-log-end": {
       const viewer = getCurrentLogViewer();
       if (viewer) {
-        state.ui.liveLogs.autoScroll = true;
         viewer.scrollTop = viewer.scrollHeight;
       }
       break;
@@ -437,10 +410,6 @@ async function terminateSessionFromUi(sessionId) {
   try {
     await terminateSession(sessionId, session.protocol);
 
-    if (state.ui.liveLogs.sessionId === sessionId) {
-      stopLiveLogSubscription();
-    }
-
     removeSessionFromCurrentDataset(sessionId);
 
     if (state.route.name === "session-detail" && state.route.sessionId === sessionId) {
@@ -490,13 +459,9 @@ function handleToggle(event) {
   state.ui.detailDisclosures[disclosureId] = target.open;
 }
 
-function handleScroll(event) {
-  const target = event.target;
-  if (!(target instanceof HTMLElement) || !target.matches("[data-live-log-viewer]")) {
-    return;
-  }
-
-  state.ui.liveLogs.autoScroll = isViewerNearEnd(target);
+function handleScroll() {
+  // Live-log auto-scroll is handled inside SessionLogsPanel.vue. Saved-log
+  // viewers don't need scroll tracking.
 }
 
 function handleKeyDown(event) {
@@ -578,7 +543,6 @@ function handleKeyDown(event) {
 }
 
 function render(options = {}) {
-  reconcileLiveLogState();
   syncSelections();
   state.ui.quickJumpResults = buildQuickJumpResults();
   document.title = getPageTitle(state.route.name);
@@ -614,7 +578,7 @@ function render(options = {}) {
 
     restoreFocusedTextInput(root, focusedTextInput);
     restoreLogViewerSnapshot(root, logViewerSnapshot);
-    syncLogEffects(root);
+    syncLogEffects();
     syncRelativeTimeLabels(root);
   });
 }
@@ -982,7 +946,15 @@ function createArtifactPageSnapshot(pageKey) {
 
 function createSessionDetailPageSnapshot() {
   return {
-    liveLogs: { ...state.ui.liveLogs },
+    liveLogs: {
+      autoScroll: true,
+      content: "",
+      error: "",
+      message: "",
+      sessionId: "",
+      source: "none",
+      status: "idle",
+    },
     logFiles: Object.fromEntries(
       Object.entries(state.ui.logFiles).map(([filename, logState]) => [
         filename,
@@ -1199,44 +1171,6 @@ function restorePersistedDetails(root) {
   }
 }
 
-function createInitialLiveLogState() {
-  return {
-    autoScroll: true,
-    content: "",
-    error: "",
-    message: "Select a running session to stream logs.",
-    sessionId: "",
-    source: "none",
-    status: "idle",
-  };
-}
-
-function reconcileLiveLogState() {
-  const liveState = state.ui.liveLogs;
-  if (!liveState.sessionId) {
-    return;
-  }
-
-  const trackedSession = getSessionById(liveState.sessionId);
-  const routeSession =
-    state.route.name === "session-detail" ? getSessionById(state.route.sessionId) : null;
-
-  if (liveLogSubscription && (!trackedSession?.artifacts.liveLogs || routeSession?.id !== liveState.sessionId)) {
-    stopLiveLogSubscription();
-  }
-
-  if (!trackedSession || !trackedSession.artifacts.liveLogs) {
-    if (liveState.status !== "inactive") {
-      state.ui.liveLogs = {
-        ...liveState,
-        error: "",
-        message: "Session is no longer active.",
-        status: "inactive",
-      };
-    }
-  }
-}
-
 function mergeLogStateIntoDataset(dataset) {
   for (const log of dataset.logs) {
     const cached = state.ui.logFiles[log.filename];
@@ -1252,17 +1186,8 @@ function mergeLogStateIntoDataset(dataset) {
   return dataset;
 }
 
-function syncLogEffects(root) {
+function syncLogEffects() {
   void ensureSavedLogLoadedForCurrentRoute();
-
-  const liveSession = getSessionDetailLiveLogSession();
-  if (liveSession) {
-    ensureLiveLogSubscription(liveSession);
-    syncLiveLogViewerPosition(root);
-    return;
-  }
-
-  stopLiveLogSubscription();
 }
 
 function startConsoleDataSubscription() {
@@ -1339,114 +1264,6 @@ async function ensureLogFileLoaded(filename) {
   render();
 }
 
-function ensureLiveLogSubscription(session) {
-  if (!session?.artifacts.liveLogs) {
-    return;
-  }
-
-  if (liveLogSubscription && state.ui.liveLogs.sessionId === session.id) {
-    return;
-  }
-
-  stopLiveLogSubscription();
-
-  state.ui.liveLogs = {
-    ...createInitialLiveLogState(),
-    autoScroll: state.ui.liveLogs.sessionId === session.id ? state.ui.liveLogs.autoScroll : true,
-    content: state.ui.liveLogs.sessionId === session.id ? state.ui.liveLogs.content : "",
-    message: "Connecting to live log stream.",
-    sessionId: session.id,
-    source: "live",
-    status: "connecting",
-  };
-
-  const token = ++liveLogSubscriptionToken;
-  liveLogSubscription = subscribeToLiveLogs(session.id, {
-    onChunk(chunk) {
-      if (token !== liveLogSubscriptionToken) {
-        return;
-      }
-
-      appendLiveLogChunk(session.id, chunk);
-    },
-    onError(error) {
-      if (token !== liveLogSubscriptionToken) {
-        return;
-      }
-
-      state.ui.liveLogs = {
-        ...state.ui.liveLogs,
-        error: error instanceof Error ? error.message : "Live log stream unavailable",
-      };
-      queueLiveLogRender();
-    },
-    onStatusChange(nextStatus) {
-      if (token !== liveLogSubscriptionToken) {
-        return;
-      }
-
-      state.ui.liveLogs = {
-        ...state.ui.liveLogs,
-        error:
-          nextStatus.status === "open" || nextStatus.status === "streaming"
-            ? ""
-            : state.ui.liveLogs.error,
-        message: nextStatus.message,
-        sessionId: session.id,
-        source: "live",
-        status: nextStatus.status,
-      };
-      render();
-    },
-  });
-}
-
-function stopLiveLogSubscription() {
-  if (!liveLogSubscription) {
-    return;
-  }
-
-  liveLogSubscriptionToken += 1;
-  const subscription = liveLogSubscription;
-  liveLogSubscription = null;
-  subscription.close();
-}
-
-function appendLiveLogChunk(sessionId, chunk) {
-  if (!chunk) {
-    return;
-  }
-
-  if (state.ui.liveLogs.sessionId !== sessionId) {
-    state.ui.liveLogs = {
-      ...createInitialLiveLogState(),
-      content: chunk,
-      message: "Streaming live log output.",
-      sessionId,
-      source: "live",
-      status: "streaming",
-    };
-  } else {
-    state.ui.liveLogs.content += chunk;
-    state.ui.liveLogs.error = "";
-    state.ui.liveLogs.status = "streaming";
-    state.ui.liveLogs.message = "Streaming live log output.";
-  }
-
-  queueLiveLogRender();
-}
-
-function queueLiveLogRender() {
-  if (liveLogRenderFrame) {
-    return;
-  }
-
-  liveLogRenderFrame = window.requestAnimationFrame(() => {
-    liveLogRenderFrame = 0;
-    render();
-  });
-}
-
 function getCurrentSavedLogFilename() {
   if (state.route.name === "logs") {
     return state.ui.selectedArtifacts.logs;
@@ -1464,15 +1281,6 @@ function getCurrentSavedLogFilename() {
   return session.metadata.logFilename || "";
 }
 
-function getSessionDetailLiveLogSession() {
-  if (state.route.name !== "session-detail") {
-    return null;
-  }
-
-  const session = getSessionById(state.route.sessionId);
-  return session?.artifacts.liveLogs ? session : null;
-}
-
 function getLogFileState(filename) {
   return state.ui.logFiles[filename] || {
     content: "",
@@ -1487,7 +1295,7 @@ function getSessionById(sessionId) {
 }
 
 function copyCurrentLogContent(filename) {
-  const logContent = filename ? getLogFileState(filename).content : state.ui.liveLogs.content;
+  const logContent = filename ? getLogFileState(filename).content : "";
   if (!logContent) {
     setNotice("No log content available");
     return;
@@ -1520,19 +1328,6 @@ function restoreLogViewerSnapshot(root, snapshot) {
 
   viewer.scrollLeft = snapshot.scrollLeft;
   viewer.scrollTop = snapshot.scrollTop;
-}
-
-function syncLiveLogViewerPosition(root) {
-  if (!state.ui.liveLogs.autoScroll) {
-    return;
-  }
-
-  const viewer = root.querySelector("[data-live-log-viewer]");
-  if (!(viewer instanceof HTMLElement)) {
-    return;
-  }
-
-  viewer.scrollTop = viewer.scrollHeight;
 }
 
 function getCurrentLogViewer() {
@@ -1591,10 +1386,6 @@ function syncTimeAgoLabels(root) {
 
     node.textContent = timeAgo(value, now);
   }
-}
-
-function isViewerNearEnd(viewer) {
-  return viewer.scrollHeight - (viewer.scrollTop + viewer.clientHeight) <= 24;
 }
 
 function isRestorableTextInput(element) {
