@@ -186,6 +186,9 @@ function refetchLog() {
       {{ liveState.error }}
     </div>
     <p v-if="!liveContent" class="hint-text">{{ getLiveLogEmptyText(liveState) }}</p>
+    <p v-if="liveState?.truncated && liveContent" class="hint-text log-truncated-hint">
+      Earlier output trimmed to keep the viewer responsive.
+    </p>
     <pre
       ref="liveViewer"
       class="code-block log-viewer wrap"
