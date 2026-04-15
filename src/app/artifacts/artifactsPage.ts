@@ -3,7 +3,7 @@ import type {
   DownloadArtifact,
   LogArtifact,
   VideoArtifact,
-} from "../../data/service";
+} from "../api";
 
 export type ArtifactPageKey = "videos" | "logs" | "downloads";
 export type ArtifactItem = DownloadArtifact | LogArtifact | VideoArtifact;

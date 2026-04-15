@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { VideoArtifact } from "../../data/service";
+import type { VideoArtifact } from "../api";
 import { formatBytes, formatDateTime, formatDuration, titleCase } from "../../lib/format";
 import ArtifactKeyValueRow from "./ArtifactKeyValueRow.vue";
 import type { ArtifactPageModel } from "./artifactsPage";

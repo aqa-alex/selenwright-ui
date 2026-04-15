@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConfigurationItem } from "../../data/service";
+import type { ConfigurationItem } from "../api";
 
 defineProps<{
   compact?: boolean;

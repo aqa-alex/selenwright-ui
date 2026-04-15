@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 import { buildArtifactIndicators } from "../sessions/sessionTable";
 
 defineProps<{

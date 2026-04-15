@@ -5,7 +5,7 @@ import type {
   ConfigurationRawData,
   ConsoleConnectionState,
   ConsoleSystemState,
-} from "../../data/service";
+} from "../api";
 import { titleCase } from "../../lib/format";
 
 export type OperationsRouteName = "browsers" | "configuration" | "settings" | "system";

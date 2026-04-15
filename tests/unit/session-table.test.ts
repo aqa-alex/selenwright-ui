@@ -7,7 +7,7 @@ import {
   buildSessionSorting,
   getFilteredSessionsForState,
 } from "../../src/app/sessions/sessionTable";
-import type { ConsoleSession } from "../../src/data/service";
+import type { ConsoleSession } from "../../src/app/api";
 
 describe("session table logic", () => {
   it("filters by search, protocol, status, browser, and active-only state", () => {

@@ -12,7 +12,7 @@ import {
   getLiveLogStatusText,
 } from "../../src/app/session-detail/sessionDetail";
 import { useConsoleStore } from "../../src/app/stores/console";
-import type { ConsoleSession } from "../../src/data/service";
+import type { ConsoleSession } from "../../src/app/api";
 
 describe("SessionDetailPage", () => {
   beforeEach(() => {

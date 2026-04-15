@@ -4,7 +4,7 @@ import { createSSRApp } from "vue";
 import { beforeEach, describe, expect, it } from "vitest";
 import SessionsPage from "../../src/app/pages/SessionsPage.vue";
 import type { SessionsPageModel } from "../../src/app/sessions/sessionTable";
-import type { ConsoleSession } from "../../src/data/service";
+import type { ConsoleSession } from "../../src/app/api";
 
 describe("SessionsPage", () => {
   beforeEach(() => {

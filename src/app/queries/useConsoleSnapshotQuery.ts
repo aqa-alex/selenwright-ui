@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/vue-query";
-import { loadConsoleData, type ConsoleDataset } from "../../data/service";
+import { loadConsoleData, type ConsoleDataset } from "../api";
 
 export const CONSOLE_SNAPSHOT_QUERY_KEY = ["console", "snapshot"] as const;
 

@@ -1,4 +1,4 @@
-import type { ConsoleSession, LogArtifact } from "../../data/service";
+import type { ConsoleSession, LogArtifact } from "../api";
 import { activeStatuses, titleCaseSessionValue } from "../sessions/sessionTable";
 
 export interface SessionDetailPreferences {

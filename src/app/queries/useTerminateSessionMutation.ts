@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { terminateSession, type ConsoleDataset } from "../../data/service";
+import { terminateSession, type ConsoleDataset } from "../api";
 import { useConsoleStore } from "../stores/console";
 import { CONSOLE_SNAPSHOT_QUERY_KEY } from "./useConsoleSnapshotQuery";
 

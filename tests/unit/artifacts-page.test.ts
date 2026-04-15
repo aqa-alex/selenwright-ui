@@ -13,7 +13,7 @@ import type {
   DownloadArtifact,
   LogArtifact,
   VideoArtifact,
-} from "../../src/data/service";
+} from "../../src/app/api";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it } from "vitest";
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import { useOpenArtifactPage } from "../composables/useOpenArtifactPage";
 

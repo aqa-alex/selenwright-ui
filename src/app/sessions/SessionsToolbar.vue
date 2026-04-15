@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { icon } from "../../components/icons";
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 import {
   type SessionProtocolFilter,
   type SessionStatusFilter,

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import {
   saveArtifactHistorySettings,
   type ArtifactHistorySettingsUpdate,
-} from "../../data/service";
+} from "../api";
 import { useSettingsStore } from "../stores/settings";
 import { CONSOLE_SNAPSHOT_QUERY_KEY } from "./useConsoleSnapshotQuery";
 

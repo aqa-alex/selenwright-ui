@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildConsoleDatasetFromSnapshot } from "../../src/data/service.ts";
+import { buildConsoleDatasetFromSnapshot } from "../../src/app/api";
 
 const NOW_ISO = "2026-04-10T10:00:00.000Z";
 

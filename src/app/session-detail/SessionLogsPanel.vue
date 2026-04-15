@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { computed, nextTick, useTemplateRef, watch } from "vue";
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 import type { SessionDetailLogFileState, SessionDetailPageModel } from "./sessionDetail";
 import {
   buildLogDownloadHref,

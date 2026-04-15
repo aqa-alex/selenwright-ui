@@ -1,5 +1,5 @@
 import { computed, type ComputedRef, type MaybeRefOrGetter, toValue } from "vue";
-import { createEmptyDataset } from "../../data/service";
+import { createEmptyDataset } from "../api";
 import type { OperationsPageModel, OperationsRouteName } from "../operations/operationsPage";
 import { useConsoleSnapshotQuery } from "../queries/useConsoleSnapshotQuery";
 import { usePreferencesStore } from "../stores/preferences";

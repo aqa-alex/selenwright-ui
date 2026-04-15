@@ -13,7 +13,7 @@ import {
   type Timezone,
   usePreferencesStore,
 } from "../../src/app/stores/preferences";
-import { createEmptyDataset } from "../../src/data/service";
+import { createEmptyDataset } from "../../src/app/api";
 
 describe("OperationsPage", () => {
   beforeEach(() => {

@@ -9,7 +9,7 @@ import {
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { icon } from "../../components/icons";
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 import { formatDateTime, formatDuration, formatStatus, timeAgo } from "../../lib/format";
 import { buildSessionPath } from "../router";
 import StatusBadge from "../components/ui/StatusBadge.vue";

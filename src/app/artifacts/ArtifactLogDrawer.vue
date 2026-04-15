@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from "vue";
-import type { LogArtifact } from "../../data/service";
+import type { LogArtifact } from "../api";
 import type { ArtifactLogFileState, ArtifactPageModel } from "./artifactsPage";
 import {
   buildLogDownloadHref,

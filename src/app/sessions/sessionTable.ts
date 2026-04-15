@@ -6,7 +6,7 @@ import type {
   SortingFn,
   SortingState,
 } from "@tanstack/vue-table";
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 
 export const activeStatuses = new Set(["running", "pending", "queued"]);
 

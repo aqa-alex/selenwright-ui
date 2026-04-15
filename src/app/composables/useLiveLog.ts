@@ -4,7 +4,7 @@ import {
   type ConsoleDataset,
   type ConsoleSession,
   type LiveLogSubscription,
-} from "../../data/service";
+} from "../api";
 import { useConsoleSnapshotQuery } from "../queries/useConsoleSnapshotQuery";
 import { useConsoleStore, type LiveLogStatus } from "../stores/console";
 

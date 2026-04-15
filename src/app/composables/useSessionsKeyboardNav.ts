@@ -1,6 +1,6 @@
 import { nextTick, onBeforeUnmount, onMounted, watch, type Ref } from "vue";
 import { useRouter } from "vue-router";
-import type { ConsoleSession } from "../../data/service";
+import type { ConsoleSession } from "../api";
 import { buildSessionPath } from "../router";
 import { useSessionsStore } from "../stores/sessions";
 

@@ -4,7 +4,7 @@ import {
   subscribeToConsoleData,
   type ConsoleDataSubscription,
   type ConsoleDataset,
-} from "../../data/service";
+} from "../api";
 import { CONSOLE_SNAPSHOT_QUERY_KEY } from "../queries/useConsoleSnapshotQuery";
 
 export interface ConsoleStreamHandlers {
