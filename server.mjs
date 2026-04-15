@@ -329,7 +329,7 @@ function handleLiveLogStream(req, res, requestUrl) {
   let responseClosed = false;
   let handshakeComplete = false;
   let upstreamBuffer = Buffer.alloc(0);
-  let fragmentedOpcode = 0;
+  let fragmentedOpcode = null;
   let fragmentedFrames = [];
   let fragmentedBytes = 0;
 
@@ -486,7 +486,7 @@ function handleLiveLogStream(req, res, requestUrl) {
           fragmentedFrames.push(frame.payload);
           if (frame.fin) {
             forwardPayload(fragmentedOpcode, Buffer.concat(fragmentedFrames));
-            fragmentedOpcode = 0;
+            fragmentedOpcode = null;
             fragmentedFrames = [];
             fragmentedBytes = 0;
           }
