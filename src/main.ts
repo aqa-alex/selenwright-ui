@@ -5,6 +5,7 @@ import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
 import { usePreferencesStore } from "./app/stores/preferences";
 import { useShellStore } from "./app/stores/shell";
+import { useUiStore } from "./app/stores/ui";
 import type { ShellSnapshot } from "./app/types";
 import { setNavigator } from "./lib/router.js";
 
@@ -12,6 +13,7 @@ let routeChangeHandler: ((pathname: string) => void) | null = null;
 let removeRouteListener: (() => void) | null = null;
 let shellStore: ReturnType<typeof useShellStore> | null = null;
 let preferencesStore: ReturnType<typeof usePreferencesStore> | null = null;
+let uiStore: ReturnType<typeof useUiStore> | null = null;
 let shellApp: VueApp | null = null;
 let shellMounted = false;
 
@@ -40,6 +42,7 @@ export function mountConsoleShell(
   shellStore = useShellStore(pinia);
   preferencesStore = usePreferencesStore(pinia);
   preferencesStore.initialize();
+  uiStore = useUiStore(pinia);
 
   shellApp = createApp(App);
   shellApp.use(pinia);
@@ -76,6 +79,10 @@ export function getPreferencesStore() {
   return preferencesStore;
 }
 
+export function getUiStore() {
+  return uiStore;
+}
+
 export function unmountConsoleShell() {
   removeRouteListener?.();
   removeRouteListener = null;
@@ -90,6 +97,7 @@ export function unmountConsoleShell() {
   }
   shellStore = null;
   preferencesStore = null;
+  uiStore = null;
   setNavigator(null);
   shellMounted = false;
 }

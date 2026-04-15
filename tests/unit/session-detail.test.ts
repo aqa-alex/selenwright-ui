@@ -1,7 +1,8 @@
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { renderToString } from "@vue/server-renderer";
+import { createPinia, setActivePinia } from "pinia";
 import { createSSRApp } from "vue";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import SessionDetailPage from "../../src/app/pages/SessionDetailPage.vue";
 import type { SessionDetailPageModel } from "../../src/app/session-detail/sessionDetail";
 import {
@@ -13,6 +14,10 @@ import {
 import type { ConsoleSession } from "../../src/data/service";
 
 describe("SessionDetailPage", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   it("renders the missing session fallback", async () => {
     const html = await renderSessionDetailPage({ session: null });
 

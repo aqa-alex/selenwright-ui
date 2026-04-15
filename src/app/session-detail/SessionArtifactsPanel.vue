@@ -2,10 +2,13 @@
 import { computed } from "vue";
 import type { ConsoleSession } from "../../data/service";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
+import { useOpenArtifactPage } from "../composables/useOpenArtifactPage";
 
 const props = defineProps<{
   session: ConsoleSession;
 }>();
+
+const openArtifactPage = useOpenArtifactPage();
 
 const logValue = computed(() => {
   if (props.session.artifacts.savedLogs) {
@@ -31,10 +34,8 @@ const logValue = computed(() => {
         <button
           v-if="session.artifacts.video"
           class="button secondary"
-          data-action="open-artifact-page"
-          data-page="videos"
-          :data-session-id="session.id"
           type="button"
+          @click="openArtifactPage('videos', session.id)"
         >
           Open
         </button>
@@ -48,10 +49,8 @@ const logValue = computed(() => {
         <button
           v-if="session.artifacts.savedLogs"
           class="button secondary"
-          data-action="open-artifact-page"
-          data-page="logs"
-          :data-session-id="session.id"
           type="button"
+          @click="openArtifactPage('logs', session.id)"
         >
           Open
         </button>
@@ -66,10 +65,8 @@ const logValue = computed(() => {
         <button
           v-if="session.artifacts.downloads > 0"
           class="button secondary"
-          data-action="open-artifact-page"
-          data-page="downloads"
-          :data-session-id="session.id"
           type="button"
+          @click="openArtifactPage('downloads', session.id)"
         >
           Open
         </button>

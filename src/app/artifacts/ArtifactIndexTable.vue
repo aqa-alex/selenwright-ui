@@ -7,10 +7,13 @@ import {
   getVisibleArtifactItems,
 } from "./artifactsPage";
 import { formatBytes, formatDateTime, titleCase } from "../../lib/format.js";
+import { type ArtifactPage, useUiStore } from "../stores/ui";
 
 const props = defineProps<{
   model: ArtifactPageModel;
 }>();
+
+const uiStore = useUiStore();
 
 const columns = computed(() => getArtifactColumns(props.model.pageKey));
 const items = computed(() => getVisibleArtifactItems(props.model));
@@ -32,6 +35,10 @@ function browserLabel(item: ArtifactItem): string {
 function createdLabel(item: ArtifactItem): string {
   return item.createdAt ? formatDateTime(item.createdAt, props.model.preferences) : "—";
 }
+
+function selectArtifact(filename: string) {
+  uiStore.selectArtifact(props.model.pageKey as ArtifactPage, filename);
+}
 </script>
 
 <template>
@@ -47,9 +54,9 @@ function createdLabel(item: ArtifactItem): string {
           v-for="item in items"
           :key="`${item.sessionId}:${item.filename}`"
           :class="rowClassName(item)"
-          data-action="select-artifact"
           :data-filename="item.filename"
           :data-page="model.pageKey"
+          @click="selectArtifact(item.filename)"
         >
           <td class="artifact-table__truncate-cell" :title="item.filename">
             <span class="artifact-table__truncate mono">{{ item.filename }}</span>
@@ -64,10 +71,8 @@ function createdLabel(item: ArtifactItem): string {
           <td class="artifact-table__action-cell">
             <button
               class="button secondary"
-              data-action="select-artifact"
-              :data-filename="item.filename"
-              :data-page="model.pageKey"
               type="button"
+              @click.stop="selectArtifact(item.filename)"
             >
               Inspect
             </button>

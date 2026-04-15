@@ -13,9 +13,14 @@ import type {
   LogArtifact,
   VideoArtifact,
 } from "../../src/data/service";
-import { describe, expect, it } from "vitest";
+import { createPinia, setActivePinia } from "pinia";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describe("ArtifactsPage", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   it("renders video rows with selected state and side-pane metadata", async () => {
     const html = await renderArtifactsPage({
       pageKey: "videos",

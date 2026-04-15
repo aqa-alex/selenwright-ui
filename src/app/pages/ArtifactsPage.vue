@@ -14,10 +14,19 @@ import {
   getVisibleArtifactItems,
 } from "../artifacts/artifactsPage";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
+import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
   model: ArtifactPageModel;
 }>();
+
+const uiStore = useUiStore();
+
+function onPerPageChange(event: Event) {
+  const target = event.target as HTMLSelectElement | null;
+  if (!target) return;
+  uiStore.setLogsPerPage(Number(target.value));
+}
 
 const copy = computed(() => getArtifactPageCopy(props.model));
 const visibleItems = computed(() => getVisibleArtifactItems(props.model));
@@ -46,7 +55,11 @@ const showPagination = computed(
       <p>{{ copy.intro }}</p>
     </div>
     <div v-if="model.artifactSessionFilter" class="page-intro-meta">
-      <button class="button secondary" data-action="clear-artifact-session-filter" type="button">
+      <button
+        class="button secondary"
+        type="button"
+        @click="uiStore.clearArtifactSessionFilter()"
+      >
         Clear session filter
       </button>
     </div>
@@ -63,7 +76,7 @@ const showPagination = computed(
           <div v-if="showPagination" class="pagination-bar">
             <label class="filter-select">
               <span>Per page</span>
-              <select data-input="logs-per-page" :value="model.logsPerPage">
+              <select :value="model.logsPerPage" @change="onPerPageChange">
                 <option v-for="option in logsPerPageOptions" :key="option" :value="option">
                   {{ option }}
                 </option>
@@ -72,9 +85,9 @@ const showPagination = computed(
             <div class="pagination-controls">
               <button
                 class="button secondary"
-                data-action="logs-prev-page"
                 type="button"
                 :disabled="logPagination.currentPage <= 1"
+                @click="uiStore.prevLogsPage()"
               >
                 Prev
               </button>
@@ -83,9 +96,9 @@ const showPagination = computed(
               </span>
               <button
                 class="button secondary"
-                data-action="logs-next-page"
                 type="button"
                 :disabled="logPagination.currentPage >= logPagination.totalPages"
+                @click="uiStore.nextLogsPage()"
               >
                 Next
               </button>

@@ -13,11 +13,22 @@ import {
   getSavedLogEmptyText,
   getSavedLogState,
 } from "./sessionDetail";
+import { useOpenArtifactPage } from "../composables/useOpenArtifactPage";
+import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
   model: SessionDetailPageModel;
   session: ConsoleSession;
 }>();
+
+const uiStore = useUiStore();
+const openArtifactPage = useOpenArtifactPage();
+
+function onLogSearchInput(event: Event) {
+  const target = event.target as HTMLInputElement | null;
+  if (!target) return;
+  uiStore.setLogSearch(target.value);
+}
 
 const liveState = computed(() =>
   props.model.liveLogs.sessionId === props.session.id ? props.model.liveLogs : null,
@@ -94,10 +105,8 @@ function refetchLog() {
         <button
           v-if="session.artifacts.savedLogs"
           class="button secondary"
-          data-action="open-artifact-page"
-          data-page="logs"
-          :data-session-id="session.id"
           type="button"
+          @click="openArtifactPage('logs', session.id)"
         >
           Open saved log
         </button>
@@ -152,10 +161,8 @@ function refetchLog() {
       <div class="panel-actions">
         <button
           class="button secondary"
-          data-action="open-artifact-page"
-          data-page="logs"
-          :data-session-id="session.id"
           type="button"
+          @click="openArtifactPage('logs', session.id)"
         >
           Open logs
         </button>
@@ -165,10 +172,10 @@ function refetchLog() {
       <label class="search-field compact">
         <input
           aria-label="Search inside log"
-          data-input="log-search"
           placeholder="Search inside log"
           type="search"
           :value="model.logSearch"
+          @input="onLogSearchInput"
         />
       </label>
       <div class="log-toolbar-spacer"></div>

@@ -9,10 +9,19 @@ import {
   getSavedLogState,
   getSelectedArtifact,
 } from "./artifactsPage";
+import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
   model: ArtifactPageModel;
 }>();
+
+const uiStore = useUiStore();
+
+function onLogSearchInput(event: Event) {
+  const target = event.target as HTMLInputElement | null;
+  if (!target) return;
+  uiStore.setLogSearch(target.value);
+}
 
 const selected = computed(() => getSelectedArtifact(props.model) as LogArtifact | null);
 const logState = computed(() =>
@@ -32,10 +41,10 @@ const hasContent = computed(() => Boolean(filteredContent.value));
       <label class="search-field compact">
         <input
           aria-label="Search inside log"
-          data-input="log-search"
           placeholder="Search inside log"
           type="search"
           :value="model.logSearch"
+          @input="onLogSearchInput"
         />
       </label>
       <div class="log-toolbar-spacer"></div>

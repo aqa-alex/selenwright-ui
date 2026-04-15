@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { icon } from "../../components/icons.js";
+import { navigate } from "../../lib/router.js";
+import { useUiStore } from "../stores/ui";
 import type { ShellQuickJumpResult } from "../types";
 
 defineProps<{
@@ -7,7 +9,19 @@ defineProps<{
   quickJumpResults: ShellQuickJumpResult[];
 }>();
 
+const uiStore = useUiStore();
 const searchIcon = icon("search");
+
+function onQueryInput(event: Event) {
+  const target = event.target as HTMLInputElement | null;
+  if (!target) return;
+  uiStore.setQuickJumpQuery(target.value);
+}
+
+function openResult(path: string) {
+  uiStore.clearQuickJumpQuery();
+  navigate(path);
+}
 </script>
 
 <template>
@@ -15,11 +29,11 @@ const searchIcon = icon("search");
     <span v-html="searchIcon"></span>
     <input
       aria-label="Global search and quick jump"
-      data-input="quick-jump"
       placeholder="Quick jump"
       spellcheck="false"
       type="search"
       :value="quickJumpQuery"
+      @input="onQueryInput"
     />
     <div v-if="quickJumpQuery.trim()" class="quick-jump-results">
       <div v-if="!quickJumpResults.length" class="quick-jump-empty">No matches</div>
@@ -28,9 +42,8 @@ const searchIcon = icon("search");
         v-else
         :key="`${result.kind}:${result.path}`"
         class="quick-jump-result"
-        data-action="open-quick-jump-result"
-        :data-path="result.path"
         type="button"
+        @click="openResult(result.path)"
       >
         <span>
           <strong>{{ result.title }}</strong>

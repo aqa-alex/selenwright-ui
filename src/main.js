@@ -12,7 +12,7 @@ import { saveArtifactPaneWidth } from "./lib/preferences.js";
 import { buildSessionPath, navGroups, parseRoute } from "./app/router.ts";
 import { navigate } from "./lib/router.js";
 import { getFilteredSessionsForState } from "./app/sessions/sessionTable.ts";
-import { getPreferencesStore, mountConsoleShell, updateConsoleShell } from "./main.ts";
+import { getPreferencesStore, getUiStore, mountConsoleShell, updateConsoleShell } from "./main.ts";
 
 const defaultPreferencesShape = {
   density: "compact",
@@ -90,6 +90,7 @@ if (root instanceof HTMLElement) {
 }
 
 bindPreferencesMirror();
+bindUiMirror();
 bindGlobalEvents();
 bindGlobalErrorHandlers();
 render();
@@ -119,6 +120,28 @@ function syncPreferencesFromStore(preferencesStore) {
     timezone: next.timezone,
     artifactPaneWidths: { ...next.artifactPaneWidths },
   };
+}
+
+function bindUiMirror() {
+  const uiStore = getUiStore();
+  if (!uiStore) {
+    return;
+  }
+  syncUiFromStore(uiStore);
+  uiStore.$subscribe(() => {
+    syncUiFromStore(uiStore);
+    render();
+  });
+}
+
+function syncUiFromStore(uiStore) {
+  const next = uiStore.$state;
+  state.ui.artifactSessionFilter = next.artifactSessionFilter;
+  state.ui.logsPage = next.logsPage;
+  state.ui.logsPerPage = next.logsPerPage;
+  state.ui.logSearch = next.logSearch;
+  state.ui.quickJumpQuery = next.quickJumpQuery;
+  state.ui.selectedArtifacts = { ...next.selectedArtifacts };
 }
 
 function reportBootstrapError(error) {
@@ -217,7 +240,7 @@ function handleClick(event) {
     return;
   }
 
-  const { action, page, path, sessionId, sort, value, filename } = actionTarget.dataset;
+  const { action, sessionId, sort, value, filename } = actionTarget.dataset;
 
   switch (action) {
     case "copy":
@@ -225,18 +248,6 @@ function handleClick(event) {
       break;
     case "copy-log-content":
       copyCurrentLogContent(filename);
-      break;
-    case "clear-artifact-session-filter":
-      state.ui.artifactSessionFilter = "";
-      render();
-      break;
-    case "open-artifact-page":
-      state.ui.artifactSessionFilter = sessionId || "";
-      navigate(`/artifacts/${page}`);
-      break;
-    case "open-quick-jump-result":
-      state.ui.quickJumpQuery = "";
-      navigate(path);
       break;
     case "open-session":
       navigate(buildSessionPath(sessionId));
@@ -270,18 +281,6 @@ function handleClick(event) {
         void ensureLogFileLoaded(filename);
         render();
       }
-      break;
-    case "logs-next-page":
-      state.ui.logsPage = state.ui.logsPage + 1;
-      render();
-      break;
-    case "logs-prev-page":
-      state.ui.logsPage = Math.max(1, state.ui.logsPage - 1);
-      render();
-      break;
-    case "select-artifact":
-      state.ui.selectedArtifacts[page] = filename;
-      render();
       break;
     case "set-artifact-history-enabled":
       state.ui.artifactHistory.draftEnabled = value === "enabled";
@@ -346,21 +345,8 @@ function handleInput(event) {
       state.filters.browser = target.value;
       render();
       break;
-    case "log-search":
-      state.ui.logSearch = target.value;
-      render();
-      break;
-    case "logs-per-page":
-      state.ui.logsPerPage = parseInt(target.value, 10);
-      state.ui.logsPage = 1;
-      render();
-      break;
     case "protocol-filter":
       state.filters.protocol = target.value;
-      render();
-      break;
-    case "quick-jump":
-      state.ui.quickJumpQuery = target.value;
       render();
       break;
     case "session-search":
