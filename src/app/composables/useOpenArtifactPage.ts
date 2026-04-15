@@ -1,4 +1,4 @@
-import { navigate } from "../../lib/router.js";
+import { useRouter } from "vue-router";
 import { type ArtifactPage, useUiStore } from "../stores/ui";
 
 /**
@@ -8,8 +8,9 @@ import { type ArtifactPage, useUiStore } from "../stores/ui";
  */
 export function useOpenArtifactPage() {
   const uiStore = useUiStore();
+  const router = useRouter();
   return function openArtifactPage(page: ArtifactPage, sessionId: string | null = null) {
     uiStore.setArtifactSessionFilter(sessionId ?? "");
-    navigate(`/artifacts/${page}`);
+    void router.push(`/artifacts/${page}`);
   };
 }

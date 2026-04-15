@@ -9,7 +9,6 @@ import { useSessionsStore } from "./app/stores/sessions";
 import { useSettingsStore } from "./app/stores/settings";
 import { useShellStore } from "./app/stores/shell";
 import { useUiStore } from "./app/stores/ui";
-import { setNavigator } from "./lib/router.js";
 
 let routeChangeHandler: ((pathname: string) => void) | null = null;
 let removeRouteListener: (() => void) | null = null;
@@ -22,7 +21,7 @@ let consoleStore: ReturnType<typeof useConsoleStore> | null = null;
 let shellApp: VueApp | null = null;
 let shellMounted = false;
 
-const router = createConsoleRouter();
+export const consoleRouter = createConsoleRouter();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -55,23 +54,28 @@ export function mountConsoleShell(
   shellApp = createApp(App);
   shellApp.use(pinia);
   shellApp.use(VueQueryPlugin, { queryClient });
-  shellApp.use(router);
+  shellApp.use(consoleRouter);
   shellApp.mount(container);
 
-  removeRouteListener = router.afterEach((to) => {
+  removeRouteListener = consoleRouter.afterEach((to) => {
     routeChangeHandler?.(to.fullPath);
   });
 
-  setNavigator(async (pathname: string, { replace = false }: { replace?: boolean } = {}) => {
-    const currentPath = router.currentRoute.value.fullPath;
-    if (pathname === currentPath) {
-      return;
-    }
-
-    await (replace ? router.replace(pathname) : router.push(pathname));
-  });
-
   shellMounted = true;
+}
+
+export async function navigateProgrammatically(
+  pathname: string,
+  { replace = false }: { replace?: boolean } = {},
+) {
+  const currentPath = consoleRouter.currentRoute.value.fullPath;
+  if (pathname === currentPath) {
+    return;
+  }
+
+  await (replace
+    ? consoleRouter.replace(pathname)
+    : consoleRouter.push(pathname));
 }
 
 export function getShellStore() {
@@ -116,6 +120,5 @@ export function unmountConsoleShell() {
   sessionsStore = null;
   settingsStore = null;
   consoleStore = null;
-  setNavigator(null);
   shellMounted = false;
 }

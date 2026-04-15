@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { icon } from "../../components/icons.js";
-import { navigate } from "../../lib/router.js";
 import { useQuickJumpResults } from "../composables/useQuickJumpResults";
 import { useUiStore } from "../stores/ui";
 
@@ -12,6 +11,7 @@ const { quickJumpQuery } = storeToRefs(uiStore);
 const quickJumpResults = useQuickJumpResults();
 const searchIcon = icon("search");
 const inputRef = useTemplateRef<HTMLInputElement>("inputRef");
+const router = useRouter();
 
 function onQueryInput(event: Event) {
   const target = event.target as HTMLInputElement | null;
@@ -21,7 +21,7 @@ function onQueryInput(event: Event) {
 
 function openResult(path: string) {
   uiStore.clearQuickJumpQuery();
-  navigate(path);
+  void router.push(path);
 }
 
 function onKeyDown(event: KeyboardEvent) {

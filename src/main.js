@@ -1,6 +1,6 @@
 import { formatDuration, timeAgo } from "./lib/format.js";
 import { parseRoute } from "./app/router.ts";
-import { navigate } from "./lib/router.js";
+import { navigateProgrammatically } from "./main.ts";
 import {
   getPreferencesStore,
   getShellStore,
@@ -91,7 +91,7 @@ function handleClick(event) {
   const link = target?.closest("a[data-link]");
   if (link) {
     event.preventDefault();
-    navigate(link.getAttribute("href"));
+    void navigateProgrammatically(link.getAttribute("href"));
   }
 }
 

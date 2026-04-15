@@ -7,8 +7,8 @@ import {
   type Row,
 } from "@tanstack/vue-table";
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { icon } from "../../components/icons.js";
-import { navigate } from "../../lib/router.js";
 import type { ConsoleSession } from "../../data/service";
 import { formatDateTime, formatDuration, formatStatus, timeAgo } from "../../lib/format.js";
 import { buildSessionPath } from "../router";
@@ -29,6 +29,7 @@ const props = defineProps<{
 }>();
 
 const sessionsStore = useSessionsStore();
+const router = useRouter();
 
 const columns = createSessionTableColumns();
 const data = computed(() => props.model.sessions);
@@ -77,7 +78,7 @@ function rowClass(row: Row<ConsoleSession>) {
 }
 
 function openSession(row: Row<ConsoleSession>) {
-  navigate(buildSessionPath(row.original.id));
+  void router.push(buildSessionPath(row.original.id));
 }
 
 function setSort(sort: SessionSort) {
