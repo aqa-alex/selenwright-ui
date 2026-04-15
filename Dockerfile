@@ -38,6 +38,6 @@ COPY --from=build /app/dist ./dist
 EXPOSE 4173
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ["node", "-e", "const p=process.env.PORT||4173;fetch('http://127.0.0.1:'+p+'/api/meta').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
+  CMD ["node", "-e", "const h=process.env.HEALTHCHECK_HOST||'127.0.0.1';const p=process.env.PORT||4173;fetch(`http://${h}:${p}/api/meta`).then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
 
 ENTRYPOINT ["node", "server.mjs"]

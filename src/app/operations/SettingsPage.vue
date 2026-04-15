@@ -224,7 +224,7 @@ const unavailableReason = computed(
         </div>
         <div class="copyable-row">
           <span>Target</span>
-          <strong class="mono">{{ model.connection.target }}</strong>
+          <strong class="mono">{{ model.connection.target || "—" }}</strong>
         </div>
       </div>
     </ConsolePanel>
