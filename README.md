@@ -10,17 +10,21 @@ The UI is a Vite-built Vue + TypeScript app served by `server.mjs`.
 npm run dev
 ```
 
-The app serves on `http://localhost:4173`.
+The app serves on `http://127.0.0.1:4173` by default. Override with `HOST` / `PORT` env vars.
 
-By default it will try a lightweight proxy connection to `http://localhost:4444` for `/status`, `/logs/?json`, and `/video/?json`. Override the target if needed:
+By default it will try a lightweight proxy connection to `http://127.0.0.1:4444` for `/status`, `/logs/?json`, and `/video/?json`. Override the target if needed:
 
 ```bash
-SELENWRIGHT_TARGET=http://localhost:4444 npm run dev
+SELENWRIGHT_TARGET=http://selenwright.internal:4444 npm run dev
 ```
 
 The local server also proxies `/api/vnc/<session-id>` as a WebSocket endpoint so the Vue noVNC viewer entry in `vnc.html` can watch live sessions with `vnc: true`.
 
 If the target is unavailable, the UI falls back to an embedded demo dataset so layout and navigation remain fully usable.
+
+## Deployment
+
+This UI has no built-in authentication and proxies `DELETE` and live WebSocket traffic straight to the upstream Selenwright service. Bind it to loopback (`HOST=127.0.0.1`, the default) and front it with an authenticating reverse proxy before exposing to the network. Do not run with `HOST=0.0.0.0` on an untrusted interface.
 
 ## Docker
 

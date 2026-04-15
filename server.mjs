@@ -9,9 +9,14 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
 const distDir = path.join(rootDir, "dist");
-const target = process.env.SELENWRIGHT_TARGET || "http://localhost:4444";
-const port = Number(process.env.PORT || 4173);
-const host = process.env.HOST || "127.0.0.1";
+
+const DEFAULT_UPSTREAM_TARGET = "http://127.0.0.1:4444";
+const DEFAULT_HOST = "127.0.0.1";
+const DEFAULT_PORT = 4173;
+
+const target = process.env.SELENWRIGHT_TARGET || DEFAULT_UPSTREAM_TARGET;
+const port = Number(process.env.PORT || DEFAULT_PORT);
+const host = process.env.HOST || DEFAULT_HOST;
 const apiOnlyMode = process.env.SELENWRIGHT_API_ONLY === "true";
 const consoleStreamPath = "/api/stream/console";
 const consoleWatchIntervalMs = Number(process.env.SELENWRIGHT_WATCH_INTERVAL_MS || 3000);
@@ -993,7 +998,7 @@ function sendUpgradeFailure(socket, statusCode, statusText) {
 }
 
 function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
-  const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
   const upgradeHeader = req.headers.upgrade;
 
   if (upgradeHeader?.toLowerCase() !== "websocket") {
@@ -1426,7 +1431,7 @@ function truncateBodyPreview(value) {
 }
 
 const server = createServer(async (req, res) => {
-  const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
 
   if (requestUrl.pathname === consoleStreamPath) {
     handleConsoleStream(req, res);
@@ -1481,7 +1486,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.on("upgrade", (req, socket, head) => {
-  const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
   const buildUpstreamUrl = resolveUpgradeHandler(requestUrl);
 
   if (buildUpstreamUrl) {

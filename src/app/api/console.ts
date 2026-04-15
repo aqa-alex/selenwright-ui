@@ -31,7 +31,7 @@ import type {
   SnapshotResult,
 } from "./types";
 
-const DEFAULT_TARGET = "http://localhost:4444";
+const DEFAULT_TARGET = "";
 const CONSOLE_STREAM_PATH = "/api/stream/console";
 
 export function createEmptyDataset(target = DEFAULT_TARGET): ConsoleDataset {

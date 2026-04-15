@@ -6,7 +6,7 @@ const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 4173);
 const apiTarget =
   process.env.SELENWRIGHT_API_TARGET ||
-  "http://127.0.0.1:4174";
+  `http://${host}:${port + 1}`;
 
 export default defineConfig({
   build: {
