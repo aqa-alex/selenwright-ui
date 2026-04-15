@@ -4,6 +4,7 @@ import { type App as VueApp, createApp, nextTick } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
 import { setSaveArtifactHistoryHandler as setSaveHandler } from "./app/lib/handlers";
+import { useConsoleStore } from "./app/stores/console";
 import { usePreferencesStore } from "./app/stores/preferences";
 import { useSessionsStore } from "./app/stores/sessions";
 import { useSettingsStore } from "./app/stores/settings";
@@ -19,6 +20,7 @@ let preferencesStore: ReturnType<typeof usePreferencesStore> | null = null;
 let uiStore: ReturnType<typeof useUiStore> | null = null;
 let sessionsStore: ReturnType<typeof useSessionsStore> | null = null;
 let settingsStore: ReturnType<typeof useSettingsStore> | null = null;
+let consoleStore: ReturnType<typeof useConsoleStore> | null = null;
 let shellApp: VueApp | null = null;
 let shellMounted = false;
 
@@ -50,6 +52,7 @@ export function mountConsoleShell(
   uiStore = useUiStore(pinia);
   sessionsStore = useSessionsStore(pinia);
   settingsStore = useSettingsStore(pinia);
+  consoleStore = useConsoleStore(pinia);
 
   shellApp = createApp(App);
   shellApp.use(pinia);
@@ -98,6 +101,10 @@ export function getSettingsStore() {
   return settingsStore;
 }
 
+export function getConsoleStore() {
+  return consoleStore;
+}
+
 export function setSaveArtifactHistoryHandler(handler: (() => void | Promise<void>) | null) {
   setSaveHandler(handler);
 }
@@ -119,6 +126,7 @@ export function unmountConsoleShell() {
   uiStore = null;
   sessionsStore = null;
   settingsStore = null;
+  consoleStore = null;
   setSaveHandler(null);
   setNavigator(null);
   shellMounted = false;
