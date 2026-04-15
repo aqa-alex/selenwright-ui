@@ -1,5 +1,10 @@
 import { asString, isRecord } from "./guards";
 import {
+  ARTIFACT_REQUEST_TIMEOUT_MS,
+  fetchWithTimeout,
+  readResponseTextWithTimeout,
+} from "./http";
+import {
   buildDownloadFileApiPath,
   buildLiveLogApiPath,
   buildLogFileApiPath,
@@ -28,15 +33,25 @@ export async function loadLogFileContent(filename: string): Promise<string> {
     throw new Error("Log filename is required");
   }
 
-  const response = await fetch(buildLogFileApiPath(filename), {
-    headers: { accept: "text/plain" },
-  });
+  const contextLabel = `Log file ${filename}`;
+  const response = await fetchWithTimeout(
+    buildLogFileApiPath(filename),
+    {
+      headers: { accept: "text/plain" },
+    },
+    ARTIFACT_REQUEST_TIMEOUT_MS,
+    contextLabel,
+  );
 
   if (!response.ok) {
     throw new Error(`Request failed for ${filename} (${response.status})`);
   }
 
-  return response.text();
+  return readResponseTextWithTimeout(
+    response,
+    ARTIFACT_REQUEST_TIMEOUT_MS,
+    contextLabel,
+  );
 }
 
 export function subscribeToLiveLogs(

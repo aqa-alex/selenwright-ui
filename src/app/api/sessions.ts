@@ -134,7 +134,7 @@ export function buildSessionsFromStatus(
           }
 
           const raw = rawCandidate as RawSessionEntry;
-          const id = asString(raw.id) || cryptoRandomId();
+          const id = asString(raw.id) || generateFallbackSessionId();
           const encodedId = encodeURIComponent(id);
           const protocol = inferProtocol(browser);
           const startedAt = asString(raw.started) || nowIso;
@@ -145,10 +145,12 @@ export function buildSessionsFromStatus(
           const vncEndpoint = vncEnabled ? `/api/vnc/${encodedId}` : "";
           const resolvedVersion =
             asString(raw.caps?.version) || version || "latest";
+          const encodedVersion = encodeURIComponent(resolvedVersion);
+          const encodedBrowser = encodeURIComponent(browser);
           const endpoint =
             protocol === "playwright"
-              ? `/playwright/${browser}/${resolvedVersion}`
-              : `/wd/hub/session/${id}`;
+              ? `/playwright/${encodedBrowser}/${encodedVersion}`
+              : `/wd/hub/session/${encodedId}`;
 
           const capabilities: SessionCapabilities = {
             browserName: browser,
@@ -191,10 +193,10 @@ export function buildSessionsFromStatus(
                   }
                 : null,
               devtoolsEndpoint: "",
-              downloadEndpoint: `/download/${id}/`,
-              clipboardEndpoint: `/clipboard/${id}`,
+              downloadEndpoint: `/download/${encodedId}/`,
+              clipboardEndpoint: `/clipboard/${encodedId}`,
               liveLogEndpoint: buildLiveLogApiPath(id),
-              logEndpoint: `/logs/${id}.log`,
+              logEndpoint: `/logs/${encodedId}.log`,
               logFileEndpoint: "",
               logFilename: "",
               protocolEndpoint: endpoint,
@@ -246,7 +248,10 @@ export function buildBrowserUsageFromStatus(browserTree: JsonRecord): BrowserUsa
     .sort((left, right) => right.running - left.running);
 }
 
-export function cryptoRandomId(): string {
+export function generateFallbackSessionId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
   return `${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
 }
 

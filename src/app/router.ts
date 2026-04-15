@@ -51,7 +51,7 @@ export const navGroups: NavGroup[] = [
 ];
 
 export function buildSessionPath(sessionId: string): string {
-  return `/sessions/${sessionId}`;
+  return `/sessions/${encodeURIComponent(sessionId)}`;
 }
 
 export function parseRoute(pathname: string): ParsedRoute {
@@ -59,9 +59,16 @@ export function parseRoute(pathname: string): ParsedRoute {
     return { name: "sessions" };
   }
   if (pathname.startsWith("/sessions/")) {
+    const raw = pathname.slice("/sessions/".length);
+    let sessionId = raw;
+    try {
+      sessionId = decodeURIComponent(raw);
+    } catch {
+      // Leave the raw slice if it isn't a valid percent-encoded string.
+    }
     return {
       name: "session-detail",
-      sessionId: pathname.slice("/sessions/".length),
+      sessionId,
     };
   }
   if (pathname === "/artifacts/videos") {
