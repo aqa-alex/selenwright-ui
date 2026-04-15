@@ -2,7 +2,7 @@
 import { storeToRefs } from "pinia";
 import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { icon } from "../../components/icons.js";
+import { icon } from "../../components/icons";
 import { useQuickJumpResults } from "../composables/useQuickJumpResults";
 import { useUiStore } from "../stores/ui";
 

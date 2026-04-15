@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false,
     "jsx": "preserve",
     "lib": ["DOM", "ES2022"],
     "module": "ESNext",

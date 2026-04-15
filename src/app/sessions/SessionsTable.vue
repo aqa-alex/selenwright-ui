@@ -8,9 +8,9 @@ import {
 } from "@tanstack/vue-table";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { icon } from "../../components/icons.js";
+import { icon } from "../../components/icons";
 import type { ConsoleSession } from "../../data/service";
-import { formatDateTime, formatDuration, formatStatus, timeAgo } from "../../lib/format.js";
+import { formatDateTime, formatDuration, formatStatus, timeAgo } from "../../lib/format";
 import { buildSessionPath } from "../router";
 import StatusBadge from "../components/ui/StatusBadge.vue";
 import { type SessionSort, useSessionsStore } from "../stores/sessions";

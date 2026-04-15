@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { formatDateTime, titleCase } from "../../lib/format.js";
+import { formatDateTime, titleCase } from "../../lib/format";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import type { OperationsPageModel } from "./operationsPage";
 

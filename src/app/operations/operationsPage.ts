@@ -6,7 +6,7 @@ import type {
   ConsoleConnectionState,
   ConsoleSystemState,
 } from "../../data/service";
-import { titleCase } from "../../lib/format.js";
+import { titleCase } from "../../lib/format";
 
 export type OperationsRouteName = "browsers" | "configuration" | "settings" | "system";
 

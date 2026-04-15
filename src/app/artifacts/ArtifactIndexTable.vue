@@ -6,7 +6,7 @@ import {
   getSessionForArtifact,
   getVisibleArtifactItems,
 } from "./artifactsPage";
-import { formatBytes, formatDateTime, titleCase } from "../../lib/format.js";
+import { formatBytes, formatDateTime, titleCase } from "../../lib/format";
 import { type ArtifactPage, useUiStore } from "../stores/ui";
 
 const props = defineProps<{

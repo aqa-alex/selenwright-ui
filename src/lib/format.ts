@@ -1,4 +1,17 @@
-const statusLabels = {
+export type SessionStatus =
+  | "completed"
+  | "failed"
+  | "pending"
+  | "queued"
+  | "running"
+  | "terminated";
+
+export interface FormatPreferences {
+  timeFormat?: "12h" | "24h" | string;
+  timezone?: "local" | "utc" | string;
+}
+
+const statusLabels: Record<SessionStatus, string> = {
   completed: "Completed",
   failed: "Failed",
   pending: "Pending",
@@ -7,7 +20,7 @@ const statusLabels = {
   terminated: "Terminated",
 };
 
-export function formatDuration(milliseconds) {
+export function formatDuration(milliseconds: number): string {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -22,7 +35,7 @@ export function formatDuration(milliseconds) {
   return `${seconds}s`;
 }
 
-export function formatBytes(bytes) {
+export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";
   }
@@ -33,17 +46,17 @@ export function formatBytes(bytes) {
   return `${value.toFixed(value >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
 }
 
-export function formatStatus(status) {
-  return statusLabels[status] || titleCase(status);
+export function formatStatus(status: string): string {
+  return statusLabels[status as SessionStatus] || titleCase(status);
 }
 
-export function titleCase(value) {
+export function titleCase(value: string): string {
   return String(value)
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
-export function formatDateTime(value, preferences) {
+export function formatDateTime(value: string | number | Date, preferences: FormatPreferences): string {
   const date = new Date(value);
   const useUtc = preferences.timezone === "utc";
   const hour12 = preferences.timeFormat === "12h";
@@ -57,7 +70,10 @@ export function formatDateTime(value, preferences) {
   }).format(date);
 }
 
-export function formatDateTimeLong(value, preferences) {
+export function formatDateTimeLong(
+  value: string | number | Date,
+  preferences: FormatPreferences,
+): string {
   const date = new Date(value);
   const useUtc = preferences.timezone === "utc";
   const hour12 = preferences.timeFormat === "12h";
@@ -73,7 +89,7 @@ export function formatDateTimeLong(value, preferences) {
   }).format(date);
 }
 
-export function timeAgo(value, now = Date.now()) {
+export function timeAgo(value: string | number | Date, now: number = Date.now()): string {
   const diff = Math.max(0, now - new Date(value).getTime());
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) {
@@ -90,10 +106,12 @@ export function timeAgo(value, now = Date.now()) {
   return `${days}d ago`;
 }
 
-export function compareValues(left, right) {
+export function compareValues(left: unknown, right: unknown): number {
   if (typeof left === "number" && typeof right === "number") {
     return left - right;
   }
-  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: "base" });
+  return String(left).localeCompare(String(right), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
-

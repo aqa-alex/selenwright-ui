@@ -6,7 +6,7 @@ import {
   saveArtifactPaneWidth as savePaneWidth,
   savePreference,
   watchSystemTheme,
-} from "../../lib/preferences.js";
+} from "../../lib/preferences";
 
 export type ThemeMode = "system" | "light" | "dark";
 export type Density = "compact" | "comfortable";

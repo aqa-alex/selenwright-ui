@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { DownloadArtifact } from "../../data/service";
-import { formatBytes, formatDateTime, titleCase } from "../../lib/format.js";
+import { formatBytes, formatDateTime, titleCase } from "../../lib/format";
 import ArtifactKeyValueRow from "./ArtifactKeyValueRow.vue";
 import type { ArtifactPageModel } from "./artifactsPage";
 import { buildDownloadArtifactHref, getSelectedArtifact } from "./artifactsPage";

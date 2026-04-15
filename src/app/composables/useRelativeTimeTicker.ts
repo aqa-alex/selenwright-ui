@@ -1,5 +1,5 @@
 import { onBeforeUnmount, onMounted } from "vue";
-import { formatDuration, timeAgo } from "../../lib/format.js";
+import { formatDuration, timeAgo } from "../../lib/format";
 
 /**
  * Refreshes relative-time labels (`[data-time-ago]`,

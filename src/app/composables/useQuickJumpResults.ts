@@ -1,5 +1,5 @@
 import { computed, type ComputedRef } from "vue";
-import { formatStatus } from "../../lib/format.js";
+import { formatStatus } from "../../lib/format";
 import { buildSessionPath, navGroups } from "../router";
 import { useConsoleSnapshotQuery } from "../queries/useConsoleSnapshotQuery";
 import { useUiStore } from "../stores/ui";

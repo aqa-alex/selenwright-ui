@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ConsoleSession } from "../../data/service";
-import { formatDateTimeLong, formatDuration, timeAgo } from "../../lib/format.js";
+import { formatDateTimeLong, formatDuration, timeAgo } from "../../lib/format";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import { titleCaseSessionValue } from "../sessions/sessionTable";
 import type { SessionDetailPreferences } from "./sessionDetail";

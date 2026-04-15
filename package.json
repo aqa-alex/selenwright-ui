@@ -14,7 +14,7 @@
     "check": "node scripts/check.mjs && npm run typecheck && npm run test:unit && playwright test",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
-    "lint": "eslint src/ server.mjs scripts/ tests/ playwright.config.mjs"
+    "lint": "eslint server.mjs scripts/ tests/ playwright.config.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

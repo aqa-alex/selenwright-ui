@@ -2,7 +2,7 @@
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import { formatStatus } from "../../lib/format.js";
+import { formatStatus } from "../../lib/format";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import StatusBadge from "../components/ui/StatusBadge.vue";
 import ProtocolBadge from "../session-detail/ProtocolBadge.vue";

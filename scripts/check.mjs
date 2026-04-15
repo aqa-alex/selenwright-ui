@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
-const directories = ["src", "scripts"];
+const directories = ["scripts"];
 const files = ["server.mjs"];
 
 function collectJsFiles(directory) {
