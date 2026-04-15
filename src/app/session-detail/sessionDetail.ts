@@ -14,6 +14,7 @@ export interface SessionDetailLiveLogState {
   sessionId: string;
   source: string;
   status: string;
+  truncated: boolean;
 }
 
 export interface SessionDetailLogFileState {

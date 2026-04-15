@@ -25,6 +25,9 @@ export function useLiveLog(sessionIdInput: MaybeRefOrGetter<string | null | unde
 
   let subscription: LiveLogSubscription | null = null;
   let subscriptionToken = 0;
+  let pendingChunks: string[] = [];
+  let pendingSessionId = "";
+  let rafHandle = 0;
 
   const activeSessionId = computed<string>(() => {
     const id = toValue(sessionIdInput) || "";
@@ -32,7 +35,34 @@ export function useLiveLog(sessionIdInput: MaybeRefOrGetter<string | null | unde
     return session?.artifacts.liveLogs ? id : "";
   });
 
+  function cancelPendingFlush() {
+    if (rafHandle && typeof window !== "undefined") {
+      window.cancelAnimationFrame(rafHandle);
+    }
+    rafHandle = 0;
+    pendingChunks = [];
+    pendingSessionId = "";
+  }
+
+  function scheduleFlush() {
+    if (rafHandle || typeof window === "undefined") {
+      return;
+    }
+    rafHandle = window.requestAnimationFrame(() => {
+      rafHandle = 0;
+      if (!pendingChunks.length || !pendingSessionId) {
+        return;
+      }
+      const combined = pendingChunks.join("");
+      const sid = pendingSessionId;
+      pendingChunks = [];
+      pendingSessionId = "";
+      consoleStore.appendLiveLogChunk(sid, combined);
+    });
+  }
+
   function stop() {
+    cancelPendingFlush();
     if (!subscription) {
       return;
     }
@@ -52,7 +82,12 @@ export function useLiveLog(sessionIdInput: MaybeRefOrGetter<string | null | unde
     subscription = subscribeToLiveLogs(sessionId, {
       onChunk(chunk) {
         if (token !== subscriptionToken) return;
-        consoleStore.appendLiveLogChunk(sessionId, chunk);
+        if (pendingSessionId && pendingSessionId !== sessionId) {
+          pendingChunks = [];
+        }
+        pendingSessionId = sessionId;
+        pendingChunks.push(chunk);
+        scheduleFlush();
       },
       onError(error) {
         if (token !== subscriptionToken) return;
