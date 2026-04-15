@@ -12,6 +12,7 @@ import {
   getSavedLogEmptyText,
   getSavedLogState,
 } from "./sessionDetail";
+import { useClipboard } from "../composables/useClipboard";
 import { useLiveLog } from "../composables/useLiveLog";
 import { useOpenArtifactPage } from "../composables/useOpenArtifactPage";
 import { useLogFileContentQuery } from "../queries/useLogFileContentQuery";
@@ -27,6 +28,7 @@ const uiStore = useUiStore();
 const consoleStore = useConsoleStore();
 const { liveLogs: liveLogsRef } = storeToRefs(consoleStore);
 const openArtifactPage = useOpenArtifactPage();
+const copy = useClipboard();
 const sessionIdForLiveLog = computed(() =>
   props.session.artifacts.liveLogs ? props.session.id : null,
 );
@@ -67,15 +69,6 @@ function jumpSavedToEnd() {
   const viewer = savedViewer.value;
   if (viewer) {
     viewer.scrollTop = viewer.scrollHeight;
-  }
-}
-
-async function copyText(value: string) {
-  if (!value) return;
-  try {
-    await navigator.clipboard?.writeText(value);
-  } catch {
-    /* no-op */
   }
 }
 
@@ -173,7 +166,7 @@ function refetchLog() {
         class="button secondary"
         :disabled="!liveContent"
         type="button"
-        @click="copyText(liveContent)"
+        @click="copy(liveContent)"
       >
         Copy block
       </button>
@@ -236,7 +229,7 @@ function refetchLog() {
         :data-copy="effectiveLogState.content"
         :disabled="!hasContent"
         type="button"
-        @click="copyText(effectiveLogState.content)"
+        @click="copy(effectiveLogState.content)"
       >
         Copy block
       </button>
