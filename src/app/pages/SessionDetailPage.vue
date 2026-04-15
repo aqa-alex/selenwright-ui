@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { formatStatus } from "../../lib/format.js";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import StatusBadge from "../components/ui/StatusBadge.vue";
@@ -15,18 +17,41 @@ import {
   canTerminateSession,
   isTerminatePending,
 } from "../session-detail/sessionDetail";
+import { useTerminateSessionMutation } from "../queries/useTerminateSessionMutation";
+import { useConsoleStore } from "../stores/console";
 
 const props = defineProps<{
   model: SessionDetailPageModel;
 }>();
 
+const consoleStore = useConsoleStore();
+const { terminatingSessionId } = storeToRefs(consoleStore);
+const terminateMutation = useTerminateSessionMutation();
+const router = useRouter();
+
 const session = computed(() => props.model.session);
 const terminatePending = computed(() =>
-  session.value ? isTerminatePending(session.value, props.model.terminatingSessionId) : false,
+  session.value ? isTerminatePending(session.value, terminatingSessionId.value) : false,
 );
 const terminateEnabled = computed(() =>
-  session.value ? canTerminateSession(session.value, props.model.terminatingSessionId) : false,
+  session.value ? canTerminateSession(session.value, terminatingSessionId.value) : false,
 );
+
+async function terminate() {
+  const current = session.value;
+  if (!current) return;
+  const confirmed =
+    typeof window !== "undefined" && typeof window.confirm === "function"
+      ? window.confirm(`Terminate session ${current.name}?`)
+      : true;
+  if (!confirmed) return;
+  try {
+    await terminateMutation.mutateAsync({ id: current.id, protocol: current.protocol });
+    void router.replace("/sessions");
+  } catch {
+    /* error surfaced via mutation.error */
+  }
+}
 </script>
 
 <template>
@@ -64,10 +89,10 @@ const terminateEnabled = computed(() =>
         </button>
         <button
           class="button danger"
-          data-action="terminate-session"
           :data-session-id="session.id"
           :disabled="!terminateEnabled"
           type="button"
+          @click="terminate"
         >
           {{ terminatePending ? "Terminating..." : "Terminate" }}
         </button>

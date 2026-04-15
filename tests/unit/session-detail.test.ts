@@ -51,7 +51,7 @@ describe("SessionDetailPage", () => {
       'href="/vnc.html?browser=chromium&amp;name=worker&amp;session=session-01"',
     );
     expect(html).toContain('data-copy="ws://devtools.example/session-01"');
-    expect(html).toMatch(/data-action="terminate-session"[^>]*data-session-id="session-01"/);
+    expect(html).toMatch(/<button[^>]*class="button danger"[^>]*data-session-id="session-01"/);
     expect(html).toContain("Terminate");
   });
 
@@ -59,7 +59,7 @@ describe("SessionDetailPage", () => {
     const session = buildSession({ artifacts: { vnc: true }, status: "completed" });
     const html = await renderSessionDetailPage({ session });
 
-    expect(html).toMatch(/data-action="terminate-session"[^>]*disabled/);
+    expect(html).toMatch(/<button[^>]*class="button danger"[^>]*disabled/);
   });
 
   it("renders saved log filtering and download target", async () => {
@@ -133,9 +133,14 @@ async function renderSessionDetailPage(overrides: Partial<SessionDetailPageModel
       },
     },
   });
-  if (overrides.liveLogs) {
+  if (overrides.liveLogs || overrides.terminatingSessionId) {
     const consoleStore = useConsoleStore();
-    consoleStore.setLiveLogState(overrides.liveLogs);
+    if (overrides.liveLogs) {
+      consoleStore.setLiveLogState(overrides.liveLogs);
+    }
+    if (overrides.terminatingSessionId) {
+      consoleStore.setTerminating(overrides.terminatingSessionId);
+    }
   }
   const app = createSSRApp(SessionDetailPage, { model: buildModel(overrides) });
   app.use(VueQueryPlugin, { queryClient });

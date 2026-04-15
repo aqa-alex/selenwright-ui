@@ -12,7 +12,7 @@ import {
   usePreferencesStore,
 } from "../stores/preferences";
 import { useSettingsStore } from "../stores/settings";
-import { requestSaveArtifactHistory } from "../lib/handlers";
+import { useSaveArtifactHistoryMutation } from "../queries/useSaveArtifactHistoryMutation";
 import type { OperationsPageModel } from "./operationsPage";
 
 const props = defineProps<{
@@ -20,6 +20,25 @@ const props = defineProps<{
 }>();
 
 const settingsStore = useSettingsStore();
+const saveArtifactHistoryMutation = useSaveArtifactHistoryMutation();
+
+function saveArtifactHistory() {
+  const draft = settingsStore.artifactHistory;
+  const retentionInput = draft.draftRetentionDays.trim();
+  if (!/^\d+$/.test(retentionInput)) {
+    settingsStore.setHistoryError("Retention days must be a whole number.");
+    return;
+  }
+  const retentionDays = Number.parseInt(retentionInput, 10);
+  if (retentionDays < 1 || retentionDays > 365) {
+    settingsStore.setHistoryError("Retention days must stay between 1 and 365.");
+    return;
+  }
+  saveArtifactHistoryMutation.mutate({
+    enabled: draft.draftEnabled,
+    retentionDays,
+  });
+}
 
 const preferencesStore = usePreferencesStore();
 const { density, detailPanel, themeMode, timeFormat, timezone } = storeToRefs(preferencesStore);
@@ -177,7 +196,7 @@ const unavailableReason = computed(
             class="button"
             :disabled="controlsDisabled || !artifactHistoryUi.dirty"
             type="button"
-            @click="requestSaveArtifactHistory()"
+            @click="saveArtifactHistory"
           >
             {{ artifactHistoryUi.saving ? "Saving…" : "Save settings" }}
           </button>

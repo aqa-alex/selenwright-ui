@@ -3,7 +3,6 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { type App as VueApp, createApp, nextTick } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
-import { setSaveArtifactHistoryHandler as setSaveHandler } from "./app/lib/handlers";
 import { useConsoleStore } from "./app/stores/console";
 import { usePreferencesStore } from "./app/stores/preferences";
 import { useSessionsStore } from "./app/stores/sessions";
@@ -105,10 +104,6 @@ export function getConsoleStore() {
   return consoleStore;
 }
 
-export function setSaveArtifactHistoryHandler(handler: (() => void | Promise<void>) | null) {
-  setSaveHandler(handler);
-}
-
 export function unmountConsoleShell() {
   removeRouteListener?.();
   removeRouteListener = null;
@@ -127,7 +122,6 @@ export function unmountConsoleShell() {
   sessionsStore = null;
   settingsStore = null;
   consoleStore = null;
-  setSaveHandler(null);
   setNavigator(null);
   shellMounted = false;
 }

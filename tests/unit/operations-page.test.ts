@@ -1,3 +1,4 @@
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { renderToString } from "@vue/server-renderer";
 import { createPinia, setActivePinia } from "pinia";
 import { createSSRApp } from "vue";
@@ -137,7 +138,12 @@ describe("OperationsPage", () => {
 });
 
 async function renderOperationsPage(overrides: Partial<OperationsPageModel> = {}) {
-  return renderToString(createSSRApp(OperationsPage, { model: buildModel(overrides) }));
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const app = createSSRApp(OperationsPage, { model: buildModel(overrides) });
+  app.use(VueQueryPlugin, { queryClient });
+  return renderToString(app);
 }
 
 function buildModel(overrides: Partial<OperationsPageModel> = {}): OperationsPageModel {

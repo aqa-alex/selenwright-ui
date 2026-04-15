@@ -3,8 +3,6 @@ import {
   createEmptyDataset,
   loadConsoleData,
   loadLogFileContent,
-  saveArtifactHistorySettings,
-  terminateSession,
 } from "./data/service.ts";
 import { formatDuration, formatStatus, timeAgo } from "./lib/format.js";
 import { saveArtifactPaneWidth } from "./lib/preferences.js";
@@ -17,7 +15,6 @@ import {
   getSettingsStore,
   getUiStore,
   mountConsoleShell,
-  setSaveArtifactHistoryHandler,
   updateConsoleShell,
 } from "./main.ts";
 
@@ -68,7 +65,6 @@ const state = {
       videos: null,
     },
     selectedSessionId: null,
-    terminatingSessionId: "",
   },
 };
 
@@ -96,7 +92,6 @@ bindPreferencesMirror();
 bindUiMirror();
 bindSessionsMirror();
 bindSettingsMirror();
-setSaveArtifactHistoryHandler(saveArtifactHistorySettingsFromUi);
 bindGlobalEvents();
 bindGlobalErrorHandlers();
 render();
@@ -299,11 +294,6 @@ function handleClick(event) {
         render();
       }
       break;
-    case "terminate-session":
-      if (sessionId) {
-        void terminateSessionFromUi(sessionId);
-      }
-      break;
     case "jump-log-end": {
       const viewer = getCurrentLogViewer();
       if (viewer) {
@@ -346,99 +336,6 @@ function syncArtifactHistoryState(settings) {
       retentionDays: nextSettings.retentionDays,
     });
   }
-}
-
-async function saveArtifactHistorySettingsFromUi() {
-  const settingsStore = getSettingsStore();
-  if (!settingsStore) {
-    return;
-  }
-  const draft = settingsStore.$state.artifactHistory;
-  const retentionInput = draft.draftRetentionDays.trim();
-  if (!/^\d+$/.test(retentionInput)) {
-    settingsStore.setHistoryError("Retention days must be a whole number.");
-    return;
-  }
-
-  const nextRetentionDays = Number.parseInt(retentionInput, 10);
-  if (nextRetentionDays < 1 || nextRetentionDays > 365) {
-    settingsStore.setHistoryError("Retention days must stay between 1 and 365.");
-    return;
-  }
-
-  settingsStore.setHistorySaving(true);
-  settingsStore.setHistoryError("");
-
-  try {
-    await saveArtifactHistorySettings({
-      enabled: draft.draftEnabled,
-      retentionDays: nextRetentionDays,
-    });
-    settingsStore.syncFromBackend({
-      enabled: draft.draftEnabled,
-      retentionDays: nextRetentionDays,
-    });
-    await refreshData();
-    setNotice("Artifact history settings saved");
-  } catch (error) {
-    settingsStore.setHistoryError(
-      error instanceof Error ? error.message : "Artifact history settings update failed",
-    );
-  } finally {
-    settingsStore.setHistorySaving(false);
-  }
-}
-
-async function terminateSessionFromUi(sessionId) {
-  const session = getSessionById(sessionId);
-  if (!session || state.ui.terminatingSessionId === sessionId) {
-    return;
-  }
-
-  const confirmed =
-    typeof window.confirm === "function"
-      ? window.confirm(`Terminate session ${session.name}?`)
-      : true;
-
-  if (!confirmed) {
-    return;
-  }
-
-  state.ui.terminatingSessionId = sessionId;
-  render();
-
-  try {
-    await terminateSession(sessionId, session.protocol);
-
-    removeSessionFromCurrentDataset(sessionId);
-
-    if (state.route.name === "session-detail" && state.route.sessionId === sessionId) {
-      navigate("/sessions", { replace: true });
-    }
-
-    setNotice("Session terminated");
-    void refreshDataAfterTerminate();
-  } catch (error) {
-    setNotice(error instanceof Error ? error.message : "Session terminate failed");
-  } finally {
-    state.ui.terminatingSessionId = "";
-    render();
-  }
-}
-
-async function refreshDataAfterTerminate() {
-  try {
-    await refreshData();
-  } catch (error) {
-    setNotice(error instanceof Error ? error.message : "Session refresh failed");
-  }
-}
-
-function removeSessionFromCurrentDataset(sessionId) {
-  state.data = {
-    ...state.data,
-    sessions: state.data.sessions.filter((session) => session.id !== sessionId),
-  };
 }
 
 function handleToggle(event) {
@@ -969,7 +866,7 @@ function createSessionDetailPageSnapshot() {
     },
     routeSessionId: state.route.sessionId,
     session: getSessionById(state.route.sessionId),
-    terminatingSessionId: state.ui.terminatingSessionId,
+    terminatingSessionId: "",
   };
 }
 
