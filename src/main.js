@@ -12,7 +12,13 @@ import { saveArtifactPaneWidth } from "./lib/preferences.js";
 import { buildSessionPath, navGroups, parseRoute } from "./app/router.ts";
 import { navigate } from "./lib/router.js";
 import { getFilteredSessionsForState } from "./app/sessions/sessionTable.ts";
-import { getPreferencesStore, getUiStore, mountConsoleShell, updateConsoleShell } from "./main.ts";
+import {
+  getPreferencesStore,
+  getSessionsStore,
+  getUiStore,
+  mountConsoleShell,
+  updateConsoleShell,
+} from "./main.ts";
 
 const defaultPreferencesShape = {
   density: "compact",
@@ -91,6 +97,7 @@ if (root instanceof HTMLElement) {
 
 bindPreferencesMirror();
 bindUiMirror();
+bindSessionsMirror();
 bindGlobalEvents();
 bindGlobalErrorHandlers();
 render();
@@ -142,6 +149,22 @@ function syncUiFromStore(uiStore) {
   state.ui.logSearch = next.logSearch;
   state.ui.quickJumpQuery = next.quickJumpQuery;
   state.ui.selectedArtifacts = { ...next.selectedArtifacts };
+}
+
+function bindSessionsMirror() {
+  const sessionsStore = getSessionsStore();
+  if (!sessionsStore) {
+    return;
+  }
+  syncSessionsFromStore(sessionsStore);
+  sessionsStore.$subscribe(() => {
+    syncSessionsFromStore(sessionsStore);
+    render();
+  });
+}
+
+function syncSessionsFromStore(sessionsStore) {
+  state.filters = { ...sessionsStore.$state.filters };
 }
 
 function reportBootstrapError(error) {
@@ -240,7 +263,7 @@ function handleClick(event) {
     return;
   }
 
-  const { action, sessionId, sort, value, filename } = actionTarget.dataset;
+  const { action, sessionId, value, filename } = actionTarget.dataset;
 
   switch (action) {
     case "copy":
@@ -291,10 +314,6 @@ function handleClick(event) {
     case "save-artifact-history-settings":
       void saveArtifactHistorySettingsFromUi();
       break;
-    case "set-sort":
-      state.filters.sort = sort;
-      render();
-      break;
     case "terminate-session":
       if (sessionId) {
         void terminateSessionFromUi(sessionId);
@@ -308,17 +327,6 @@ function handleClick(event) {
       }
       break;
     }
-    case "reset-session-filters":
-      state.filters = {
-        activeOnly: false,
-        browser: "all",
-        protocol: "all",
-        search: "",
-        sort: "started",
-        status: "all",
-      };
-      render();
-      break;
     default:
       break;
   }
@@ -331,30 +339,10 @@ function handleInput(event) {
   }
 
   switch (target.dataset.input) {
-    case "active-only":
-      state.filters.activeOnly = target.checked;
-      render();
-      break;
     case "artifact-history-retention-days":
       state.ui.artifactHistory.draftRetentionDays = target.value;
       state.ui.artifactHistory.dirty = true;
       state.ui.artifactHistory.error = "";
-      render();
-      break;
-    case "browser-filter":
-      state.filters.browser = target.value;
-      render();
-      break;
-    case "protocol-filter":
-      state.filters.protocol = target.value;
-      render();
-      break;
-    case "session-search":
-      state.filters.search = target.value;
-      render();
-      break;
-    case "status-filter":
-      state.filters.status = target.value;
       render();
       break;
     default:

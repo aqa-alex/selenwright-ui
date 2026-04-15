@@ -8,9 +8,12 @@ import {
 } from "@tanstack/vue-table";
 import { computed } from "vue";
 import { icon } from "../../components/icons.js";
+import { navigate } from "../../lib/router.js";
 import type { ConsoleSession } from "../../data/service";
 import { formatDateTime, formatDuration, formatStatus, timeAgo } from "../../lib/format.js";
+import { buildSessionPath } from "../router";
 import StatusBadge from "../components/ui/StatusBadge.vue";
+import { type SessionSort, useSessionsStore } from "../stores/sessions";
 import type { SessionsPageModel } from "./sessionTable";
 import {
   buildArtifactIndicators,
@@ -24,6 +27,8 @@ import {
 const props = defineProps<{
   model: SessionsPageModel;
 }>();
+
+const sessionsStore = useSessionsStore();
 
 const columns = createSessionTableColumns();
 const data = computed(() => props.model.sessions);
@@ -70,6 +75,14 @@ function protocolIcon(session: ConsoleSession): string {
 function rowClass(row: Row<ConsoleSession>) {
   return ["session-row", { selected: row.getIsSelected() }];
 }
+
+function openSession(row: Row<ConsoleSession>) {
+  navigate(buildSessionPath(row.original.id));
+}
+
+function setSort(sort: SessionSort) {
+  sessionsStore.setSort(sort);
+}
 </script>
 
 <template>
@@ -81,9 +94,8 @@ function rowClass(row: Row<ConsoleSession>) {
             <button
               v-if="header.sort"
               class="sort-button"
-              data-action="set-sort"
-              :data-sort="header.sort"
               type="button"
+              @click="setSort(header.sort as SessionSort)"
             >
               {{ header.label }}
             </button>
@@ -96,9 +108,9 @@ function rowClass(row: Row<ConsoleSession>) {
           v-for="row in rows"
           :key="row.id"
           :class="rowClass(row)"
-          data-action="open-session"
           :data-session-id="row.original.id"
           :tabindex="row.getIsSelected() ? 0 : -1"
+          @click="openSession(row)"
         >
           <td>
             <div class="session-cell">

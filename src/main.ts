@@ -4,6 +4,7 @@ import { type App as VueApp, createApp, nextTick } from "vue";
 import App from "./App.vue";
 import { createConsoleRouter } from "./app/router";
 import { usePreferencesStore } from "./app/stores/preferences";
+import { useSessionsStore } from "./app/stores/sessions";
 import { useShellStore } from "./app/stores/shell";
 import { useUiStore } from "./app/stores/ui";
 import type { ShellSnapshot } from "./app/types";
@@ -14,6 +15,7 @@ let removeRouteListener: (() => void) | null = null;
 let shellStore: ReturnType<typeof useShellStore> | null = null;
 let preferencesStore: ReturnType<typeof usePreferencesStore> | null = null;
 let uiStore: ReturnType<typeof useUiStore> | null = null;
+let sessionsStore: ReturnType<typeof useSessionsStore> | null = null;
 let shellApp: VueApp | null = null;
 let shellMounted = false;
 
@@ -43,6 +45,7 @@ export function mountConsoleShell(
   preferencesStore = usePreferencesStore(pinia);
   preferencesStore.initialize();
   uiStore = useUiStore(pinia);
+  sessionsStore = useSessionsStore(pinia);
 
   shellApp = createApp(App);
   shellApp.use(pinia);
@@ -83,6 +86,10 @@ export function getUiStore() {
   return uiStore;
 }
 
+export function getSessionsStore() {
+  return sessionsStore;
+}
+
 export function unmountConsoleShell() {
   removeRouteListener?.();
   removeRouteListener = null;
@@ -98,6 +105,7 @@ export function unmountConsoleShell() {
   shellStore = null;
   preferencesStore = null;
   uiStore = null;
+  sessionsStore = null;
   setNavigator(null);
   shellMounted = false;
 }

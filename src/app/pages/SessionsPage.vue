@@ -4,12 +4,14 @@ import SessionsTable from "../sessions/SessionsTable.vue";
 import SessionsToolbar from "../sessions/SessionsToolbar.vue";
 import type { SessionsPageModel } from "../sessions/sessionTable";
 import { getFilteredSessionsForState } from "../sessions/sessionTable";
+import { useSessionsStore } from "../stores/sessions";
 import { computed } from "vue";
 
 const props = defineProps<{
   model: SessionsPageModel;
 }>();
 
+const sessionsStore = useSessionsStore();
 const hasSessions = computed(() => props.model.sessions.length > 0);
 const filteredSessions = computed(() =>
   getFilteredSessionsForState(props.model.sessions, props.model.filters),
@@ -30,7 +32,7 @@ const filteredSessions = computed(() =>
     <div v-else class="empty-state">
       <h2>No matching sessions</h2>
       <p>No sessions match the current filters.</p>
-      <button class="button secondary" data-action="reset-session-filters" type="button">
+      <button class="button secondary" type="button" @click="sessionsStore.resetFilters()">
         Reset filters
       </button>
     </div>

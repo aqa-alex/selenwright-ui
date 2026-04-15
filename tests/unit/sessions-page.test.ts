@@ -1,11 +1,16 @@
 import { renderToString } from "@vue/server-renderer";
+import { createPinia, setActivePinia } from "pinia";
 import { createSSRApp } from "vue";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import SessionsPage from "../../src/app/pages/SessionsPage.vue";
 import type { SessionsPageModel } from "../../src/app/sessions/sessionTable";
 import type { ConsoleSession } from "../../src/data/service";
 
 describe("SessionsPage", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
   it("renders the empty state without table chrome", async () => {
     const html = await renderSessionsPage({ sessions: [] });
 
@@ -35,10 +40,10 @@ describe("SessionsPage", () => {
 
     expect(html).toContain('placeholder="Search session id, name, browser"');
     expect(html).toContain('value="fixture"');
-    expect(html).toContain('data-input="protocol-filter" value="playwright"');
-    expect(html).toContain('data-input="status-filter" value="running"');
-    expect(html).toContain('data-input="browser-filter" value="firefox"');
-    expect(html).toContain('checked data-input="active-only" type="checkbox"');
+    expect(html).toMatch(/<select[^>]*value="playwright"/);
+    expect(html).toMatch(/<select[^>]*value="running"/);
+    expect(html).toMatch(/<select[^>]*value="firefox"/);
+    expect(html).toMatch(/checked[^>]*type="checkbox"/);
   });
 
   it("renders selected rows and status badges from the Vue table model", async () => {
@@ -70,7 +75,8 @@ describe("SessionsPage", () => {
     });
 
     expect(html).toContain("No matching sessions");
-    expect(html).toContain('data-action="reset-session-filters"');
+    // Reset action now lives on a button click handler, not data-action.
+    expect(html).toMatch(/<button[^>]*>\s*Reset filters/);
   });
 });
 

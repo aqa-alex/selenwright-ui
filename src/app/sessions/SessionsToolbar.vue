@@ -2,6 +2,11 @@
 import { computed } from "vue";
 import { icon } from "../../components/icons.js";
 import type { ConsoleSession } from "../../data/service";
+import {
+  type SessionProtocolFilter,
+  type SessionStatusFilter,
+  useSessionsStore,
+} from "../stores/sessions";
 import type { SessionFilters } from "./sessionTable";
 import { buildBrowserFilterOptions } from "./sessionTable";
 
@@ -10,6 +15,7 @@ const props = defineProps<{
   sessions: ConsoleSession[];
 }>();
 
+const sessionsStore = useSessionsStore();
 const searchIcon = icon("search");
 const browserOptions = computed(() => buildBrowserFilterOptions(props.sessions));
 
@@ -27,6 +33,10 @@ const statusOptions = [
   { label: "Completed", value: "completed" },
   { label: "Failed", value: "failed" },
 ];
+
+function inputValue(event: Event) {
+  return (event.target as HTMLInputElement | HTMLSelectElement | null)?.value ?? "";
+}
 </script>
 
 <template>
@@ -35,15 +45,18 @@ const statusOptions = [
       <span v-html="searchIcon"></span>
       <input
         aria-label="Search sessions"
-        data-input="session-search"
         placeholder="Search session id, name, browser"
         type="search"
         :value="filters.search"
+        @input="(event) => sessionsStore.setSearch(inputValue(event))"
       />
     </label>
     <label class="filter-select">
       <span>Protocol</span>
-      <select data-input="protocol-filter" :value="filters.protocol">
+      <select
+        :value="filters.protocol"
+        @change="(event) => sessionsStore.setProtocolFilter(inputValue(event) as SessionProtocolFilter)"
+      >
         <option v-for="option in protocolOptions" :key="option.value" :value="option.value">
           {{ option.label }}
         </option>
@@ -51,7 +64,10 @@ const statusOptions = [
     </label>
     <label class="filter-select">
       <span>Status</span>
-      <select data-input="status-filter" :value="filters.status">
+      <select
+        :value="filters.status"
+        @change="(event) => sessionsStore.setStatusFilter(inputValue(event) as SessionStatusFilter)"
+      >
         <option v-for="option in statusOptions" :key="option.value" :value="option.value">
           {{ option.label }}
         </option>
@@ -59,14 +75,21 @@ const statusOptions = [
     </label>
     <label class="filter-select">
       <span>Browser</span>
-      <select data-input="browser-filter" :value="filters.browser">
+      <select
+        :value="filters.browser"
+        @change="(event) => sessionsStore.setBrowserFilter(inputValue(event))"
+      >
         <option v-for="option in browserOptions" :key="option.value" :value="option.value">
           {{ option.label }}
         </option>
       </select>
     </label>
     <label class="toggle-chip">
-      <input :checked="filters.activeOnly" data-input="active-only" type="checkbox" />
+      <input
+        :checked="filters.activeOnly"
+        type="checkbox"
+        @change="(event) => sessionsStore.setActiveOnly((event.target as HTMLInputElement).checked)"
+      />
       <span>Active only</span>
     </label>
   </div>
