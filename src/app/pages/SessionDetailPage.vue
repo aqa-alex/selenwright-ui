@@ -20,6 +20,7 @@ import {
 import { useClipboard } from "../composables/useClipboard";
 import { useTerminateSessionMutation } from "../queries/useTerminateSessionMutation";
 import { useConsoleStore } from "../stores/console";
+import { useShellStore } from "../stores/shell";
 import type { TerminateProtocol } from "../api";
 
 const props = defineProps<{
@@ -31,6 +32,7 @@ const { terminatingSessionId } = storeToRefs(consoleStore);
 const terminateMutation = useTerminateSessionMutation();
 const router = useRouter();
 const copy = useClipboard();
+const shellStore = useShellStore();
 
 const session = computed(() => props.model.session);
 const terminatePending = computed(() =>
@@ -57,8 +59,10 @@ async function terminate() {
   try {
     await terminateMutation.mutateAsync({ id: current.id, protocol: proto });
     void router.replace("/sessions");
-  } catch {
-    /* error surfaced via mutation.error */
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Terminate failed";
+    shellStore.setNotice(message);
   }
 }
 </script>
