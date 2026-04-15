@@ -1,5 +1,5 @@
-import { buildLiveLogApiPath } from "./artifacts";
 import { asString, isRecord } from "./guards";
+import { buildLiveLogApiPath } from "./paths";
 import {
   TERMINATE_REQUEST_TIMEOUT_MS,
   extractResponseErrorMessage,
@@ -248,4 +248,8 @@ export function buildBrowserUsageFromStatus(browserTree: JsonRecord): BrowserUsa
 
 export function cryptoRandomId(): string {
   return `${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+}
+
+export function isLiveLogAvailable(session: ConsoleSession): boolean {
+  return session.status === "running";
 }

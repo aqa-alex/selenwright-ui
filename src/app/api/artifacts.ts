@@ -1,4 +1,10 @@
 import { asString, isRecord } from "./guards";
+import {
+  buildDownloadFileApiPath,
+  buildLiveLogApiPath,
+  buildLogFileApiPath,
+} from "./paths";
+import { isLiveLogAvailable } from "./sessions";
 import type {
   BaseArtifact,
   ConsoleDataset,
@@ -219,24 +225,6 @@ export function subscribeToLiveLogs(
   };
 }
 
-export function buildLogFileApiPath(filename: string): string {
-  return `/api/logs/file/${encodeURIComponent(filename)}`;
-}
-
-export function buildLiveLogApiPath(sessionId: string): string {
-  return `/api/logs/live/${encodeURIComponent(sessionId)}`;
-}
-
-export function buildDownloadFileApiPath(sessionId: string, relativePath: string): string {
-  const encodedSessionId = encodeURIComponent(sessionId);
-  const encodedRelativePath = String(relativePath || "")
-    .split("/")
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-  return `/api/downloads/file/${encodedSessionId}/${encodedRelativePath}`;
-}
-
 export function buildArtifactList(items: RawArtifactItem[], type: "log"): LogArtifact[];
 export function buildArtifactList(items: RawArtifactItem[], type: "video"): VideoArtifact[];
 export function buildArtifactList(
@@ -369,8 +357,4 @@ export function enrichArtifactRecord<T extends LogArtifact | VideoArtifact>(
     liveStreamAvailable: type === "log" ? isLiveLogAvailable(session) : false,
     protocol: session.protocol,
   };
-}
-
-export function isLiveLogAvailable(session: ConsoleSession): boolean {
-  return session.status === "running";
 }
