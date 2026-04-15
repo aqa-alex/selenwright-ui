@@ -4,7 +4,7 @@ import globals from "globals";
 export default [
   js.configs.recommended,
   {
-    files: ["server.mjs", "scripts/**/*.mjs", "playwright.config.mjs"],
+    files: ["server.mjs", "server-*.mjs", "scripts/**/*.mjs", "playwright.config.mjs"],
     languageOptions: {
       globals: globals.node,
     },
