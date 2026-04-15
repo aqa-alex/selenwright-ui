@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { useQuery } from "@tanstack/vue-query";
 import { computed } from "vue";
 import type { ConsoleSession } from "../../data/service";
-import { loadLogFileContent } from "../../data/service";
 import type { SessionDetailLogFileState, SessionDetailPageModel } from "./sessionDetail";
 import {
   buildLogDownloadHref,
@@ -14,6 +12,7 @@ import {
   getSavedLogState,
 } from "./sessionDetail";
 import { useOpenArtifactPage } from "../composables/useOpenArtifactPage";
+import { useLogFileContentQuery } from "../queries/useLogFileContentQuery";
 import { useUiStore } from "../stores/ui";
 
 const props = defineProps<{
@@ -56,19 +55,16 @@ const showLivePanel = computed(() => {
 
 const filename = computed(() => props.session.metadata.logFilename);
 const cachedLogState = computed(() => getSavedLogState(props.model, filename.value));
-const savedLogQuery = useQuery({
+const savedLogQuery = useLogFileContentQuery(filename, {
   enabled: computed(
     () =>
       typeof window !== "undefined" &&
-      Boolean(filename.value) &&
       props.session.artifacts.savedLogs &&
       !props.session.artifacts.liveLogs &&
       !cachedLogState.value.loaded &&
       !cachedLogState.value.loading &&
       !cachedLogState.value.error,
   ),
-  queryFn: () => loadLogFileContent(filename.value),
-  queryKey: computed(() => ["session-detail", props.session.id, "log", filename.value]),
 });
 
 const queryError = computed(() =>
