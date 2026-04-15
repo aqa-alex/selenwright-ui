@@ -9,6 +9,7 @@ import {
   DEFAULT_MAX_WS_FRAME_BYTES,
   readWebSocketFrame,
 } from "./server-ws-frame.mjs";
+import { isOriginAllowed, parseAllowedOrigins } from "./server-origin.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
@@ -39,6 +40,7 @@ const maxWsFrameBytes = Number(
 const maxWsFragmentedBytes = Number(
   process.env.SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES || 4 << 20,
 );
+const allowedOrigins = parseAllowedOrigins(process.env.SELENWRIGHT_ALLOWED_ORIGINS);
 
 const baseSecurityHeaders = {
   "Referrer-Policy": "no-referrer",
@@ -1199,67 +1201,70 @@ async function handleSessionTerminate(req, res, route, requestUrl) {
   }
 
   const protocol = (requestUrl.searchParams.get("protocol") || "").toLowerCase();
-  const attempts = [];
-
-  for (const candidate of buildTerminateSessionCandidates(route.sessionId, protocol)) {
-    try {
-      const upstreamResponse = await fetchWithTimeout(
-        candidate.url,
-        {
-          headers: {
-            accept: "application/json, text/plain;q=0.9, */*;q=0.1",
-          },
-          method: candidate.method,
-        },
-        terminateAttemptTimeoutMs,
-        `${candidate.method} ${candidate.url.pathname}`,
-      );
-      const responseText =
-        upstreamResponse.status === 204
-          ? ""
-          : await readUpstreamTextWithTimeout(
-              upstreamResponse,
-              terminateAttemptTimeoutMs,
-              `${candidate.method} ${candidate.url.pathname} response`,
-            );
-      const message = extractUpstreamResponseMessage(responseText);
-
-      if (upstreamResponse.ok) {
-        sendJson(res, 200, {
-          message: message || "Session terminated",
-          ok: true,
-          sessionId: route.sessionId,
-          upstream: {
-            method: candidate.method,
-            path: candidate.url.pathname,
-            status: upstreamResponse.status,
-          },
-        });
-        return;
-      }
-
-      attempts.push({
-        message: message || `Request failed (${upstreamResponse.status})`,
-        method: candidate.method,
-        path: candidate.url.pathname,
-        status: upstreamResponse.status,
-      });
-    } catch (error) {
-      attempts.push({
-        message: error instanceof Error ? error.message : "Failed to reach upstream target",
-        method: candidate.method,
-        path: candidate.url.pathname,
-        status: 0,
-      });
-    }
+  if (protocol !== "selenium" && protocol !== "playwright") {
+    sendJson(res, 400, {
+      error: "bad_request",
+      message: "Query parameter `protocol` must be either `selenium` or `playwright`.",
+    });
+    return;
   }
 
-  sendJson(res, 502, {
-    error: "session_terminate_failed",
-    message: buildTerminateFailureMessage(route.sessionId, attempts),
-    sessionId: route.sessionId,
-    target,
-  });
+  if (protocol === "playwright") {
+    sendJson(res, 501, {
+      error: "terminate_not_supported",
+      message:
+        "Playwright sessions are driven over WebSocket and cannot be terminated via HTTP. Close the client connection instead.",
+      sessionId: route.sessionId,
+    });
+    return;
+  }
+
+  const encodedSessionId = encodePathSegment(route.sessionId);
+  const upstreamUrl = new URL(`/wd/hub/session/${encodedSessionId}`, target);
+
+  try {
+    const upstreamResponse = await fetchWithTimeout(
+      upstreamUrl,
+      {
+        headers: {
+          accept: "application/json, text/plain;q=0.9, */*;q=0.1",
+        },
+        method: "DELETE",
+      },
+      terminateAttemptTimeoutMs,
+      `DELETE ${upstreamUrl.pathname}`,
+    );
+    const responseText =
+      upstreamResponse.status === 204
+        ? ""
+        : await readUpstreamTextWithTimeout(
+            upstreamResponse,
+            terminateAttemptTimeoutMs,
+            `DELETE ${upstreamUrl.pathname} response`,
+          );
+    const message = extractUpstreamResponseMessage(responseText);
+
+    if (upstreamResponse.ok) {
+      sendJson(res, 200, {
+        message: message || "Session terminated",
+        ok: true,
+        sessionId: route.sessionId,
+      });
+      return;
+    }
+
+    sendJson(res, 502, {
+      error: "session_terminate_failed",
+      message: message || `Unable to terminate session (${upstreamResponse.status}).`,
+      sessionId: route.sessionId,
+    });
+  } catch (error) {
+    sendJson(res, 502, {
+      error: "session_terminate_failed",
+      message: error instanceof Error ? error.message : "Failed to reach upstream target",
+      sessionId: route.sessionId,
+    });
+  }
 }
 
 function resolveProxyTimeoutMs(route) {
@@ -1272,51 +1277,6 @@ function resolveProxyTimeoutMs(route) {
   }
 
   return upstreamRequestTimeoutMs;
-}
-
-function buildTerminateSessionCandidates(sessionId, protocol) {
-  const encodedSessionId = encodePathSegment(sessionId);
-  const candidates = [];
-  const pushCandidate = (method, pathName) => {
-    candidates.push({
-      method,
-      url: new URL(pathName, target),
-    });
-  };
-
-  if (protocol === "selenium") {
-    pushCandidate("DELETE", `/wd/hub/session/${encodedSessionId}`);
-  } else {
-    pushCandidate("DELETE", `/session/${encodedSessionId}`);
-    pushCandidate("DELETE", `/sessions/${encodedSessionId}`);
-    pushCandidate("DELETE", `/playwright/session/${encodedSessionId}`);
-    pushCandidate("DELETE", `/playwright/sessions/${encodedSessionId}`);
-    pushCandidate("POST", `/session/${encodedSessionId}/terminate`);
-    pushCandidate("POST", `/sessions/${encodedSessionId}/terminate`);
-    pushCandidate("POST", `/playwright/session/${encodedSessionId}/terminate`);
-  }
-
-  pushCandidate("DELETE", `/wd/hub/session/${encodedSessionId}`);
-  pushCandidate("DELETE", `/session/${encodedSessionId}`);
-  pushCandidate("DELETE", `/sessions/${encodedSessionId}`);
-  pushCandidate("POST", `/session/${encodedSessionId}/terminate`);
-  pushCandidate("POST", `/sessions/${encodedSessionId}/terminate`);
-
-  return dedupeTerminateCandidates(candidates);
-}
-
-function dedupeTerminateCandidates(candidates) {
-  const seen = new Set();
-
-  return candidates.filter((candidate) => {
-    const key = `${candidate.method} ${candidate.url.pathname}`;
-    if (seen.has(key)) {
-      return false;
-    }
-
-    seen.add(key);
-    return true;
-  });
 }
 
 function extractUpstreamResponseMessage(responseText) {
@@ -1340,19 +1300,6 @@ function extractUpstreamResponseMessage(responseText) {
   }
 
   return truncateBodyPreview(trimmed);
-}
-
-function buildTerminateFailureMessage(sessionId, attempts) {
-  if (!attempts.length) {
-    return `Unable to terminate session ${sessionId}.`;
-  }
-
-  const summary = attempts
-    .slice(0, 3)
-    .map((attempt) => `${attempt.method} ${attempt.path}${attempt.status ? ` (${attempt.status})` : ""}: ${attempt.message}`)
-    .join(" | ");
-
-  return `Unable to terminate session ${sessionId}. Tried ${attempts.length} upstream routes. ${summary}`;
 }
 
 async function readUpstreamTextWithTimeout(response, timeoutMs, contextLabel) {
@@ -1476,12 +1423,17 @@ server.on("upgrade", (req, socket, head) => {
   const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
   const buildUpstreamUrl = resolveUpgradeHandler(requestUrl);
 
-  if (buildUpstreamUrl) {
-    handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl);
+  if (!buildUpstreamUrl) {
+    socket.destroy();
     return;
   }
 
-  socket.destroy();
+  if (!isOriginAllowed(req.headers.origin, req.headers.host, allowedOrigins)) {
+    sendUpgradeFailure(socket, 403, "Forbidden");
+    return;
+  }
+
+  handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl);
 });
 
 server.listen(port, host, () => {

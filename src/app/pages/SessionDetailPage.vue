@@ -20,6 +20,7 @@ import {
 import { useClipboard } from "../composables/useClipboard";
 import { useTerminateSessionMutation } from "../queries/useTerminateSessionMutation";
 import { useConsoleStore } from "../stores/console";
+import type { TerminateProtocol } from "../api";
 
 const props = defineProps<{
   model: SessionDetailPageModel;
@@ -39,16 +40,22 @@ const terminateEnabled = computed(() =>
   session.value ? canTerminateSession(session.value, terminatingSessionId.value) : false,
 );
 
+function toTerminateProtocol(protocol: string): TerminateProtocol | null {
+  return protocol === "selenium" || protocol === "playwright" ? protocol : null;
+}
+
 async function terminate() {
   const current = session.value;
   if (!current) return;
+  const proto = toTerminateProtocol(current.protocol);
+  if (!proto) return;
   const confirmed =
     typeof window !== "undefined" && typeof window.confirm === "function"
       ? window.confirm(`Terminate session ${current.name}?`)
       : true;
   if (!confirmed) return;
   try {
-    await terminateMutation.mutateAsync({ id: current.id, protocol: current.protocol });
+    await terminateMutation.mutateAsync({ id: current.id, protocol: proto });
     void router.replace("/sessions");
   } catch {
     /* error surfaced via mutation.error */

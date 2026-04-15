@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { terminateSession, type ConsoleDataset } from "../api";
+import { terminateSession, type ConsoleDataset, type TerminateProtocol } from "../api";
 import { useConsoleStore } from "../stores/console";
 import { CONSOLE_SNAPSHOT_QUERY_KEY } from "./useConsoleSnapshotQuery";
 
 export interface TerminateSessionVariables {
   id: string;
-  protocol: string;
+  protocol: TerminateProtocol;
 }
 
 export function useTerminateSessionMutation() {

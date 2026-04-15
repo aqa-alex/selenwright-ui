@@ -7,4 +7,4 @@ export {
 } from "./console";
 export { loadLogFileContent, subscribeToLiveLogs } from "./artifacts";
 export { saveArtifactHistorySettings } from "./settings";
-export { terminateSession } from "./sessions";
+export { terminateSession, type TerminateProtocol } from "./sessions";

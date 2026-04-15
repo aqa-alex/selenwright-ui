@@ -16,23 +16,24 @@ import type {
   SessionCapabilities,
 } from "./types";
 
+export type TerminateProtocol = "selenium" | "playwright";
+
 export async function terminateSession(
   sessionId: string,
-  protocol = "",
+  protocol: TerminateProtocol,
 ): Promise<JsonRecord> {
   if (!sessionId) {
     throw new Error("Session id is required");
   }
 
-  const search = new URLSearchParams();
-  if (protocol) {
-    search.set("protocol", protocol);
+  if (protocol !== "selenium" && protocol !== "playwright") {
+    throw new Error("Terminate requires protocol `selenium` or `playwright`");
   }
 
+  const search = new URLSearchParams({ protocol });
+
   const response = await fetchWithTimeout(
-    `/api/sessions/${encodeURIComponent(sessionId)}${
-      search.size ? `?${search.toString()}` : ""
-    }`,
+    `/api/sessions/${encodeURIComponent(sessionId)}?${search.toString()}`,
     {
       headers: {
         accept: "application/json",
