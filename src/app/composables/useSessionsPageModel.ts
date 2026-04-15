@@ -15,7 +15,7 @@ export function useSessionsPageModel(): ComputedRef<SessionsPageModel> {
       timeFormat: preferencesStore.timeFormat,
       timezone: preferencesStore.timezone,
     },
-    selectedSessionId: null,
+    selectedSessionId: sessionsStore.selectedSessionId,
     sessions: snapshotQuery.data.value?.sessions ?? [],
   }));
 }

@@ -15,6 +15,7 @@ export interface SessionsFilters {
 
 export interface SessionsState {
   filters: SessionsFilters;
+  selectedSessionId: string | null;
 }
 
 const defaultFilters: SessionsFilters = {
@@ -29,6 +30,7 @@ const defaultFilters: SessionsFilters = {
 export const useSessionsStore = defineStore("sessions", {
   state: (): SessionsState => ({
     filters: { ...defaultFilters },
+    selectedSessionId: null,
   }),
   actions: {
     setBrowserFilter(value: string) {
@@ -48,6 +50,9 @@ export const useSessionsStore = defineStore("sessions", {
     },
     setSort(sort: SessionSort) {
       this.filters.sort = sort;
+    },
+    setSelectedSessionId(id: string | null) {
+      this.selectedSessionId = id;
     },
     resetFilters() {
       this.filters = { ...defaultFilters };

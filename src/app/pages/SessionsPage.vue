@@ -5,6 +5,7 @@ import SessionsToolbar from "../sessions/SessionsToolbar.vue";
 import type { SessionsPageModel } from "../sessions/sessionTable";
 import { getFilteredSessionsForState } from "../sessions/sessionTable";
 import { useSessionsStore } from "../stores/sessions";
+import { useSessionsKeyboardNav } from "../composables/useSessionsKeyboardNav";
 import { computed } from "vue";
 
 const props = defineProps<{
@@ -16,6 +17,7 @@ const hasSessions = computed(() => props.model.sessions.length > 0);
 const filteredSessions = computed(() =>
   getFilteredSessionsForState(props.model.sessions, props.model.filters),
 );
+useSessionsKeyboardNav(filteredSessions);
 </script>
 
 <template>
