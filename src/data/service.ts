@@ -1,334 +1,48 @@
+import type {
+  ArtifactHistorySettings,
+  ArtifactHistorySettingsUpdate,
+  BaseArtifact,
+  BrowserCatalogEntry,
+  BrowserInventoryRow,
+  BrowserUsageRow,
+  ConfigurationData,
+  ConfigurationItem,
+  ConfigurationItemInput,
+  ConfigurationRawData,
+  ConsoleDataHandlers,
+  ConsoleDataset,
+  ConsoleDataSubscription,
+  ConsoleSession,
+  ConsoleSnapshot,
+  DownloadArtifact,
+  JsonRecord,
+  LiveLogHandlers,
+  LiveLogSubscription,
+  LogArtifact,
+  MetaResponse,
+  RawArtifactItem,
+  RawConfigurationPayload,
+  RawDownloadItem,
+  RawSessionEntry,
+  RawStatusPayload,
+  SessionCapabilities,
+  SnapshotResult,
+  VideoArtifact,
+} from "../app/api/types";
+import { asString, isBrowserCatalogEntry, isRecord } from "../app/api/guards";
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  TERMINATE_REQUEST_TIMEOUT_MS,
+  extractResponseErrorMessage,
+  fetchJson,
+  fetchWithTimeout,
+  readJsonResponse,
+} from "../app/api/http";
+
+export type * from "../app/api/types";
+
 const DEFAULT_TARGET = "http://localhost:4444";
 const CONSOLE_STREAM_PATH = "/api/stream/console";
-const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
-const TERMINATE_REQUEST_TIMEOUT_MS = 8000;
-
-type JsonRecord = Record<string, unknown>;
-
-export type ThemeMode = "system" | "light" | "dark";
-export type DensityMode = "compact" | "comfortable";
-export type DetailPanelMode = "collapsed" | "expanded";
-export type TimeFormatMode = "12h" | "24h";
-export type TimezoneMode = "local" | "utc";
-
-export interface ConsolePreferences {
-  density: DensityMode;
-  detailPanel: DetailPanelMode;
-  themeMode: ThemeMode;
-  timeFormat: TimeFormatMode;
-  timezone: TimezoneMode;
-  artifactPaneWidths: {
-    videos: number;
-    logs: number;
-    downloads: number;
-  };
-}
-
-export interface ConfigurationItem {
-  key: string;
-  label: string;
-  value: string;
-}
-
-export interface BrowserCatalogVersion {
-  version: string;
-  image: string;
-}
-
-export interface BrowserCatalogEntry {
-  name: string;
-  versions: BrowserCatalogVersion[];
-}
-
-export interface ConfigurationRawData {
-  browserCatalog: BrowserCatalogEntry[];
-  flags: JsonRecord;
-  reloadStatus: JsonRecord;
-}
-
-export interface ConfigurationData {
-  available: boolean;
-  featureAvailability: ConfigurationItem[];
-  limits: ConfigurationItem[];
-  logging: ConfigurationItem[];
-  message: string;
-  paths: ConfigurationItem[];
-  raw: ConfigurationRawData;
-}
-
-export interface ArtifactHistorySettings {
-  available: boolean;
-  enabled: boolean;
-  reason: string;
-  retentionDays: number;
-}
-
-export interface ArtifactHistorySettingsUpdate {
-  enabled: boolean;
-  retentionDays: number;
-}
-
-export interface ConsoleConnectionState {
-  mode: "live";
-  ready: boolean;
-  target: string;
-  message: string;
-  statusEndpointMessage: string;
-}
-
-export interface BrowserUsageRow {
-  browser: string;
-  count: number;
-  running: number;
-}
-
-export interface UsageSummaryItem {
-  label: string;
-  value: string;
-}
-
-export interface ConsoleSystemState {
-  activeSessions: number;
-  browserUsage: BrowserUsageRow[];
-  healthNotes: string[];
-  lastReloadTime: string;
-  limits: {
-    total: number;
-    used: number;
-    queued: number;
-    pending: number;
-  };
-  runtimeMessage: string;
-  usageSummary: UsageSummaryItem[];
-}
-
-export interface BrowserInventoryRow {
-  browser: string;
-  version: string;
-  protocol: string;
-  source: string;
-  status: string;
-}
-
-export interface SessionArtifactState {
-  clipboard: boolean;
-  devtools: boolean;
-  downloads: number;
-  liveLogs: boolean;
-  liveView: boolean;
-  logs: boolean;
-  savedLogs: boolean;
-  video: boolean;
-  vnc: boolean;
-}
-
-export interface SessionCapabilities {
-  browserName: string;
-  browserVersion: string;
-  enableLog: boolean;
-  enableVNC: boolean;
-  enableVideo: boolean;
-  name: string;
-  screenResolution: string;
-}
-
-export interface SessionContainerMetadata {
-  id: string;
-  ip: string;
-  exposedPorts: JsonRecord;
-}
-
-export interface SessionMetadata {
-  container: SessionContainerMetadata | null;
-  devtoolsEndpoint: string;
-  downloadEndpoint: string;
-  clipboardEndpoint: string;
-  liveLogEndpoint: string;
-  logEndpoint: string;
-  logFileEndpoint: string;
-  logFilename: string;
-  protocolEndpoint: string;
-  quota: string;
-  screen: string;
-  videoFilename: string;
-  vncEndpoint: string;
-}
-
-export interface ConsoleSession {
-  artifacts: SessionArtifactState;
-  browser: string;
-  browserVersion: string;
-  capabilities: SessionCapabilities;
-  clipboardPreview: string;
-  durationMs: number;
-  endpoint: string;
-  finishedAt: string | null;
-  id: string;
-  lastActivityAt: string;
-  livePreviewUrl: string;
-  metadata: SessionMetadata;
-  name: string;
-  node: string;
-  order: number;
-  protocol: string;
-  protocolVersion: string;
-  startedAt: string;
-  status: string;
-}
-
-export interface BaseArtifact {
-  browser: string;
-  createdAt?: string;
-  filename: string;
-  protocol: string;
-  sessionId: string;
-  size: number;
-}
-
-export interface VideoArtifact extends BaseArtifact {
-  durationMs: number;
-}
-
-export interface LogArtifact extends BaseArtifact {
-  content: string;
-  contentLoaded: boolean;
-  contentError: string;
-  liveStreamAvailable: boolean;
-}
-
-export interface DownloadArtifact {
-  browser: string;
-  browserVersion: string;
-  createdAt: string;
-  downloadUrl: string;
-  filename: string;
-  mimeType: string;
-  protocol: string;
-  relativePath: string;
-  sessionId: string;
-  size: number;
-}
-
-export interface ConsoleDataset {
-  browsers: BrowserInventoryRow[];
-  configuration: ConfigurationData;
-  connection: ConsoleConnectionState;
-  downloads: DownloadArtifact[];
-  logs: LogArtifact[];
-  settings: {
-    artifactHistory: ArtifactHistorySettings;
-  };
-  sessions: ConsoleSession[];
-  system: ConsoleSystemState;
-  videos: VideoArtifact[];
-}
-
-export interface ConsoleDataHandlers {
-  onDataset?: (dataset: ConsoleDataset) => void;
-  onError?: (error: Error) => void;
-}
-
-export interface ConsoleDataSubscription {
-  close(): void;
-}
-
-export interface LiveLogStatusEvent extends JsonRecord {
-  attempt: number;
-  message: string;
-  sessionId: string;
-  status: string;
-}
-
-export interface LiveLogHandlers {
-  onChunk?: (chunk: string) => void;
-  onClose?: (payload: JsonRecord) => void;
-  onError?: (error: Error) => void;
-  onStatusChange?: (status: LiveLogStatusEvent) => void;
-}
-
-export interface LiveLogSubscription {
-  close(): void;
-}
-
-export interface SnapshotSuccess<T> {
-  ok: true;
-  value: T;
-}
-
-export interface SnapshotFailure {
-  ok: false;
-  error: string;
-}
-
-export type SnapshotResult<T> = SnapshotSuccess<T> | SnapshotFailure;
-
-interface MetaResponse extends JsonRecord {
-  target?: string;
-}
-
-interface RawConfigurationPayload extends JsonRecord {
-  featureAvailability?: unknown;
-  limits?: unknown;
-  logging?: unknown;
-  paths?: unknown;
-  raw?: unknown;
-}
-
-type RawArtifactItem = string | JsonRecord;
-
-interface RawDownloadItem extends JsonRecord {
-  browser?: unknown;
-  browserVersion?: unknown;
-  createdAt?: unknown;
-  filename?: unknown;
-  mimeType?: unknown;
-  protocol?: unknown;
-  relativePath?: unknown;
-  sessionId?: unknown;
-  sizeBytes?: unknown;
-}
-
-interface RawStatusPayloadValue extends JsonRecord {
-  message?: unknown;
-  ready?: unknown;
-}
-
-interface RawStatusPayload extends JsonRecord {
-  browsers?: unknown;
-  total?: unknown;
-  used?: unknown;
-  queued?: unknown;
-  pending?: unknown;
-  value?: RawStatusPayloadValue | null;
-}
-
-interface RawSessionEntry extends JsonRecord {
-  caps?: JsonRecord | null;
-  container?: unknown;
-  containerInfo?: JsonRecord | null;
-  id?: unknown;
-  screen?: unknown;
-  started?: unknown;
-  status?: unknown;
-  vnc?: unknown;
-}
-
-export interface ConsoleSnapshot {
-  config?: SnapshotResult<RawConfigurationPayload>;
-  downloads?: SnapshotResult<RawDownloadItem[]>;
-  fetchedAt?: string;
-  historySettings?: SnapshotResult<unknown>;
-  logs?: SnapshotResult<RawArtifactItem[]>;
-  status?: SnapshotResult<RawStatusPayload>;
-  target?: string;
-  videos?: SnapshotResult<RawArtifactItem[]>;
-}
-
-interface ConfigurationItemInput extends JsonRecord {
-  key?: unknown;
-  label?: unknown;
-  value?: unknown;
-}
 
 export function createEmptyDataset(target = DEFAULT_TARGET): ConsoleDataset {
   return {
@@ -807,27 +521,6 @@ export function subscribeToLiveLogs(
   };
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetchWithTimeout(
-    url,
-    {
-      headers: { accept: "application/json" },
-    },
-    DEFAULT_REQUEST_TIMEOUT_MS,
-    `Request ${url}`,
-  );
-
-  if (!response.ok) {
-    throw new Error(`Request failed for ${url} (${response.status})`);
-  }
-
-  return readResponseJsonWithTimeout<T>(
-    response,
-    DEFAULT_REQUEST_TIMEOUT_MS,
-    `Request ${url}`,
-  );
-}
-
 async function fetchConfiguration(): Promise<RawConfigurationPayload> {
   const response = await fetchWithTimeout(
     "/api/config",
@@ -1069,152 +762,6 @@ function formatConfigurationValue(value: unknown): string {
   } catch {
     return String(value);
   }
-}
-
-async function readJsonResponse(
-  response: Response,
-  contextLabel: string,
-): Promise<JsonRecord> {
-  const text = await readResponseTextWithTimeout(
-    response,
-    DEFAULT_REQUEST_TIMEOUT_MS,
-    contextLabel,
-  );
-  const trimmed = text.trim();
-
-  if (!trimmed) {
-    throw new Error(`${contextLabel} returned empty response.`);
-  }
-
-  try {
-    const payload = JSON.parse(trimmed) as unknown;
-    if (isRecord(payload)) {
-      return payload;
-    }
-
-    throw new Error(`${contextLabel} returned invalid JSON payload.`);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.endsWith("returned invalid JSON payload.")
-    ) {
-      throw error;
-    }
-
-    throw new Error(buildNonJsonResponseMessage(contextLabel, trimmed));
-  }
-}
-
-async function fetchWithTimeout(
-  resource: RequestInfo | URL,
-  options: RequestInit = {},
-  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
-  contextLabel = "Request",
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    return await fetch(resource, {
-      ...options,
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`${contextLabel} timed out after ${formatTimeoutMs(timeoutMs)}.`);
-    }
-
-    throw error;
-  } finally {
-    window.clearTimeout(timer);
-  }
-}
-
-function formatTimeoutMs(timeoutMs: number): string {
-  return timeoutMs % 1000 === 0 ? `${timeoutMs / 1000}s` : `${timeoutMs}ms`;
-}
-
-async function readResponseTextWithTimeout(
-  response: Response,
-  timeoutMs: number,
-  contextLabel: string,
-): Promise<string> {
-  return withTimeout(response.text(), timeoutMs, `${contextLabel} response`);
-}
-
-async function readResponseJsonWithTimeout<T>(
-  response: Response,
-  timeoutMs: number,
-  contextLabel: string,
-): Promise<T> {
-  return withTimeout(response.json() as Promise<T>, timeoutMs, `${contextLabel} response`);
-}
-
-async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  contextLabel: string,
-): Promise<T> {
-  let timer = 0;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timer = window.setTimeout(() => {
-          reject(new Error(`${contextLabel} timed out after ${formatTimeoutMs(timeoutMs)}.`));
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    window.clearTimeout(timer);
-  }
-}
-
-function extractResponseErrorMessage(
-  payload: JsonRecord,
-  fallbackMessage: string,
-): string {
-  if (typeof payload.reason === "string" && payload.reason.trim()) {
-    return payload.reason.trim();
-  }
-
-  if (typeof payload.message === "string" && payload.message.trim()) {
-    return payload.message.trim();
-  }
-
-  return fallbackMessage;
-}
-
-function buildNonJsonResponseMessage(
-  contextLabel: string,
-  responseText: string,
-): string {
-  const excerpt = summarizeResponseExcerpt(responseText);
-  return excerpt
-    ? `${contextLabel} returned non-JSON response: ${excerpt}`
-    : `${contextLabel} returned non-JSON response.`;
-}
-
-function summarizeResponseExcerpt(responseText: string): string {
-  const collapsed = String(responseText || "").replace(/\s+/g, " ").trim();
-  if (!collapsed) {
-    return "";
-  }
-
-  const excerpt =
-    collapsed.length > 120 ? `${collapsed.slice(0, 117)}...` : collapsed;
-  return `"${excerpt}"`;
-}
-
-function isRecord(value: unknown): value is JsonRecord {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
 }
 
 function buildDownloadFileApiPath(sessionId: string, relativePath: string): string {
@@ -1508,17 +1055,4 @@ function buildBrowserUsageFromStatus(browserTree: JsonRecord): BrowserUsageRow[]
       return { browser, count, running: count };
     })
     .sort((left, right) => right.running - left.running);
-}
-
-function isBrowserCatalogEntry(value: unknown): value is BrowserCatalogEntry {
-  if (!isRecord(value) || typeof value.name !== "string" || !Array.isArray(value.versions)) {
-    return false;
-  }
-
-  return value.versions.every(
-    (version) =>
-      isRecord(version) &&
-      typeof version.version === "string" &&
-      (version.image === undefined || typeof version.image === "string"),
-  );
 }
