@@ -1,4 +1,5 @@
 import {
+  buildHttpErrorMessage,
   DEFAULT_REQUEST_TIMEOUT_MS,
   extractResponseErrorMessage,
   fetchJson,
@@ -24,6 +25,10 @@ export async function pullStackImages(): Promise<StackPullResult> {
     "Stack image pull",
   );
 
+  if (response.status === 403) {
+    throw new Error(buildHttpErrorMessage("Pull", 403));
+  }
+
   const payload = await readJsonResponse(response, "Stack image pull");
 
   if (!response.ok) {
@@ -45,6 +50,10 @@ export async function recreateStack(): Promise<StackRecreateResult> {
     PULL_TIMEOUT_MS,
     "Stack recreate",
   );
+
+  if (response.status === 403) {
+    throw new Error(buildHttpErrorMessage("Recreate", 403));
+  }
 
   const payload = await readJsonResponse(response, "Stack recreate");
 

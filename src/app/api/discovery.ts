@@ -1,4 +1,4 @@
-import { fetchJson, fetchWithTimeout, DEFAULT_REQUEST_TIMEOUT_MS } from "./http";
+import { buildHttpErrorMessage, fetchJson, fetchWithTimeout, DEFAULT_REQUEST_TIMEOUT_MS } from "./http";
 import type { DiscoveredBrowserImage } from "./types";
 
 export async function fetchDiscoveredBrowsers(): Promise<DiscoveredBrowserImage[]> {
@@ -17,7 +17,7 @@ export async function adoptBrowser(digest: string): Promise<void> {
     "Adopt browser",
   );
   if (!response.ok) {
-    throw new Error(`Adopt failed (${response.status})`);
+    throw new Error(buildHttpErrorMessage("Adopt", response.status));
   }
 }
 
@@ -33,7 +33,7 @@ export async function dismissBrowser(digest: string): Promise<void> {
     "Dismiss browser",
   );
   if (!response.ok) {
-    throw new Error(`Dismiss failed (${response.status})`);
+    throw new Error(buildHttpErrorMessage("Dismiss", response.status));
   }
 }
 
@@ -48,7 +48,7 @@ export async function rescanBrowsers(): Promise<DiscoveredBrowserImage[]> {
     "Rescan browsers",
   );
   if (!response.ok) {
-    throw new Error(`Rescan failed (${response.status})`);
+    throw new Error(buildHttpErrorMessage("Rescan", response.status));
   }
   return response.json() as Promise<DiscoveredBrowserImage[]>;
 }

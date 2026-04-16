@@ -20,6 +20,7 @@ import {
 import { useClipboard } from "../composables/useClipboard";
 import { useTerminateSessionMutation } from "../queries/useTerminateSessionMutation";
 import { useConsoleStore } from "../stores/console";
+import { useIdentityStore } from "../stores/identity";
 import { useShellStore } from "../stores/shell";
 import type { TerminateProtocol } from "../api";
 
@@ -29,6 +30,7 @@ const props = defineProps<{
 
 const consoleStore = useConsoleStore();
 const { terminatingSessionId } = storeToRefs(consoleStore);
+const identityStore = useIdentityStore();
 const terminateMutation = useTerminateSessionMutation();
 const router = useRouter();
 const copy = useClipboard();
@@ -38,9 +40,20 @@ const session = computed(() => props.model.session);
 const terminatePending = computed(() =>
   session.value ? isTerminatePending(session.value, terminatingSessionId.value) : false,
 );
-const terminateEnabled = computed(() =>
-  session.value ? canTerminateSession(session.value, terminatingSessionId.value) : false,
+const canManage = computed(() =>
+  session.value ? identityStore.canManageSession(session.value.metadata.quota) : false,
 );
+const terminateEnabled = computed(() =>
+  session.value
+    ? canTerminateSession(session.value, terminatingSessionId.value) && canManage.value
+    : false,
+);
+const terminateTitle = computed(() => {
+  if (!canManage.value && session.value) {
+    return "You can only terminate your own sessions";
+  }
+  return undefined;
+});
 
 function toTerminateProtocol(protocol: string): TerminateProtocol | null {
   return protocol === "selenium" || protocol === "playwright" ? protocol : null;
@@ -104,6 +117,7 @@ async function terminate() {
           class="button danger"
           :data-session-id="session.id"
           :disabled="!terminateEnabled"
+          :title="terminateTitle"
           type="button"
           @click="terminate"
         >

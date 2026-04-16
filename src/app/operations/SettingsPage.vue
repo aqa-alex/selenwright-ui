@@ -15,12 +15,14 @@ import { useSaveArtifactHistoryMutation } from "../queries/useSaveArtifactHistor
 import { useStackStatusQuery } from "../queries/useStackStatusQuery";
 import { usePullStackMutation } from "../queries/usePullStackMutation";
 import { useRecreateStackMutation } from "../queries/useRecreateStackMutation";
+import { useIdentityStore } from "../stores/identity";
 import type { OperationsPageModel } from "./operationsPage";
 
 const props = defineProps<{
   model: OperationsPageModel;
 }>();
 
+const identityStore = useIdentityStore();
 const settingsStore = useSettingsStore();
 const saveArtifactHistoryMutation = useSaveArtifactHistoryMutation();
 const stackStatusQuery = useStackStatusQuery();
@@ -91,10 +93,11 @@ const stackStatus = computed(() => stackStatusQuery.data.value ?? null);
 const stackUi = computed(() => props.model.stackUi);
 const stackAvailable = computed(() => stackStatus.value?.available === true);
 const stackPullDisabled = computed(
-  () => stackUi.value.pulling || stackUi.value.recreating,
+  () => !identityStore.effectiveAdmin || stackUi.value.pulling || stackUi.value.recreating,
 );
 const stackRecreateDisabled = computed(
   () =>
+    !identityStore.effectiveAdmin ||
     !stackUi.value.pullResult?.hasUpdate ||
     stackUi.value.pulling ||
     stackUi.value.recreating,
@@ -272,6 +275,7 @@ watch(
             <button
               class="button"
               :disabled="stackPullDisabled"
+              :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
               type="button"
               @click="pullImages"
             >
@@ -280,6 +284,7 @@ watch(
             <button
               class="button"
               :disabled="stackRecreateDisabled"
+              :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
               type="button"
               @click="applyUpdate"
             >

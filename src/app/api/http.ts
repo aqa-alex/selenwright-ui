@@ -73,6 +73,7 @@ export async function fetchWithTimeout(
 
   try {
     return await fetch(resource, {
+      credentials: "include",
       ...options,
       signal: controller.signal,
     });
@@ -126,6 +127,16 @@ export async function withTimeout<T>(
   } finally {
     window.clearTimeout(timer);
   }
+}
+
+export function buildHttpErrorMessage(
+  label: string,
+  status: number,
+): string {
+  if (status === 403) {
+    return "Permission denied — admin access required.";
+  }
+  return `${label} failed (${status})`;
 }
 
 export function extractResponseErrorMessage(

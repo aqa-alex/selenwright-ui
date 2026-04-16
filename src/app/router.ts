@@ -1,5 +1,7 @@
 import { defineComponent, h } from "vue";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import LoginPage from "./pages/LoginPage.vue";
+import { useIdentityStore } from "./stores/identity";
 
 export type RouteName =
   | "sessions"
@@ -11,6 +13,7 @@ export type RouteName =
   | "configuration"
   | "system"
   | "settings"
+  | "login"
   | "not-found";
 
 export interface ParsedRoute {
@@ -91,6 +94,9 @@ export function parseRoute(pathname: string): ParsedRoute {
   if (pathname === "/settings") {
     return { name: "settings" };
   }
+  if (pathname === "/login") {
+    return { name: "login" };
+  }
   return { name: "not-found" };
 }
 
@@ -156,6 +162,11 @@ const routes: RouteRecordRaw[] = [
     path: "/settings",
   },
   {
+    component: LoginPage,
+    name: "login",
+    path: "/login",
+  },
+  {
     component: RouteAnchor,
     name: "not-found",
     path: "/:pathMatch(.*)*",
@@ -163,8 +174,23 @@ const routes: RouteRecordRaw[] = [
 ];
 
 export function createConsoleRouter() {
-  return createRouter({
+  const router = createRouter({
     history: createWebHistory(),
     routes,
   });
+
+  router.beforeEach(async (to) => {
+    const identity = useIdentityStore();
+    if (!identity.loaded) {
+      await identity.load();
+    }
+    if (identity.requiresLogin && to.name !== "login") {
+      return { name: "login" };
+    }
+    if (!identity.requiresLogin && to.name === "login") {
+      return { name: "sessions" };
+    }
+  });
+
+  return router;
 }

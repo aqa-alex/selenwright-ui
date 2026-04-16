@@ -8,6 +8,7 @@ import { useDiscoveredBrowsersQuery } from "../queries/useDiscoveredBrowsersQuer
 import { useAdoptBrowserMutation } from "../queries/useAdoptBrowserMutation";
 import { useDismissBrowserMutation } from "../queries/useDismissBrowserMutation";
 import { useRescanBrowsersMutation } from "../queries/useRescanBrowsersMutation";
+import { useIdentityStore } from "../stores/identity";
 import type { OperationsPageModel } from "./operationsPage";
 import { getBrowserInventoryGroups, getBrowserStatusBadgeStatus } from "./operationsPage";
 
@@ -15,6 +16,7 @@ const props = defineProps<{
   model: OperationsPageModel;
 }>();
 
+const identityStore = useIdentityStore();
 const browserGroups = computed(() => getBrowserInventoryGroups(props.model.browsers));
 
 const discoveredQuery = useDiscoveredBrowsersQuery();
@@ -50,7 +52,8 @@ function repoTagDisplay(img: { repoTags: string[]; digest: string }): string {
     <div class="page-intro-actions">
       <ConsoleButton
         kind="secondary"
-        :disabled="rescanMutation.isPending.value"
+        :disabled="rescanMutation.isPending.value || !identityStore.effectiveAdmin"
+        :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
         @click="rescanMutation.mutate()"
       >
         {{ rescanMutation.isPending.value ? "Scanning..." : "Rescan" }}
@@ -107,14 +110,16 @@ function repoTagDisplay(img: { repoTags: string[]; digest: string }): string {
               <td class="actions-cell">
                 <ConsoleButton
                   kind="primary"
-                  :disabled="adoptMutation.isPending.value"
+                  :disabled="adoptMutation.isPending.value || !identityStore.effectiveAdmin"
+                  :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
                   @click="adoptMutation.mutate(img.digest)"
                 >
                   Adopt
                 </ConsoleButton>
                 <ConsoleButton
                   kind="secondary"
-                  :disabled="dismissMutation.isPending.value"
+                  :disabled="dismissMutation.isPending.value || !identityStore.effectiveAdmin"
+                  :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
                   @click="dismissMutation.mutate(img.digest)"
                 >
                   Dismiss

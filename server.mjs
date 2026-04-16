@@ -98,6 +98,9 @@ const apiRoutes = new Map([
   ["/api/stack/status", { accept: "application/json", upstream: "/stack/status" }],
   ["/api/stack/pull", { accept: "application/json", upstream: "/stack/pull", timeoutMs: 150_000 }],
   ["/api/stack/recreate", { accept: "application/json", upstream: "/stack/recreate", timeoutMs: 150_000 }],
+  ["/api/whoami", { accept: "application/json", upstream: "/whoami" }],
+  ["/api/login", { accept: "application/json", upstream: "/login" }],
+  ["/api/logout", { accept: "application/json", upstream: "/logout" }],
 ]);
 const consoleStreamClients = new Set();
 let consoleSnapshotCache = null;
@@ -1125,6 +1128,7 @@ async function handleApi(req, res, route, requestUrl) {
         "/video/?json": demoSnapshot.videos.value,
         "/downloads/?json": demoSnapshot.downloads.value,
         "/history/settings": demoSnapshot.historySettings.value,
+        "/whoami": { user: "demo", isAdmin: true, authMode: "none", authenticated: true },
       };
       const demoData = demoRoutes[route.upstream];
       if (demoData !== undefined) {
@@ -1141,6 +1145,12 @@ async function handleApi(req, res, route, requestUrl) {
     const timeoutMs = resolveProxyTimeoutMs(route);
     if (req.headers["content-type"]) {
       requestHeaders["content-type"] = req.headers["content-type"];
+    }
+    if (req.headers["authorization"]) {
+      requestHeaders["authorization"] = req.headers["authorization"];
+    }
+    if (req.headers["cookie"]) {
+      requestHeaders["cookie"] = req.headers["cookie"];
     }
     const upstreamResponse = await fetchWithTimeout(
       upstreamUrl,
@@ -1172,9 +1182,17 @@ async function handleApi(req, res, route, requestUrl) {
       return;
     }
 
-    res.writeHead(upstreamResponse.status, withSecurityHeaders({
+    const responseHeaders = withSecurityHeaders({
       "Content-Type": contentType,
-    }));
+    });
+    const setCookieValues = upstreamResponse.headers.getSetCookie?.() ?? [];
+    for (const value of setCookieValues) {
+      if (!responseHeaders["set-cookie"]) {
+        responseHeaders["set-cookie"] = [];
+      }
+      responseHeaders["set-cookie"].push(value);
+    }
+    res.writeHead(upstreamResponse.status, responseHeaders);
 
     if (req.method === "HEAD") {
       res.end();
