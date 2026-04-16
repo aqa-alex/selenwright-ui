@@ -91,6 +91,10 @@ const apiRoutes = new Map([
   ["/api/status", { accept: "application/json", upstream: "/status" }],
   ["/api/logs", { accept: "application/json", upstream: "/logs/?json" }],
   ["/api/videos", { accept: "application/json", upstream: "/video/?json" }],
+  ["/api/browsers/discovered", { accept: "application/json", upstream: "/browsers/discovered" }],
+  ["/api/browsers/adopt", { accept: "application/json", upstream: "/browsers/adopt" }],
+  ["/api/browsers/dismiss", { accept: "application/json", upstream: "/browsers/dismiss" }],
+  ["/api/browsers/rescan", { accept: "application/json", upstream: "/browsers/rescan" }],
 ]);
 const consoleStreamClients = new Set();
 let consoleSnapshotCache = null;

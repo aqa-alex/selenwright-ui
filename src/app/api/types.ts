@@ -33,6 +33,15 @@ export interface BrowserCatalogEntry {
   versions: BrowserCatalogVersion[];
 }
 
+export interface DiscoveredBrowserImage {
+  digest: string;
+  repoTags: string[];
+  browser: string;
+  version: string;
+  protocol: string;
+  isDefault: boolean;
+}
+
 export interface ConfigurationRawData {
   browserCatalog: BrowserCatalogEntry[];
   flags: JsonRecord;
