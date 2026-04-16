@@ -119,7 +119,7 @@ function setSort(sort: SessionSort) {
                 :class="['protocol-icon', `protocol-${row.original.protocol}`]"
                 v-html="protocolIcon(row.original)"
               ></span>
-              <div>
+              <div class="stacked-cell">
                 <strong>{{ row.original.name }}</strong>
                 <span class="secondary-text mono">{{ row.original.id }}</span>
               </div>
