@@ -16,3 +16,13 @@ jobs:
 
       - name: Test
         run: bash ci/test.sh
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

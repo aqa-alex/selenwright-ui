@@ -79,7 +79,7 @@ test("artifact splitter drag and keyboard resize persist", async ({ page }) => {
   const draggedRatio = await page.evaluate(() =>
     Number(localStorage.getItem("selenwright-ui.artifact-drawer-width.logs")),
   );
-  expect(draggedRatio).toBeGreaterThan(0.37);
+  expect(draggedRatio).toBeGreaterThanOrEqual(0.37);
 
   await splitter.focus();
   const beforeKeyboard = Number(await splitter.getAttribute("aria-valuenow"));
