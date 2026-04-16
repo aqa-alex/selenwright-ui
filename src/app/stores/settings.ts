@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import type { StackPullResult } from "../api";
 
 export interface ArtifactHistoryDraft {
   draftEnabled: boolean;
@@ -9,8 +10,17 @@ export interface ArtifactHistoryDraft {
   saving: boolean;
 }
 
+export interface StackUpdateState {
+  pulling: boolean;
+  pullError: string;
+  pullResult: StackPullResult | null;
+  recreating: boolean;
+  recreateError: string;
+}
+
 export interface SettingsState {
   artifactHistory: ArtifactHistoryDraft;
+  stack: StackUpdateState;
 }
 
 const defaultDraft: ArtifactHistoryDraft = {
@@ -22,9 +32,18 @@ const defaultDraft: ArtifactHistoryDraft = {
   saving: false,
 };
 
+const defaultStack: StackUpdateState = {
+  pulling: false,
+  pullError: "",
+  pullResult: null,
+  recreating: false,
+  recreateError: "",
+};
+
 export const useSettingsStore = defineStore("settings", {
   state: (): SettingsState => ({
     artifactHistory: { ...defaultDraft },
+    stack: { ...defaultStack },
   }),
   actions: {
     setHistoryEnabled(enabled: boolean) {
@@ -52,6 +71,25 @@ export const useSettingsStore = defineStore("settings", {
     },
     markHistoryLoaded(loaded: boolean) {
       this.artifactHistory.loaded = loaded;
+    },
+    setStackPulling(pulling: boolean) {
+      this.stack.pulling = pulling;
+    },
+    setStackPullError(message: string) {
+      this.stack.pullError = message;
+    },
+    setStackPullResult(result: StackPullResult | null) {
+      this.stack.pullResult = result;
+    },
+    setStackRecreating(recreating: boolean) {
+      this.stack.recreating = recreating;
+    },
+    setStackRecreateError(message: string) {
+      this.stack.recreateError = message;
+    },
+    resetStackPull() {
+      this.stack.pullResult = null;
+      this.stack.pullError = "";
     },
   },
 });

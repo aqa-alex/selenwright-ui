@@ -331,3 +331,39 @@ export interface ConfigurationItemInput extends JsonRecord {
   label?: unknown;
   value?: unknown;
 }
+
+export interface StackServiceStatus {
+  service: string;
+  image: string;
+  imageId: string;
+  imageIdShort: string;
+  containerId: string;
+  status: string;
+  created: string;
+}
+
+export interface StackStatus {
+  available: boolean;
+  reason: string;
+  services: StackServiceStatus[];
+  projectName: string;
+}
+
+export interface StackPullServiceResult {
+  service: string;
+  image: string;
+  previousId: string;
+  currentId: string;
+  updated: boolean;
+  error?: string;
+}
+
+export interface StackPullResult {
+  results: StackPullServiceResult[];
+  hasUpdate: boolean;
+}
+
+export interface StackRecreateResult {
+  accepted: boolean;
+  message: string;
+}

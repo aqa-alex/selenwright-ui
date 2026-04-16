@@ -6,6 +6,7 @@ import type {
   ConsoleConnectionState,
   ConsoleSystemState,
 } from "../api";
+import type { StackUpdateState } from "../stores/settings";
 import { titleCase } from "../../lib/format";
 
 export type OperationsRouteName = "browsers" | "configuration" | "settings" | "system";
@@ -37,6 +38,7 @@ export interface OperationsPageModel {
   settings: {
     artifactHistory: ArtifactHistorySettings;
   };
+  stackUi: StackUpdateState;
   system: ConsoleSystemState;
 }
 

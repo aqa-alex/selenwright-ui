@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import SegmentedControl from "../components/ui/SegmentedControl.vue";
@@ -12,6 +12,9 @@ import {
 } from "../stores/preferences";
 import { useSettingsStore } from "../stores/settings";
 import { useSaveArtifactHistoryMutation } from "../queries/useSaveArtifactHistoryMutation";
+import { useStackStatusQuery } from "../queries/useStackStatusQuery";
+import { usePullStackMutation } from "../queries/usePullStackMutation";
+import { useRecreateStackMutation } from "../queries/useRecreateStackMutation";
 import type { OperationsPageModel } from "./operationsPage";
 
 const props = defineProps<{
@@ -20,6 +23,9 @@ const props = defineProps<{
 
 const settingsStore = useSettingsStore();
 const saveArtifactHistoryMutation = useSaveArtifactHistoryMutation();
+const stackStatusQuery = useStackStatusQuery();
+const pullStackMutation = usePullStackMutation();
+const recreateStackMutation = useRecreateStackMutation();
 
 function saveArtifactHistory() {
   const draft = settingsStore.artifactHistory;
@@ -79,6 +85,51 @@ const unavailableReason = computed(
   () =>
     artifactHistory.value.reason ||
     "Artifact history is unavailable with the current backend setup.",
+);
+
+const stackStatus = computed(() => stackStatusQuery.data.value ?? null);
+const stackUi = computed(() => props.model.stackUi);
+const stackAvailable = computed(() => stackStatus.value?.available === true);
+const stackPullDisabled = computed(
+  () => stackUi.value.pulling || stackUi.value.recreating,
+);
+const stackRecreateDisabled = computed(
+  () =>
+    !stackUi.value.pullResult?.hasUpdate ||
+    stackUi.value.pulling ||
+    stackUi.value.recreating,
+);
+
+function pullImages() {
+  pullStackMutation.mutate();
+}
+
+function applyUpdate() {
+  recreateStackMutation.mutate();
+}
+
+watch(
+  artifactHistory,
+  (settings) => {
+    if (!settingsStore.artifactHistory.loaded && settings.available) {
+      settingsStore.syncFromBackend({
+        enabled: settings.enabled,
+        retentionDays: settings.retentionDays,
+      });
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.model.connection.ready,
+  (ready) => {
+    if (ready && settingsStore.stack.recreating) {
+      settingsStore.setStackRecreating(false);
+      settingsStore.resetStackPull();
+      stackStatusQuery.refetch();
+    }
+  },
 );
 </script>
 
@@ -201,6 +252,86 @@ const unavailableReason = computed(
         >
           {{ artifactHistoryUi.error }}
         </div>
+      </div>
+    </ConsolePanel>
+    <ConsolePanel title="Stack">
+      <p class="hint-text">Pull updated container images and recreate the compose stack.</p>
+      <template v-if="stackStatus && stackAvailable">
+        <div class="key-value-list compact">
+          <div
+            v-for="svc in stackStatus.services"
+            :key="svc.service"
+            class="copyable-row"
+          >
+            <span>{{ svc.service }}</span>
+            <strong class="mono">{{ svc.image }} <span class="secondary-text">({{ svc.imageIdShort }})</span></strong>
+          </div>
+        </div>
+        <div class="settings-status-stack">
+          <div class="drawer-actions settings-actions">
+            <button
+              class="button"
+              :disabled="stackPullDisabled"
+              type="button"
+              @click="pullImages"
+            >
+              {{ stackUi.pulling ? "Pulling…" : "Pull latest images" }}
+            </button>
+            <button
+              class="button"
+              :disabled="stackRecreateDisabled"
+              type="button"
+              @click="applyUpdate"
+            >
+              Apply update
+            </button>
+          </div>
+          <div
+            v-if="stackUi.pullResult"
+            class="key-value-list compact"
+          >
+            <div
+              v-for="r in stackUi.pullResult.results"
+              :key="r.service"
+              class="copyable-row"
+            >
+              <span>{{ r.image }}</span>
+              <strong :class="r.updated ? '' : 'secondary-text'">
+                {{ r.error ? r.error : r.updated ? `Updated (${r.currentId})` : "Up to date" }}
+              </strong>
+            </div>
+          </div>
+          <div
+            v-if="stackUi.recreating"
+            class="note-block settings-status-callout"
+          >
+            Applying stack update. The console will reconnect when services are back.
+          </div>
+          <div
+            v-if="stackUi.pullError"
+            class="note-block log-note-error settings-status-callout"
+          >
+            {{ stackUi.pullError }}
+          </div>
+          <div
+            v-if="stackUi.recreateError"
+            class="note-block log-note-error settings-status-callout"
+          >
+            {{ stackUi.recreateError }}
+          </div>
+        </div>
+      </template>
+      <div
+        v-else-if="stackStatus && !stackAvailable"
+        class="note-block settings-status-callout"
+      >
+        {{ stackStatus.reason || "Stack management is not available." }}
+      </div>
+      <div
+        v-else
+        class="secondary-text"
+      >
+        Loading stack status…
       </div>
     </ConsolePanel>
     <ConsolePanel title="Connection">

@@ -95,6 +95,9 @@ const apiRoutes = new Map([
   ["/api/browsers/adopt", { accept: "application/json", upstream: "/browsers/adopt" }],
   ["/api/browsers/dismiss", { accept: "application/json", upstream: "/browsers/dismiss" }],
   ["/api/browsers/rescan", { accept: "application/json", upstream: "/browsers/rescan" }],
+  ["/api/stack/status", { accept: "application/json", upstream: "/stack/status" }],
+  ["/api/stack/pull", { accept: "application/json", upstream: "/stack/pull", timeoutMs: 150_000 }],
+  ["/api/stack/recreate", { accept: "application/json", upstream: "/stack/recreate", timeoutMs: 150_000 }],
 ]);
 const consoleStreamClients = new Set();
 let consoleSnapshotCache = null;

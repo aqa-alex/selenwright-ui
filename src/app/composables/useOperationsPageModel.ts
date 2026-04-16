@@ -30,6 +30,7 @@ export function useOperationsPageModel(
       },
       routeName: toValue(routeNameInput),
       settings: dataset.settings,
+      stackUi: { ...settingsStore.stack },
       system: dataset.system,
     };
   });
