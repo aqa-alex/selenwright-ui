@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import RFB from "../../vendor/novnc-client/core/rfb.js";
 import {
+  buildClipboardUrl,
   buildSessionDetailHref,
   buildVncWebSocketUrl,
   formatDocumentTitle,
@@ -12,6 +13,13 @@ import {
   readVncViewerParams,
   type VncStatus,
 } from "./vncViewer";
+
+type ClipboardNoticeState = "info" | "error";
+interface ClipboardNotice {
+  message: string;
+  state: ClipboardNoticeState;
+}
+const CLIPBOARD_NOTICE_TTL_MS = 2500;
 
 type VncRfbEvent = Event & {
   detail?: {
@@ -40,6 +48,12 @@ const pendingReconnect = ref(0);
 const reconnectAttempt = ref(0);
 const status = ref<VncStatus>(getInitialVncStatus(params.sessionId));
 const viewOnly = ref(true);
+const clipboardExpanded = ref(false);
+const clipboardBuffer = ref("");
+const clipboardLastSyncedAt = ref<Date | null>(null);
+const clipboardBusy = ref(false);
+const clipboardNotice = ref<ClipboardNotice | null>(null);
+let clipboardNoticeTimer = 0;
 let rfb: VncRfb | null = null;
 let attachedListeners: Array<{
   type: string;
@@ -49,11 +63,30 @@ let attachedListeners: Array<{
 const endpoint = computed(() =>
   buildVncWebSocketUrl(params.sessionId, window.location.origin),
 );
-const endpointLabel = computed(() => endpoint.value || "Session id is missing");
 const sessionDetailHref = computed(() => buildSessionDetailHref(params.sessionId));
 const pageTitle = computed(() => formatPageTitle(params));
 const sessionLabel = computed(() => formatSessionLabel(params));
 const viewerModeLabel = computed(() => getViewerModeLabel(viewOnly.value));
+
+const clipboardPreview = computed(() => {
+  if (!clipboardBuffer.value) {
+    return "";
+  }
+  const firstLine = clipboardBuffer.value.split("\n")[0] ?? "";
+  const trimmed = firstLine.trim();
+  if (!trimmed) {
+    return "whitespace…";
+  }
+  return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
+});
+
+const clipboardSyncedLabel = computed(() => {
+  if (!clipboardLastSyncedAt.value) {
+    return "Not synced";
+  }
+  const time = clipboardLastSyncedAt.value.toLocaleTimeString(undefined, { hour12: false });
+  return `Synced ${time}`;
+});
 
 onMounted(() => {
   document.title = formatDocumentTitle(params.sessionId);
@@ -212,10 +245,78 @@ function setStatus(message: string, state: VncStatus["state"]) {
   status.value = { message, state };
 }
 
+function setClipboardNotice(message: string, state: ClipboardNoticeState) {
+  if (clipboardNoticeTimer) {
+    window.clearTimeout(clipboardNoticeTimer);
+    clipboardNoticeTimer = 0;
+  }
+  clipboardNotice.value = { message, state };
+  clipboardNoticeTimer = window.setTimeout(() => {
+    clipboardNotice.value = null;
+    clipboardNoticeTimer = 0;
+  }, CLIPBOARD_NOTICE_TTL_MS);
+}
+
+function toggleClipboardDrawer() {
+  clipboardExpanded.value = !clipboardExpanded.value;
+}
+
+async function pullFromSession() {
+  if (!params.sessionId || clipboardBusy.value) {
+    return;
+  }
+  clipboardBusy.value = true;
+  try {
+    const response = await fetch(buildClipboardUrl(params.sessionId), {
+      headers: { accept: "text/plain" },
+    });
+    if (!response.ok) {
+      setClipboardNotice(`Pull failed (${response.status})`, "error");
+      return;
+    }
+    const text = await response.text();
+    clipboardBuffer.value = text;
+    clipboardLastSyncedAt.value = new Date();
+    setClipboardNotice(text ? "Pulled from session" : "Session clipboard is empty", "info");
+  } catch (error) {
+    setClipboardNotice(error instanceof Error ? error.message : "Pull failed", "error");
+  } finally {
+    clipboardBusy.value = false;
+  }
+}
+
+async function pushToSession() {
+  if (!params.sessionId || clipboardBusy.value) {
+    return;
+  }
+  clipboardBusy.value = true;
+  try {
+    const response = await fetch(buildClipboardUrl(params.sessionId), {
+      body: clipboardBuffer.value,
+      headers: { "content-type": "text/plain;charset=UTF-8" },
+      method: "POST",
+    });
+    if (!response.ok) {
+      setClipboardNotice(`Push failed (${response.status})`, "error");
+      return;
+    }
+    clipboardLastSyncedAt.value = new Date();
+    setClipboardNotice("Pushed to session", "info");
+  } catch (error) {
+    setClipboardNotice(error instanceof Error ? error.message : "Push failed", "error");
+  } finally {
+    clipboardBusy.value = false;
+  }
+}
+
 function handleBeforeUnload() {
   window.clearTimeout(pendingReconnect.value);
   pendingReconnect.value = 0;
   reconnectAttempt.value = 0;
+  if (clipboardNoticeTimer) {
+    window.clearTimeout(clipboardNoticeTimer);
+    clipboardNoticeTimer = 0;
+  }
   disconnectViewer();
 }
 </script>
@@ -286,8 +387,94 @@ function handleBeforeUnload() {
       <div class="vnc-screen-shell">
         <div id="vnc-screen" ref="screenElement" class="vnc-screen"></div>
       </div>
+      <div class="vnc-clipboard-drawer" :data-expanded="String(clipboardExpanded)">
+        <button
+          id="vnc-clipboard-toggle"
+          class="vnc-clipboard-drawer__toggle"
+          type="button"
+          :aria-expanded="clipboardExpanded ? 'true' : 'false'"
+          aria-controls="vnc-clipboard-body"
+          @click="toggleClipboardDrawer"
+        >
+          <svg
+            class="vnc-clipboard-drawer__chevron"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 4l4 4-4 4" />
+          </svg>
+          <span class="vnc-clipboard-drawer__title">Session clipboard</span>
+          <span
+            v-if="clipboardPreview"
+            id="vnc-clipboard-preview"
+            class="vnc-clipboard-drawer__preview mono"
+          >
+            {{ clipboardPreview }}
+          </span>
+          <span
+            class="vnc-clipboard-drawer__help"
+            title="Push: paste text here → Push to session → Ctrl+V inside VNC.&#10;Pull: Ctrl+C inside VNC → Pull from session → copy from the text field."
+            @click.stop
+          >?</span>
+        </button>
+        <div
+          v-show="clipboardExpanded"
+          id="vnc-clipboard-body"
+          class="vnc-clipboard-drawer__body"
+        >
+          <textarea
+            id="vnc-clipboard-textarea"
+            v-model="clipboardBuffer"
+            class="vnc-clipboard-drawer__textarea mono"
+            :disabled="!params.sessionId"
+            rows="4"
+            spellcheck="false"
+            placeholder="Pull from session to load its clipboard, or paste text here and push."
+          ></textarea>
+          <div class="vnc-clipboard-drawer__actions">
+            <button
+              id="vnc-clipboard-pull"
+              class="button secondary"
+              type="button"
+              :disabled="!params.sessionId || clipboardBusy"
+              @click="pullFromSession"
+            >
+              Pull from session
+            </button>
+            <button
+              id="vnc-clipboard-push"
+              class="button secondary"
+              type="button"
+              :disabled="!params.sessionId || clipboardBusy"
+              @click="pushToSession"
+            >
+              Push to session
+            </button>
+            <span
+              v-if="clipboardNotice"
+              id="vnc-clipboard-notice"
+              class="vnc-clipboard-drawer__meta"
+              :data-state="clipboardNotice.state"
+              role="status"
+            >
+              {{ clipboardNotice.message }}
+            </span>
+            <span
+              v-else
+              id="vnc-clipboard-synced"
+              class="vnc-clipboard-drawer__meta"
+            >
+              {{ clipboardSyncedLabel }}
+            </span>
+          </div>
+        </div>
+      </div>
       <div class="vnc-footer">
-        <span class="vnc-endpoint mono">Endpoint <code id="vnc-endpoint">{{ endpointLabel }}</code></span>
         <a id="vnc-open-session" class="button secondary" :href="sessionDetailHref">
           Open session detail
         </a>

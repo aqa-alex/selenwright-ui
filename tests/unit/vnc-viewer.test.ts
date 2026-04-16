@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildClipboardUrl,
   buildSessionDetailHref,
   buildVncWebSocketUrl,
   formatDocumentTitle,
@@ -47,5 +48,12 @@ describe("vnc viewer helpers", () => {
     });
     expect(getViewerModeLabel(true)).toBe("Read only");
     expect(getViewerModeLabel(false)).toBe("Control enabled");
+  });
+
+  it("builds clipboard proxy paths and encodes the session id", () => {
+    expect(buildClipboardUrl("session-01")).toBe("/api/clipboard/session-01");
+    expect(buildClipboardUrl("fixture session")).toBe("/api/clipboard/fixture%20session");
+    expect(buildClipboardUrl("a/b")).toBe("/api/clipboard/a%2Fb");
+    expect(buildClipboardUrl("")).toBe("");
   });
 });

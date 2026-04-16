@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
 import {
-  expectedVncEndpoint,
   installFixedClock,
   primarySessionId,
   setPreferences,
@@ -173,12 +172,13 @@ test("theme modes persist and inline bootstrap applies before app paint", async 
   await context.close();
 });
 
-test("vnc viewer shell builds websocket endpoint", async ({ page, baseURL }) => {
+test("vnc viewer shell exposes clipboard drawer and session detail link", async ({ page }) => {
   await setPreferences(page, { density: "compact", themeMode: "light" });
   await page.goto(`/vnc.html?session=${primarySessionId}&name=Fixture&browser=chromium`);
 
   await expect(page.getByRole("heading", { name: "Fixture · Chromium VNC" })).toBeVisible();
-  await expect(page.locator("#vnc-endpoint")).toHaveText(expectedVncEndpoint(baseURL, primarySessionId));
+  await expect(page.locator("#vnc-clipboard-toggle")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#vnc-clipboard-body")).toBeHidden();
   await expect(page.locator("#vnc-open-session")).toHaveAttribute("href", `/sessions/${primarySessionId}`);
   await expect(page.locator("#vnc-viewer-mode-label")).toHaveText("Read only");
 });

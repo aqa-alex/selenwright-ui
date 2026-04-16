@@ -91,12 +91,6 @@ export async function waitForSessions(page, count) {
   }
 }
 
-export function expectedVncEndpoint(origin, sessionId = primarySessionId) {
-  const url = new URL(`/api/vnc/${encodeURIComponent(sessionId)}`, origin);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  return url.toString();
-}
-
 function buildConsoleSnapshot({ logCount = 2, sessionCount = 14, sessionStatuses = [] } = {}) {
   const sessions = Array.from({ length: sessionCount }, (_, index) => {
     const ordinal = index + 1;

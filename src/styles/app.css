@@ -1357,14 +1357,137 @@ summary::-webkit-details-marker {
   max-width: 100%;
 }
 
-.vnc-endpoint {
+.vnc-footer {
+  justify-content: flex-end;
+}
+
+.vnc-clipboard-drawer {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vnc-clipboard-drawer__toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  text-align: left;
+  width: 100%;
+}
+
+.vnc-clipboard-drawer__toggle:hover {
+  background: var(--bg-subtle);
+}
+
+.vnc-clipboard-drawer__toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-primary) 55%, transparent);
+  outline-offset: -2px;
+}
+
+.vnc-clipboard-drawer__chevron {
   color: var(--text-muted);
-  display: inline-flex;
+  flex: 0 0 auto;
+  height: 14px;
+  transition: transform 0.15s ease;
+  width: 14px;
+}
+
+.vnc-clipboard-drawer[data-expanded="true"] .vnc-clipboard-drawer__chevron {
+  transform: rotate(90deg);
+}
+
+.vnc-clipboard-drawer__title {
+  flex: 0 0 auto;
+}
+
+.vnc-clipboard-drawer__preview {
+  color: var(--text-muted);
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vnc-clipboard-drawer__body {
+  border-top: 1px solid var(--border-default);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.vnc-clipboard-drawer__textarea {
+  background: var(--bg-app);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  padding: 8px;
+  resize: vertical;
+  width: 100%;
+}
+
+.vnc-clipboard-drawer__textarea:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--border-default));
+  outline: none;
+}
+
+.vnc-clipboard-drawer__textarea:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.vnc-clipboard-drawer__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-.vnc-endpoint code {
-  color: var(--text-secondary);
+.vnc-clipboard-drawer__meta {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vnc-clipboard-drawer__meta[data-state="error"] {
+  color: var(--danger);
+}
+
+.vnc-clipboard-drawer__help {
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: help;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  height: 18px;
+  justify-content: center;
+  margin-left: auto;
+  width: 18px;
+}
+
+.vnc-clipboard-drawer__help:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-default));
+  color: var(--text-primary);
 }
 
 .vnc-status[data-state="connected"] {

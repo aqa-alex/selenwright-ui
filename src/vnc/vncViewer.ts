@@ -31,6 +31,10 @@ export function buildVncWebSocketUrl(sessionId: string, origin: string): string 
   return url.toString();
 }
 
+export function buildClipboardUrl(sessionId: string): string {
+  return sessionId ? `/api/clipboard/${encodeURIComponent(sessionId)}` : "";
+}
+
 export function buildSessionDetailHref(sessionId: string): string {
   return sessionId ? `/sessions/${sessionId}` : "/sessions";
 }
