@@ -1,8 +1,11 @@
 # Selenwright UI
 
-Readable, dense operator console for Selenwright browser sessions and artifacts.
+Operator console for [Selenwright](https://github.com/aqa-alex/selenwright) — a browser automation grid with native Selenium and Playwright support.
 
-The UI is a Vite-built Vue + TypeScript app served by `server.mjs`.
+Dense, readable interface for monitoring live sessions, browsing artifacts (videos, logs, downloads), and managing browser inventory. Built with Vue 3 + TypeScript, served by a lightweight Node.js proxy.
+
+![Sessions page — light theme](docs/sessions-light.png)
+<sup>Light and dark themes available via the header toggle.</sup>
 
 ## Run locally
 
@@ -75,22 +78,6 @@ npm run build
 npm run check
 ```
 
-## CI / Release / Docker Push
-
-- CI scripts are in `ci/`:
-  - `ci/test.sh` — install deps + `npm run build` + `npm run check`
-  - `ci/build.sh` — test + docker build validation
-  - `ci/docker-push.sh <tag>` — push image to Docker Hub (`$GITHUB_REPOSITORY`)
-- GitHub Actions workflows:
-  - `.github/workflows/test.yml` — pull request checks
-  - `.github/workflows/build.yml` — push to `main`, publish `latest`
-  - `.github/workflows/release.yml` — on release, publish release tag and `latest-release`
-
-Required GitHub secrets for image publishing:
-
-- `DOCKER_USERNAME`
-- `DOCKER_PASSWORD`
-
 ## Structure
 
 - `index.html` bootstraps the app and applies theme + density preferences before paint.
@@ -98,4 +85,3 @@ Required GitHub secrets for image publishing:
 - `src/app/` contains the main console shell and Vue pages.
 - `src/vnc/` contains the separate Vue noVNC viewer entry.
 - `src/data/` contains typed data adapters and normalization.
-- `codex-skills/` contains project-local skill definitions for future agent work.
