@@ -9,7 +9,7 @@ import {
 
 test("artifact pages render dense split panes and selection drawers", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/artifacts/videos");
@@ -38,7 +38,7 @@ test("artifact pages render dense split panes and selection drawers", async ({ p
 
 test("logs artifact selection opens the correct pane content", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/artifacts/logs");
@@ -61,7 +61,7 @@ test("logs artifact selection opens the correct pane content", async ({ page }) 
 
 test("artifact splitter drag and keyboard resize persist", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/artifacts/logs");
@@ -102,7 +102,7 @@ test("artifact splitter drag and keyboard resize persist", async ({ page }) => {
 
 test("logs pagination and per-page control work", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { logCount: 12, sessionCount: 14 });
 
   await page.goto("/artifacts/logs");

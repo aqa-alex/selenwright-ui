@@ -16,9 +16,9 @@ test("sessions loads demo fallback data", async ({ page }) => {
   await expect(page.getByText("demo-abc123")).toBeVisible();
 });
 
-test("sessions table keeps compact density and avoids horizontal overflow", async ({ page }) => {
+test("sessions table keeps compact layout and avoids horizontal overflow", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/sessions");
@@ -50,7 +50,7 @@ test("sessions table keeps compact density and avoids horizontal overflow", asyn
 
 test("shell preserves 56px header and 240px desktop sidebar", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/sessions");
@@ -72,7 +72,7 @@ test("shell preserves 56px header and 240px desktop sidebar", async ({ page }) =
 
 test("keyboard row navigation selects rows and opens detail", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/sessions");
@@ -97,7 +97,7 @@ test("keyboard row navigation selects rows and opens detail", async ({ page }) =
 
 test("session detail opens from the sessions table", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/sessions");
@@ -111,7 +111,7 @@ test("session detail opens from the sessions table", async ({ page }) => {
 
 test("artifact routes render videos logs and downloads", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   for (const [path, heading] of [
@@ -131,7 +131,7 @@ test("theme modes persist and inline bootstrap applies before app paint", async 
     const context = await browser.newContext({ colorScheme });
     const page = await context.newPage();
 
-    await setPreferences(page, { density: "compact", themeMode: "system" });
+    await setPreferences(page, { themeMode: "system" });
     await page.route("**/src/main.ts", async (route) => {
       await route.fulfill({
         body: "window.__selenwrightMainStubLoaded = true;",
@@ -143,7 +143,6 @@ test("theme modes persist and inline bootstrap applies before app paint", async 
     await page.goto("/sessions", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme-mode", "system");
     await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
-    await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
 
     await context.close();
   }
@@ -151,7 +150,7 @@ test("theme modes persist and inline bootstrap applies before app paint", async 
   const context = await browser.newContext();
   const page = await context.newPage();
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact" });
+  await setPreferences(page, {});
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/sessions");
@@ -173,7 +172,7 @@ test("theme modes persist and inline bootstrap applies before app paint", async 
 });
 
 test("vnc viewer shell exposes clipboard drawer and session detail link", async ({ page }) => {
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await page.goto(`/vnc.html?session=${primarySessionId}&name=Fixture&browser=chromium`);
 
   await expect(page.getByRole("heading", { name: "Fixture · Chromium VNC" })).toBeVisible();

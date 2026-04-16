@@ -1,5 +1,4 @@
 export type ThemeMode = "system" | "light" | "dark";
-export type Density = "compact" | "comfortable";
 export type DetailPanel = "collapsed" | "expanded";
 export type TimeFormat = "12h" | "24h";
 export type Timezone = "local" | "utc";
@@ -8,7 +7,6 @@ export type ArtifactPaneKey = "videos" | "logs" | "downloads";
 export type ArtifactPaneWidths = Record<ArtifactPaneKey, number>;
 
 export interface PreferencesSnapshot {
-  density: Density;
   detailPanel: DetailPanel;
   themeMode: ThemeMode;
   timeFormat: TimeFormat;
@@ -23,7 +21,6 @@ const artifactPaneDefaults: ArtifactPaneWidths = {
 };
 
 const defaults: PreferencesSnapshot = {
-  density: "compact",
   detailPanel: "collapsed",
   themeMode: "system",
   timeFormat: "24h",
@@ -32,7 +29,6 @@ const defaults: PreferencesSnapshot = {
 };
 
 const storageKeys = {
-  density: "selenwright-ui.density",
   detailPanel: "selenwright-ui.detail-panel",
   themeMode: "selenwright-ui.theme-mode",
   timeFormat: "selenwright-ui.time-format",
@@ -76,7 +72,6 @@ function writeStorage(key: string, value: string): void {
 
 export function loadPreferences(): PreferencesSnapshot {
   return {
-    density: normalizeDensity(readStorage(storageKeys.density)),
     detailPanel: normalizeDetailPanel(readStorage(storageKeys.detailPanel)),
     themeMode: normalizeThemeMode(readStorage(storageKeys.themeMode)),
     timeFormat: normalizeTimeFormat(readStorage(storageKeys.timeFormat)),
@@ -102,7 +97,6 @@ export function savePreference(key: ScalarPreferenceKey, value: string): void {
 
 export function applyPreferences(preferences: PreferencesSnapshot): void {
   applyTheme(preferences.themeMode);
-  applyDensity(preferences.density);
 }
 
 export function applyTheme(themeMode: string): void {
@@ -120,14 +114,6 @@ export function applyTheme(themeMode: string): void {
     document.documentElement.dataset.theme = resolvedTheme;
   }
   savePreference("themeMode", normalizedThemeMode);
-}
-
-export function applyDensity(density: string): void {
-  const normalizedDensity = normalizeDensity(density);
-  if (typeof document !== "undefined") {
-    document.documentElement.dataset.density = normalizedDensity;
-  }
-  savePreference("density", normalizedDensity);
 }
 
 export function saveArtifactPaneWidth(pageKey: ArtifactPaneKey, ratio: number): number {
@@ -152,10 +138,6 @@ export function watchSystemTheme(onChange: (theme: "dark" | "light") => void): (
 
 function normalizeThemeMode(value: unknown): ThemeMode {
   return value === "system" || value === "light" || value === "dark" ? value : defaults.themeMode;
-}
-
-function normalizeDensity(value: unknown): Density {
-  return value === "compact" || value === "comfortable" ? value : defaults.density;
 }
 
 function normalizeDetailPanel(value: unknown): DetailPanel {

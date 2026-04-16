@@ -4,7 +4,6 @@ import { storeToRefs } from "pinia";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import SegmentedControl from "../components/ui/SegmentedControl.vue";
 import {
-  type Density,
   type DetailPanel,
   type ThemeMode,
   type TimeFormat,
@@ -41,16 +40,12 @@ function saveArtifactHistory() {
 }
 
 const preferencesStore = usePreferencesStore();
-const { density, detailPanel, themeMode, timeFormat, timezone } = storeToRefs(preferencesStore);
+const { detailPanel, themeMode, timeFormat, timezone } = storeToRefs(preferencesStore);
 
 const themeOptions: Array<{ value: ThemeMode; label: string }> = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
-];
-const densityOptions: Array<{ value: Density; label: string }> = [
-  { value: "compact", label: "Compact" },
-  { value: "comfortable", label: "Comfortable" },
 ];
 const detailPanelOptions: Array<{ value: DetailPanel; label: string }> = [
   { value: "collapsed", label: "Collapsed" },
@@ -91,7 +86,7 @@ const unavailableReason = computed(
   <div class="page-intro">
     <div>
       <h1>Settings</h1>
-      <p>Theme, density, and viewer preferences.</p>
+      <p>Theme and viewer preferences.</p>
     </div>
   </div>
   <div class="stack-layout">
@@ -101,14 +96,6 @@ const unavailableReason = computed(
         :options="themeOptions"
         :selected-value="themeMode"
         @select="(value) => preferencesStore.setThemeMode(value as ThemeMode)"
-      />
-    </ConsolePanel>
-    <ConsolePanel title="Density">
-      <p class="hint-text">Compact keeps the sessions list denser without collapsing readability.</p>
-      <SegmentedControl
-        :options="densityOptions"
-        :selected-value="density"
-        @select="(value) => preferencesStore.setDensity(value as Density)"
       />
     </ConsolePanel>
     <ConsolePanel title="Viewer behavior">

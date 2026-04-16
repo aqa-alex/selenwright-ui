@@ -71,11 +71,6 @@ html[data-theme="dark"] .segmented-option.selected {
   color: var(--accent-primary);
 }
 
-html[data-density="comfortable"] {
-  --panel-padding: 16px;
-  --row-height: 60px;
-}
-
 * {
   box-sizing: border-box;
 }

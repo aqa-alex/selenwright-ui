@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import OperationsPage from "../../src/app/pages/OperationsPage.vue";
 import type { OperationsPageModel, OperationsRouteName } from "../../src/app/operations/operationsPage";
 import {
-  type Density,
   type DetailPanel,
   type ThemeMode,
   type TimeFormat,
@@ -82,7 +81,6 @@ describe("OperationsPage", () => {
   it("renders settings state changes and dirty artifact history controls", async () => {
     const preferencesStore = usePreferencesStore();
     preferencesStore.$patch({
-      density: "comfortable" as Density,
       detailPanel: "expanded" as DetailPanel,
       themeMode: "dark" as ThemeMode,
       timeFormat: "12h" as TimeFormat,
@@ -109,7 +107,6 @@ describe("OperationsPage", () => {
     });
 
     expect(html).toContain("<h1>Settings</h1>");
-    expect(html).toMatch(/Density[\s\S]*?segmented-option selected[^>]*>Comfortable/);
     expect(html).toContain('value="21"');
     expect(html).toMatch(/<button[^>]*class="button"(?![^>]*disabled)[^>]*>\s*Save settings/);
   });
@@ -159,7 +156,6 @@ function buildModel(overrides: Partial<OperationsPageModel> = {}): OperationsPag
     configuration: dataset.configuration,
     connection: dataset.connection,
     preferences: {
-      density: "compact",
       detailPanel: "collapsed",
       themeMode: "system",
       timeFormat: "24h",
@@ -179,7 +175,6 @@ function buildModel(overrides: Partial<OperationsPageModel> = {}): OperationsPag
       ...(overrides.artifactHistoryUi || {}),
     },
     preferences: {
-      density: "compact",
       detailPanel: "collapsed",
       themeMode: "system",
       timeFormat: "24h",

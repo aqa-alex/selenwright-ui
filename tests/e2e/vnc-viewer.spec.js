@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { primarySessionId, setPreferences } from "./fixtures.js";
 
 test("vnc viewer renders missing session id error state", async ({ page }) => {
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
 
   await page.goto("/vnc.html");
 
@@ -15,7 +15,7 @@ test("vnc viewer renders missing session id error state", async ({ page }) => {
 });
 
 test("vnc viewer clipboard drawer expands on click and enables controls for a session", async ({ page }) => {
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
 
   await page.goto(`/vnc.html?session=${primarySessionId}&name=Fixture&browser=chromium`);
 
@@ -41,7 +41,7 @@ test("vnc viewer clipboard drawer expands on click and enables controls for a se
 });
 
 test("vnc viewer read-only toggle changes control state", async ({ page }) => {
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await page.goto(`/vnc.html?session=${primarySessionId}&name=Fixture&browser=chromium`);
 
   const toggle = page.locator("#vnc-viewer-mode");

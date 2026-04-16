@@ -23,7 +23,6 @@ export function useOperationsPageModel(
       connection: dataset.connection,
       preferences: {
         artifactPaneWidths: { ...preferencesStore.artifactPaneWidths },
-        density: preferencesStore.density,
         detailPanel: preferencesStore.detailPanel,
         themeMode: preferencesStore.themeMode,
         timeFormat: preferencesStore.timeFormat,

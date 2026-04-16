@@ -25,7 +25,7 @@ for (const themeMode of ["light", "dark"]) {
   for (const screenshotCase of screenshotCases) {
     test(`${screenshotCase.name} ${themeMode} baseline screenshot`, async ({ page }) => {
       await installFixedClock(page);
-      await setPreferences(page, { density: "compact", themeMode });
+      await setPreferences(page, { themeMode });
       await useBaselineApi(page, { sessionCount: 14 });
 
       await page.goto(screenshotCase.path);

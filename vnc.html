@@ -14,7 +14,6 @@
           }
         }
         var themeMode = readStorage("selenwright-ui.theme-mode") || "system";
-        var density = readStorage("selenwright-ui.density") || "compact";
         var isDark = false;
         try {
           isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -24,7 +23,6 @@
         var resolvedTheme = themeMode === "system" ? (isDark ? "dark" : "light") : themeMode;
         document.documentElement.dataset.themeMode = themeMode;
         document.documentElement.dataset.theme = resolvedTheme;
-        document.documentElement.dataset.density = density;
       })();
     </script>
     <link rel="icon" href="/favicon.ico?v=1" sizes="16x16" />

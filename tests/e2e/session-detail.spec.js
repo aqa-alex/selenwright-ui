@@ -9,7 +9,7 @@ import {
 
 test("session detail renders unknown session fallback", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/sessions/missing-session");
@@ -25,7 +25,7 @@ test("session detail renders unknown session fallback", async ({ page }) => {
 
 test("session detail keeps terminate enabled for active sessions", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto(`/sessions/${primarySessionId}`);
@@ -40,7 +40,7 @@ test("session detail keeps terminate enabled for active sessions", async ({ page
 
 test("session detail disables terminate and exposes saved log copy target", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 1, sessionStatuses: ["Completed"] });
 
   await page.goto(`/sessions/${primarySessionId}`);
@@ -60,7 +60,7 @@ test("session detail disables terminate and exposes saved log copy target", asyn
 
 test("session detail renders live log reconnect action", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await page.route(`**/api/logs/live/${primarySessionId}`, async (route) => {
     await route.fulfill({
       body: 'event: status\ndata: {"status":"closed","message":"Live stream closed."}\n\n',

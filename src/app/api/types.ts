@@ -1,13 +1,11 @@
 export type JsonRecord = Record<string, unknown>;
 
 export type ThemeMode = "system" | "light" | "dark";
-export type DensityMode = "compact" | "comfortable";
 export type DetailPanelMode = "collapsed" | "expanded";
 export type TimeFormatMode = "12h" | "24h";
 export type TimezoneMode = "local" | "utc";
 
 export interface ConsolePreferences {
-  density: DensityMode;
   detailPanel: DetailPanelMode;
   themeMode: ThemeMode;
   timeFormat: TimeFormatMode;

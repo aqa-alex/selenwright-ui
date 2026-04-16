@@ -73,9 +73,6 @@ export async function setPreferences(page, preferences = {}) {
     if (values.themeMode) {
       localStorage.setItem("selenwright-ui.theme-mode", values.themeMode);
     }
-    if (values.density) {
-      localStorage.setItem("selenwright-ui.density", values.density);
-    }
   }, preferences);
 }
 

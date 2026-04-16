@@ -21,7 +21,6 @@ export interface ArtifactHistoryUiState {
 
 export interface OperationsPreferences {
   artifactPaneWidths?: Record<string, number>;
-  density: string;
   detailPanel?: string;
   themeMode: string;
   timeFormat?: string;

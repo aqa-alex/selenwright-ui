@@ -1,6 +1,5 @@
 import { defineStore } from "pinia";
 import {
-  applyDensity,
   applyTheme,
   loadPreferences,
   saveArtifactPaneWidth as savePaneWidth,
@@ -9,7 +8,6 @@ import {
 } from "../../lib/preferences";
 
 export type ThemeMode = "system" | "light" | "dark";
-export type Density = "compact" | "comfortable";
 export type DetailPanel = "collapsed" | "expanded";
 export type TimeFormat = "12h" | "24h";
 export type Timezone = "local" | "utc";
@@ -18,7 +16,6 @@ export type ArtifactPaneKey = "videos" | "logs" | "downloads";
 export type ArtifactPaneWidths = Record<ArtifactPaneKey, number>;
 
 export interface PreferencesState {
-  density: Density;
   detailPanel: DetailPanel;
   themeMode: ThemeMode;
   timeFormat: TimeFormat;
@@ -28,7 +25,6 @@ export interface PreferencesState {
 }
 
 interface RawPreferences {
-  density: string;
   detailPanel: string;
   themeMode: string;
   timeFormat: string;
@@ -39,7 +35,6 @@ interface RawPreferences {
 function readInitialPreferences(): Omit<PreferencesState, "systemThemeWatcherInstalled"> {
   const raw = loadPreferences() as RawPreferences;
   return {
-    density: raw.density as Density,
     detailPanel: raw.detailPanel as DetailPanel,
     themeMode: raw.themeMode as ThemeMode,
     timeFormat: raw.timeFormat as TimeFormat,
@@ -56,7 +51,6 @@ export const usePreferencesStore = defineStore("preferences", {
   actions: {
     initialize() {
       applyTheme(this.themeMode);
-      applyDensity(this.density);
       if (!this.systemThemeWatcherInstalled) {
         watchSystemTheme(() => {
           if (this.themeMode === "system") {
@@ -69,10 +63,6 @@ export const usePreferencesStore = defineStore("preferences", {
     setThemeMode(mode: ThemeMode) {
       this.themeMode = mode;
       applyTheme(mode);
-    },
-    setDensity(density: Density) {
-      this.density = density;
-      applyDensity(density);
     },
     setDetailPanel(value: DetailPanel) {
       this.detailPanel = value;

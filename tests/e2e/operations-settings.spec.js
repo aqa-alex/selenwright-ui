@@ -8,7 +8,7 @@ import {
 
 test("runtime routes render secondary operational views", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   for (const [path, heading, panel] of [
@@ -24,23 +24,18 @@ test("runtime routes render secondary operational views", async ({ page }) => {
   }
 });
 
-test("settings controls persist density detail and time preferences", async ({ page }) => {
+test("settings controls persist detail and time preferences", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/settings");
   await waitForConsoleReady(page);
 
-  await page.getByRole("button", { name: "Comfortable" }).click();
   await page.getByRole("button", { name: "Expanded" }).click();
   await page.getByRole("button", { name: "UTC" }).click();
   await page.getByRole("button", { name: "12h" }).click();
 
-  await expect(page.locator("html")).toHaveAttribute("data-density", "comfortable");
-  await expect
-    .poll(() => page.evaluate(() => localStorage.getItem("selenwright-ui.density")))
-    .toBe("comfortable");
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("selenwright-ui.detail-panel")))
     .toBe("expanded");
@@ -64,7 +59,7 @@ test("settings controls persist density detail and time preferences", async ({ p
 
 test("configuration raw sections stay collapsed by default", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/configuration");
@@ -81,7 +76,7 @@ test("configuration raw sections stay collapsed by default", async ({ page }) =>
 
 test("system page keeps a compact non-dashboard layout", async ({ page }) => {
   await installFixedClock(page);
-  await setPreferences(page, { density: "compact", themeMode: "light" });
+  await setPreferences(page, { themeMode: "light" });
   await useBaselineApi(page, { sessionCount: 14 });
 
   await page.goto("/system");
