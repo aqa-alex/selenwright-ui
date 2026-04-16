@@ -14,13 +14,13 @@ if [[ -z "${GITHUB_REPOSITORY:-}" ]]; then
   exit 1
 fi
 
-if [[ -z "${DOCKER_USERNAME:-}" || -z "${DOCKER_PASSWORD:-}" ]]; then
-  echo "DOCKER_USERNAME and DOCKER_PASSWORD are required"
+if [[ -z "${DOCKERHUB_USERNAME:-}" || -z "${DOCKERHUB_TOKEN:-}" ]]; then
+  echo "DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are required"
   exit 1
 fi
 
 docker build --pull -t "$GITHUB_REPOSITORY" .
 docker tag "$GITHUB_REPOSITORY" "$GITHUB_REPOSITORY:$TAG"
-docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+docker login -u="$DOCKERHUB_USERNAME" -p="$DOCKERHUB_TOKEN"
 docker push "$GITHUB_REPOSITORY"
 docker push "$GITHUB_REPOSITORY:$TAG"
