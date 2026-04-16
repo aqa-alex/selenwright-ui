@@ -411,103 +411,105 @@ function handleBeforeUnload() {
       <div class="vnc-screen-shell">
         <div id="vnc-screen" ref="screenElement" class="vnc-screen"></div>
       </div>
-      <div class="vnc-clipboard-drawer" :data-expanded="String(clipboardExpanded)">
-        <button
-          id="vnc-clipboard-toggle"
-          class="vnc-clipboard-drawer__toggle"
-          type="button"
-          :aria-expanded="clipboardExpanded ? 'true' : 'false'"
-          aria-controls="vnc-clipboard-body"
-          @click="toggleClipboardDrawer"
-        >
-          <svg
-            class="vnc-clipboard-drawer__chevron"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+      <div class="vnc-clipboard-drawer-wrap">
+        <div class="vnc-clipboard-drawer" :data-expanded="String(clipboardExpanded)">
+          <button
+            id="vnc-clipboard-toggle"
+            class="vnc-clipboard-drawer__toggle"
+            type="button"
+            :aria-expanded="clipboardExpanded ? 'true' : 'false'"
+            aria-controls="vnc-clipboard-body"
+            @click="toggleClipboardDrawer"
           >
-            <path d="M6 4l4 4-4 4" />
-          </svg>
-          <span class="vnc-clipboard-drawer__title">Session clipboard</span>
-          <span
-            v-if="clipboardPreview"
-            id="vnc-clipboard-preview"
-            class="vnc-clipboard-drawer__preview mono"
-          >
-            {{ clipboardPreview }}
-          </span>
-          <span
-            class="vnc-clipboard-drawer__help"
-            :data-visible="String(helpVisible)"
-            @click.stop="toggleHelp"
-            @mouseenter="showHelpDelayed"
-            @mouseleave="hideHelp"
-          >?</span>
-          <span
-            v-if="helpVisible"
-            class="vnc-clipboard-drawer__tooltip"
-            @mouseenter="showHelpDelayed"
-            @mouseleave="hideHelp"
-          >
-            Push: paste text in window → Push to session → right-click → Paste in VNC.<br />
-            Pull: right-click → Copy in VNC → Pull from session.
-          </span>
-        </button>
-        <div
-          v-show="clipboardExpanded"
-          id="vnc-clipboard-body"
-          class="vnc-clipboard-drawer__body"
-        >
-          <textarea
-            id="vnc-clipboard-textarea"
-            v-model="clipboardBuffer"
-            class="vnc-clipboard-drawer__textarea mono"
-            :disabled="!params.sessionId"
-            rows="4"
-            spellcheck="false"
-            placeholder="Pull from session to load its clipboard, or paste text here and push."
-          ></textarea>
-          <div class="vnc-clipboard-drawer__actions">
-            <button
-              id="vnc-clipboard-pull"
-              class="button secondary"
-              type="button"
-              :disabled="!params.sessionId || clipboardBusy"
-              @click="pullFromSession"
+            <svg
+              class="vnc-clipboard-drawer__chevron"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
             >
-              Pull from session
-            </button>
-            <button
-              id="vnc-clipboard-push"
-              class="button secondary"
-              type="button"
-              :disabled="!params.sessionId || clipboardBusy"
-              @click="pushToSession"
-            >
-              Push to session
-            </button>
+              <path d="M6 4l4 4-4 4" />
+            </svg>
+            <span class="vnc-clipboard-drawer__title">Session clipboard</span>
             <span
-              v-if="clipboardNotice"
-              id="vnc-clipboard-notice"
-              class="vnc-clipboard-drawer__meta"
-              :data-state="clipboardNotice.state"
-              role="status"
+              v-if="clipboardPreview"
+              id="vnc-clipboard-preview"
+              class="vnc-clipboard-drawer__preview mono"
             >
-              {{ clipboardNotice.message }}
+              {{ clipboardPreview }}
             </span>
             <span
-              v-else
-              id="vnc-clipboard-synced"
-              class="vnc-clipboard-drawer__meta"
-            >
-              {{ clipboardSyncedLabel }}
-            </span>
+              class="vnc-clipboard-drawer__help"
+              :data-visible="String(helpVisible)"
+              @click.stop="toggleHelp"
+              @mouseenter="showHelpDelayed"
+              @mouseleave="hideHelp"
+            >?</span>
+          </button>
+          <div
+            v-show="clipboardExpanded"
+            id="vnc-clipboard-body"
+            class="vnc-clipboard-drawer__body"
+          >
+            <textarea
+              id="vnc-clipboard-textarea"
+              v-model="clipboardBuffer"
+              class="vnc-clipboard-drawer__textarea mono"
+              :disabled="!params.sessionId"
+              rows="4"
+              spellcheck="false"
+              placeholder="Pull from session to load its clipboard, or paste text here and push."
+            ></textarea>
+            <div class="vnc-clipboard-drawer__actions">
+              <button
+                id="vnc-clipboard-pull"
+                class="button secondary"
+                type="button"
+                :disabled="!params.sessionId || clipboardBusy"
+                @click="pullFromSession"
+              >
+                Pull from session
+              </button>
+              <button
+                id="vnc-clipboard-push"
+                class="button secondary"
+                type="button"
+                :disabled="!params.sessionId || clipboardBusy"
+                @click="pushToSession"
+              >
+                Push to session
+              </button>
+              <span
+                v-if="clipboardNotice"
+                id="vnc-clipboard-notice"
+                class="vnc-clipboard-drawer__meta"
+                :data-state="clipboardNotice.state"
+                role="status"
+              >
+                {{ clipboardNotice.message }}
+              </span>
+              <span
+                v-else
+                id="vnc-clipboard-synced"
+                class="vnc-clipboard-drawer__meta"
+              >
+                {{ clipboardSyncedLabel }}
+              </span>
+            </div>
           </div>
         </div>
+        <span
+          v-if="helpVisible"
+          class="vnc-clipboard-drawer__tooltip"
+          @mouseenter="showHelpDelayed"
+          @mouseleave="hideHelp"
+        >
+          Push: paste text in window → Push to session → right-click → Paste in VNC.<br />
+          Pull: right-click → Copy in VNC → Pull from session.
+        </span>
       </div>
       <div class="vnc-footer">
         <a id="vnc-open-session" class="button secondary" :href="sessionDetailHref">
