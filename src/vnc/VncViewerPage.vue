@@ -54,6 +54,8 @@ const clipboardLastSyncedAt = ref<Date | null>(null);
 const clipboardBusy = ref(false);
 const clipboardNotice = ref<ClipboardNotice | null>(null);
 let clipboardNoticeTimer = 0;
+const helpVisible = ref(false);
+let helpTimer = 0;
 let rfb: VncRfb | null = null;
 let attachedListeners: Array<{
   type: string;
@@ -261,6 +263,28 @@ function toggleClipboardDrawer() {
   clipboardExpanded.value = !clipboardExpanded.value;
 }
 
+function toggleHelp() {
+  window.clearTimeout(helpTimer);
+  helpTimer = 0;
+  helpVisible.value = !helpVisible.value;
+}
+
+function showHelpDelayed() {
+  if (helpVisible.value || helpTimer) {
+    return;
+  }
+  helpTimer = window.setTimeout(() => {
+    helpVisible.value = true;
+    helpTimer = 0;
+  }, 1000);
+}
+
+function hideHelp() {
+  window.clearTimeout(helpTimer);
+  helpTimer = 0;
+  helpVisible.value = false;
+}
+
 async function pullFromSession() {
   if (!params.sessionId || clipboardBusy.value) {
     return;
@@ -418,9 +442,20 @@ function handleBeforeUnload() {
           </span>
           <span
             class="vnc-clipboard-drawer__help"
-            title="Push: paste text here → Push to session → Ctrl+V inside VNC.&#10;Pull: Ctrl+C inside VNC → Pull from session → copy from the text field."
-            @click.stop
+            :data-visible="String(helpVisible)"
+            @click.stop="toggleHelp"
+            @mouseenter="showHelpDelayed"
+            @mouseleave="hideHelp"
           >?</span>
+          <span
+            v-if="helpVisible"
+            class="vnc-clipboard-drawer__tooltip"
+            @mouseenter="showHelpDelayed"
+            @mouseleave="hideHelp"
+          >
+            Push: paste text in window → Push to session → right-click → Paste in VNC.<br />
+            Pull: right-click → Copy in VNC → Pull from session.
+          </span>
         </button>
         <div
           v-show="clipboardExpanded"

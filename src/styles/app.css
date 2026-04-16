@@ -1474,7 +1474,7 @@ summary::-webkit-details-marker {
   border: 1px solid var(--border-default);
   border-radius: 50%;
   color: var(--text-muted);
-  cursor: help;
+  cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 11px;
@@ -1482,12 +1482,31 @@ summary::-webkit-details-marker {
   height: 18px;
   justify-content: center;
   margin-left: auto;
+  position: relative;
   width: 18px;
 }
 
-.vnc-clipboard-drawer__help:hover {
+.vnc-clipboard-drawer__help:hover,
+.vnc-clipboard-drawer__help[data-visible="true"] {
   border-color: color-mix(in srgb, var(--accent-primary) 28%, var(--border-default));
   color: var(--text-primary);
+}
+
+.vnc-clipboard-drawer__tooltip {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  color: var(--text-secondary);
+  font-size: 12px;
+  left: auto;
+  line-height: 18px;
+  padding: 8px 12px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  white-space: nowrap;
+  z-index: 10;
 }
 
 .vnc-status[data-state="connected"] {
