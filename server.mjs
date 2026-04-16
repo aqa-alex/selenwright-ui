@@ -898,6 +898,23 @@ function resolveApiRoute(requestUrl) {
     };
   }
 
+  if (requestUrl.pathname.startsWith("/api/clipboard/")) {
+    const rawSessionId = requestUrl.pathname.slice("/api/clipboard/".length);
+    if (!rawSessionId) {
+      return {
+        error: {
+          message: "Session id is required",
+          statusCode: 400,
+        },
+      };
+    }
+
+    return {
+      accept: "text/plain",
+      buildUpstreamUrl: () => buildUpstreamClipboardUrl(requestUrl),
+    };
+  }
+
   return null;
 }
 
@@ -935,6 +952,12 @@ function buildUpstreamDownloadFileUrl(requestUrl) {
   const rawPath = requestUrl.pathname.slice("/api/downloads/file/".length);
   const encodedPath = encodePathPreservingSlashes(rawPath);
   return new URL(`/downloads/${encodedPath}${requestUrl.search}`, target);
+}
+
+function buildUpstreamClipboardUrl(requestUrl) {
+  const rawSessionId = requestUrl.pathname.slice("/api/clipboard/".length);
+  const encodedSessionId = encodePathSegment(rawSessionId);
+  return new URL(`/clipboard/${encodedSessionId}${requestUrl.search}`, target);
 }
 
 function encodePathSegment(value) {
@@ -1201,18 +1224,11 @@ async function handleSessionTerminate(req, res, route, requestUrl) {
     return;
   }
 
-  if (protocol === "playwright") {
-    sendJson(res, 501, {
-      error: "terminate_not_supported",
-      message:
-        "Playwright sessions are driven over WebSocket and cannot be terminated via HTTP. Close the client connection instead.",
-      sessionId: route.sessionId,
-    });
-    return;
-  }
-
   const encodedSessionId = encodePathSegment(route.sessionId);
-  const upstreamUrl = new URL(`/wd/hub/session/${encodedSessionId}`, target);
+  const upstreamPath = protocol === "playwright"
+    ? `/playwright/session/${encodedSessionId}`
+    : `/wd/hub/session/${encodedSessionId}`;
+  const upstreamUrl = new URL(upstreamPath, target);
 
   try {
     const upstreamResponse = await fetchWithTimeout(

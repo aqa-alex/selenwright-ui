@@ -41,16 +41,26 @@ describe("SessionDetailPage", () => {
         logFilename: "session-01.log",
       },
       name: "worker",
-      protocol: "playwright",
     });
     const html = await renderSessionDetailPage({ session });
 
     expect(html).toContain("<h1>chromium-session-01</h1>");
-    expect(html).toContain("Running playwright session on Chromium 130.");
+    expect(html).toContain("Running selenium session on Chromium 130.");
     expect(html).toContain(
       'href="/vnc.html?browser=chromium&amp;name=worker&amp;session=session-01"',
     );
     expect(html).toContain('data-copy="ws://devtools.example/session-01"');
+    expect(html).toMatch(/<button[^>]*class="button danger"[^>]*data-session-id="session-01"/);
+    expect(html).toContain("Terminate");
+  });
+
+  it("renders terminate for playwright sessions", async () => {
+    const session = buildSession({
+      artifacts: { vnc: true },
+      protocol: "playwright",
+    });
+    const html = await renderSessionDetailPage({ session });
+
     expect(html).toMatch(/<button[^>]*class="button danger"[^>]*data-session-id="session-01"/);
     expect(html).toContain("Terminate");
   });
