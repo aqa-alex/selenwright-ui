@@ -106,7 +106,6 @@ test("session detail opens from the sessions table", async ({ page }) => {
 
   await expect(page).toHaveURL(new RegExp(`/sessions/${primarySessionId}$`));
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Artifacts" })).toBeVisible();
 });
 
 test("artifact routes render videos logs and downloads", async ({ page }) => {

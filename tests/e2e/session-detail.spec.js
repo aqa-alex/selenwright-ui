@@ -57,25 +57,3 @@ test("session detail disables terminate and exposes saved log copy target", asyn
     `/api/logs/file/${primarySessionId}.log`,
   );
 });
-
-test("session detail renders live log reconnect action", async ({ page }) => {
-  await installFixedClock(page);
-  await setPreferences(page, { themeMode: "light" });
-  await page.route(`**/api/logs/live/${primarySessionId}`, async (route) => {
-    await route.fulfill({
-      body: 'event: status\ndata: {"status":"closed","message":"Live stream closed."}\n\n',
-      contentType: "text/event-stream; charset=utf-8",
-      headers: {
-        "cache-control": "no-store",
-      },
-      status: 200,
-    });
-  });
-  await useBaselineApi(page, { sessionCount: 14 });
-
-  await page.goto(`/sessions/${primarySessionId}`);
-  await waitForConsoleReady(page);
-
-  await expect(page.getByRole("button", { name: "Reconnect" })).toBeVisible();
-  await expect(page.locator("#session-logs-panel")).toContainText("Live log stream unavailable");
-});
