@@ -1,0 +1,32 @@
+= Videos
+
+Route: `/artifacts/videos`.
+
+== Table columns
+
+[cols="1,3",options="header"]
+|===
+| Column | Description
+| **Session** | Session id the video belongs to (if known from the filename or metadata).
+| **Browser** | Browser family + version.
+| **Protocol** | Selenium or Playwright.
+| **Size** | File size in human-readable units.
+| **Duration** | Only shown if the upstream reports it.
+| **Recorded** | Creation timestamp formatted per **Settings**.
+|===
+
+Sort by any column, filter by session in the toolbar, search by filename.
+
+== Drawer preview
+
+Selecting a row opens the video in the right-hand drawer:
+
+- **Native HTML5 `<video>` element** streamed from the upstream on demand (subject to `SELENWRIGHT_ARTIFACT_TIMEOUT_MS`, default 15s per chunk).
+- **Standard controls** — play/pause, scrub, volume, full-screen, playback rate.
+- **Download link** — offers the raw MP4 for save-as.
+
+Codec: the upstream video recorder ships MP4 (H.264 / AAC) by default. Browsers without MP4 playback support can still download the file via the drawer's link.
+
+== Where videos come from
+
+The upstream grid launches a companion container per session (`-video-recorder-image=selenwright-video-recorder:latest` in the shipped compose file) that records the browser's VNC stream. Recording only happens when the session has `enableVideo: true` (capability) or the server is started with `-default-enable-video=true`. See the Selenwright docs for recorder configuration.

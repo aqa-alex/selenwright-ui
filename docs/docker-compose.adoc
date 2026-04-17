@@ -1,0 +1,87 @@
+= Docker Compose
+
+The recommended way to run Selenwright UI in production is in the same Compose stack as the upstream Go service.
+
+== Minimal stack
+
+[source,yaml]
+----
+name: selenwright-stack
+
+networks:
+  selenwright-net:
+    name: selenwright-net
+
+services:
+  selenwright:
+    image: aqaalex/selenwright:latest
+    container_name: selenwright
+    restart: unless-stopped
+    command:
+      - -listen=:4444
+      - -conf=/etc/selenwright/browsers.json
+      - -auth-mode=embedded
+      - -htpasswd=/etc/selenwright/users.htpasswd
+      - -admin-users=admin
+      - -default-enable-vnc=true
+      - -container-network=selenwright-net
+    ports:
+      - "4444:4444"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./selenwright/config:/etc/selenwright
+      - ./selenwright/state:/opt/selenwright/state
+      - ./selenwright/artifacts:/opt/selenwright/artifacts
+      - ./selenwright/logs:/opt/selenwright/logs
+      - ./selenwright/video:/opt/selenwright/video
+    networks:
+      - selenwright-net
+
+  selenwright-ui:
+    image: aqaalex/selenwright-ui:latest
+    container_name: selenwright-ui
+    restart: unless-stopped
+    depends_on:
+      - selenwright
+    ports:
+      - "127.0.0.1:4173:4173"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "4173"
+      SELENWRIGHT_TARGET: "http://selenwright:4444"
+    networks:
+      - selenwright-net
+----
+
+Both services share the `selenwright-net` bridge, which means:
+
+- The UI talks to the upstream via the service name: `http://selenwright:4444`.
+- The upstream can manage browser containers on the same bridge (`-container-network=selenwright-net`), so browsers talk back to it by container name.
+
+== Exposing publicly
+
+The UI port is bound to `127.0.0.1` above — add a reverse proxy with TLS and authentication as documented in <<Reverse Proxy>>. Do **not** change the bind to `0.0.0.0:4173` on a public interface without that.
+
+== Stack management from the UI
+
+When running under Compose, the UI's **Settings → Stack** panel can call `docker compose pull` and `docker compose up -d --force-recreate` on the upstream (admin only). The upstream needs:
+
+- Access to its own `docker-compose.yml` file (volume-mount `./docker-compose.yml:/etc/selenwright/docker-compose.yml`).
+- Access to the Docker socket (already mounted above).
+- The `-stack-management=true` flag (or equivalent — check your Selenwright version).
+
+See <<Settings>>.
+
+== Versions
+
+Pin versions in production:
+
+[source,yaml]
+----
+  selenwright:
+    image: aqaalex/selenwright:v1.2.3
+  selenwright-ui:
+    image: aqaalex/selenwright-ui:v0.1.0
+----
+
+The `latest` tag moves on every green build and `latest-release` moves on every published release — convenient for dev, dangerous for prod.

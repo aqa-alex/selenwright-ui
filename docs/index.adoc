@@ -1,0 +1,71 @@
+= Selenwright UI
+:revdate: 2026-04-17
+:toc: left
+:toclevels: 3
+:sectnums:
+:sectanchors:
+:revnumber: latest
+:icons: font
+:source-highlighter: coderay
+:docinfo: shared
+:imagesdir: img
+:title: Selenwright UI - Operator console for Selenwright browser automation grid
+:description: Dense operator console for Selenwright. Monitor live Selenium and Playwright sessions, watch VNC, follow live logs, browse videos and downloads, manage browser inventory, and deploy safely behind a reverse proxy.
+
+This reference covers version: _{revnumber}_
+
+Selenwright UI is the operator console for https://github.com/aqa-alex/selenwright[Selenwright] — a browser automation grid with native Selenium WebDriver and Playwright WebSocket support.
+It is a single-page Vue application served by a small Node.js HTTP proxy that forwards `/api/*`, SSE, and WebSocket traffic to the upstream Selenwright service.
+Please refer to the https://github.com/aqa-alex/selenwright-ui[GitHub repository] if you need source code.
+
+== Getting Started
+
+Three entry points depending on what you have:
+
+* **<<Quick Start Guide>>** — you have Docker and want to see the UI against a real upstream in under five minutes. Runs the combined `selenwright` + `selenwright-ui` stack.
+* **<<Running Locally>>** — you cloned this repo and want `npm run dev`. Covers the dev harness, pointing at a custom upstream, demo mode, and the test commands.
+* **<<FAQ>>** — things people hit in the first hour: empty sessions list, VNC not opening, live logs stuck reconnecting, how session termination differs for Selenium vs Playwright.
+
+include::quick-start-guide.adoc[leveloffset=+1]
+include::running-locally.adoc[leveloffset=+1]
+include::faq.adoc[leveloffset=+1]
+
+== Main Features
+
+One section per UI page or user-visible feature. Each describes what the page shows, which upstream endpoints back it, filters and keyboard affordances, and edge cases worth knowing about.
+
+The order below matches the left-nav order in the console itself: **Sessions** is the landing page, the artefact pages (**Videos**, **Logs**, **Downloads**) sit under the Console nav group, and the two live surfaces (**Live View**, **Live Logs**) are reached from an active session's detail page.
+
+include::sessions.adoc[leveloffset=+1]
+include::session-detail.adoc[leveloffset=+1]
+include::live-view.adoc[leveloffset=+1]
+include::live-logs.adoc[leveloffset=+1]
+include::artifacts.adoc[leveloffset=+1]
+include::videos.adoc[leveloffset=+1]
+include::logs.adoc[leveloffset=+1]
+include::downloads.adoc[leveloffset=+1]
+
+== Operations
+
+Pages that expose the upstream grid's runtime state and — for administrators — a small set of mutating controls. These live under the **Runtime** nav group and are for operators, not for end users of the tests.
+
+include::browsers.adoc[leveloffset=+1]
+include::configuration-page.adoc[leveloffset=+1]
+include::system.adoc[leveloffset=+1]
+include::settings.adoc[leveloffset=+1]
+
+== Security
+
+Selenwright UI does not authenticate users on its own — it delegates identity to the upstream (three modes: `none`, `embedded`, `trusted-proxy`) and transport security to a reverse proxy in front of it. Read both sections before putting a Selenwright UI on anything wider than `localhost`.
+
+include::authentication.adoc[leveloffset=+1]
+include::deployment-security.adoc[leveloffset=+1]
+
+== Configuration Reference
+
+Complete list of knobs the Node proxy honours at startup, plus deployment recipes for Docker, Docker Compose, and the two most common reverse proxies (nginx and Caddy).
+
+include::environment-variables.adoc[leveloffset=+1]
+include::docker.adoc[leveloffset=+1]
+include::docker-compose.adoc[leveloffset=+1]
+include::reverse-proxy.adoc[leveloffset=+1]

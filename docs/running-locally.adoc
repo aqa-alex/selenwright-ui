@@ -1,0 +1,66 @@
+= Running Locally
+
+For development, clone the repo and start the dev harness:
+
+[source,bash]
+----
+git clone https://github.com/aqa-alex/selenwright-ui.git
+cd selenwright-ui
+npm install
+npm run dev
+----
+
+This spawns two processes via `scripts/dev.mjs`:
+
+- **Vite dev server** on `http://127.0.0.1:4173` — HMR for `src/` and the two HTML entrypoints (`index.html`, `vnc.html`).
+- **API process** (`server.mjs` in API-only mode) on `:4174` — Vite proxies every `/api/*` request, SSE stream and WebSocket upgrade to it, so the Vue app talks to a single origin just like in production.
+
+== Pointing at an upstream
+
+By default the API process targets `http://127.0.0.1:4444`. Point it somewhere else with `SELENWRIGHT_TARGET`:
+
+[source,bash]
+----
+SELENWRIGHT_TARGET=http://selenwright.internal:4444 npm run dev
+----
+
+If the target is unreachable the snapshot endpoints return `ok: false` entries — the UI stays usable, just empty.
+
+== Demo mode (no upstream)
+
+Run the UI against a built-in fixture dataset:
+
+[source,bash]
+----
+npm run dev:api  # DEMO_MODE=true node server.mjs
+# in another terminal:
+npm run dev:vite
+----
+
+Or with a single process pointing Vite at the API:
+
+[source,bash]
+----
+DEMO_MODE=true npm run dev
+----
+
+Demo mode serves fabricated sessions, artefacts and catalogue so navigation, filters and drawers all work offline. It is also what Playwright visual snapshots run against.
+
+== Common scripts
+
+[cols="2,3",options="header"]
+|===
+| Script | What it does
+| `npm run dev` | Dev harness: Vite + `server.mjs` API-only
+| `npm run dev:vite` | Vite only — assumes you run the API elsewhere
+| `npm run dev:api` | `server.mjs` with `DEMO_MODE=true`, no static assets
+| `npm run build` | Production Vite build to `dist/`
+| `npm start` | Serve built `dist/` via `server.mjs` (production entrypoint)
+| `npm run typecheck` | `vue-tsc --noEmit` over `src/`
+| `npm run lint` | ESLint over `server.mjs`, scripts, tests
+| `npm run test:unit` | Vitest
+| `npm run test:e2e` | Playwright e2e + visual regression
+| `npm run check` | Full gate: format + typecheck + unit + e2e
+|===
+
+See <<Environment Variables>> for the full set of `SELENWRIGHT_*` env vars that `server.mjs` honours.

@@ -1,0 +1,50 @@
+= FAQ
+
+== Why is the Sessions page empty?
+
+The UI is a pure client of the upstream Selenwright service. If the **Sessions** page is empty, the upstream has no sessions yet. Start one from your test runner (Selenium or Playwright) pointing at the upstream and it will appear within one snapshot tick (default 3s).
+
+If the page shows "upstream unavailable" banners instead, the Node proxy cannot reach `SELENWRIGHT_TARGET` — check the target URL, firewall, and that the upstream is running.
+
+== Why can't I open the VNC view?
+
+Two common causes:
+
+1. **VNC not enabled on the session.** The upstream only opens a VNC port when the session was started with VNC on. The knob is protocol-specific:
+   * **Selenium** — pass capability `enableVNC: true` (or `"selenwright:options": { "enableVNC": true }`) on session create.
+   * **Playwright** — append `?enableVNC=true` to the connection URL (e.g. `ws://selenwright:4444/playwright/chromium?enableVNC=true`).
+   * **Server default** — start the upstream with `-default-enable-vnc=true` and VNC is on unless the client explicitly turns it off the same way (`enableVNC: false` or `?enableVNC=false`).
+   +
+   Sessions without VNC show a "VNC unavailable" placeholder.
+
+2. **WebSocket Origin rejected.** If you front the UI with a reverse proxy, the proxy must forward the `Origin` header intact and the origin must match either the `Host` header or an entry in `SELENWRIGHT_ALLOWED_ORIGINS`. See <<Deployment Security>>.
+
+== Why are live logs stuck on "reconnecting"?
+
+`server.mjs` opens a WebSocket to `/logs/{sessionId}` on the upstream and relays frames back to the browser as an SSE stream. If the upstream closes the socket, the UI retries with exponential backoff (1s, 2s, 4s, ... capped at 30s, up to 6 attempts).
+
+The most common cause is the session ending — the upstream closes the log stream. Check the session state; if it is `Completed` or `Failed`, switch to the saved log file in **Logs**.
+
+== How do I terminate a session?
+
+Open the session detail panel (click a row on the **Sessions** page, or navigate to `/sessions/{id}`) and press **Terminate**. Works the same way for Selenium and Playwright sessions — the UI hides the protocol difference from you.
+
+Who sees the button depends on the upstream's auth mode:
+
+- **Auth on** (`embedded` or `trusted-proxy`) — admins see it on every session, regular users on their own sessions and on sessions owned by someone in one of their groups.
+- **Auth off** (`-auth-mode=none`) — everyone is effectively an admin, so anyone who can reach the UI can terminate any session. This is why a `none`-mode deployment must stay on a trusted network.
+
+If the button is missing where you expect it, you either don't have permission or the session has already finished. See <<Authentication>>.
+
+== How does this differ from Selenoid UI?
+
+Selenwright UI is rewritten from scratch. What it adds over https://github.com/aerokube/selenoid-ui[Selenoid UI]:
+
+- **First-class Playwright.** Sessions list, session detail, and live log view all distinguish the protocol; terminate works for both.
+- **Server-push snapshots.** The console state (sessions, catalogue, system, artefacts index) is streamed over SSE every 3s instead of per-page polling.
+- **Artefact retention and history.** Integrates with the upstream `artifact-history` feature — videos, logs and downloads persist past session lifetime.
+- **Runtime operations.** Browser discovery (rescan, adopt, dismiss), stack pull/recreate, configuration snapshot, system health — all operable from the UI by admins.
+
+== Is there a dark mode?
+
+Yes — **Settings** → Theme: `system` / `light` / `dark`. The preference is stored in `localStorage` and applied before the first paint via an inline script in `index.html`, so there is no light flash.

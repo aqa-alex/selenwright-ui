@@ -1,0 +1,52 @@
+= Authentication
+
+Selenwright UI does not authenticate users on its own. It asks the upstream "who am I?" and renders the UI accordingly — identity, admin flag, and group membership all come from the upstream.
+
+The upstream supports three auth modes, selected with the `-auth-mode` flag on the Go service.
+
+== Auth mode: `none`
+
+No authentication at all. The upstream reports everyone as authenticated and admin, so every visitor sees the full admin surface.
+
+Use this **only** when the UI is on a trusted network that is already protected at a lower layer (tailscale, VPN, on-host only). Never expose a `none`-mode deployment to the public internet.
+
+== Auth mode: `embedded`
+
+HTTP Basic against an `htpasswd` file owned by the upstream (`-htpasswd=/etc/selenwright/users.htpasswd` in the shipped compose file).
+
+The user sees a login form at `/login`. Submitting valid credentials lands them on Sessions; invalid credentials get a clear error. The UI keeps the user signed in via an upstream-issued cookie, so a page refresh does not log them out. The header menu has a **Log out** item that clears the cookie and returns to the login form.
+
+=== Admin users
+
+The upstream `-admin-users=user1,user2` flag lists admins. Admins get the full admin surface: browser discovery, stack management, artefact history editing, and terminate-any-session.
+
+=== Groups
+
+If the upstream associates users with groups (configurable via upstream flags — see the Selenwright auth docs), groups feed into ownership checks: a user can terminate any session owned by another member of the same group.
+
+== Auth mode: `trusted-proxy`
+
+The upstream trusts an identity header set by a reverse proxy in front of it. Useful for SSO integrations — the proxy does OIDC/SAML/Kerberos, then stamps a header like `X-Forwarded-User` and forwards the request.
+
+The UI behaviour is the same as `embedded` from the user's perspective: the page renders with your identity. There is no login form — if the proxy didn't authenticate you, the UI shows an "authentication required" panel.
+
+== RBAC: who can do what
+
+[cols="2,3",options="header"]
+|===
+| Capability | Who
+| See any session, session detail, artefacts | All authenticated users
+| Terminate any session | Admins
+| Terminate a session | The session owner, or any user in one of the owner's groups
+| Browser discovery (rescan / adopt / dismiss) | Admins
+| Edit artefact history settings | Admins
+| Stack pull / recreate | Admins
+| Everything, under auth mode `none` | Everyone
+|===
+
+Ownership is resolved against the user and groups reported by the upstream — the UI only hides the button, the upstream is always the authority. Bypassing the UI (raw API calls, malicious extensions) does not grant extra permissions; every mutation is re-checked upstream.
+
+== Limitations
+
+- **The UI enforces nothing on its own.** Treat the UI's hide-this-button as an ergonomic nicety, not a security boundary. The upstream is the authority.
+- **No cookie domain trickery.** The auth cookie is set on the upstream host. When UI and upstream share a public origin (because you put them behind the same reverse proxy) this works out of the box. If they are on different origins, you must set the cookie on a shared parent domain, or switch to `trusted-proxy`. See <<Reverse Proxy>>.

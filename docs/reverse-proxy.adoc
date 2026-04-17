@@ -1,0 +1,123 @@
+= Reverse Proxy
+
+The UI has no built-in TLS and no built-in authentication. Both are delegated to a reverse proxy in front of it. Two worked examples follow — adapt to your proxy of choice.
+
+Requirements any proxy must meet:
+
+. **Terminate TLS.** The UI speaks HTTP only.
+. **Pass the `Host` header unchanged**, or set it to the public origin. The UI uses `Host` for the WS Origin check.
+. **Pass the `Origin` header unchanged** on WebSocket upgrades.
+. **Forward `Upgrade` and `Connection` headers** so WebSocket upgrades reach the UI.
+. **Enforce authentication** before forwarding, if the upstream auth mode is `none`.
+
+== nginx
+
+[source,nginx]
+----
+upstream selenwright_ui {
+    server 127.0.0.1:4173;
+    keepalive 32;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name selenwright.example.com;
+
+    ssl_certificate     /etc/ssl/selenwright.crt;
+    ssl_certificate_key /etc/ssl/selenwright.key;
+
+    # Optional: HTTP Basic as a second fence. Remove if the upstream does its own auth.
+    # auth_basic           "Selenwright";
+    # auth_basic_user_file /etc/nginx/selenwright.htpasswd;
+
+    location / {
+        proxy_pass http://selenwright_ui;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket upgrade
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Origin     $http_origin;
+
+        # Long-lived SSE and WS: no buffering, long read timeout.
+        proxy_buffering    off;
+        proxy_cache        off;
+        proxy_read_timeout 1h;
+    }
+}
+
+# required for proxy_set_header Connection $connection_upgrade above
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+----
+
+Set `SELENWRIGHT_ALLOWED_ORIGINS=https://selenwright.example.com` on the UI process so the WS origin check accepts the public origin.
+
+== Caddy
+
+[source,caddyfile]
+----
+selenwright.example.com {
+    # Caddy manages TLS automatically.
+
+    # Optional: basicauth as a second fence.
+    # basicauth {
+    #     alice JDJhJDE0JHV...
+    # }
+
+    reverse_proxy 127.0.0.1:4173 {
+        # Caddy streams by default; no extra config needed for SSE / WS.
+        header_up Host            {host}
+        header_up X-Real-IP       {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+}
+----
+
+Again, set `SELENWRIGHT_ALLOWED_ORIGINS=https://selenwright.example.com`.
+
+== Verifying the proxy
+
+From a host that can reach the public origin:
+
+[source,bash]
+----
+# Expect 200 + SPA HTML
+curl -sSI https://selenwright.example.com/ | head -1
+
+# Expect JSON: {"target": "..."}
+curl -sS https://selenwright.example.com/api/meta
+
+# Expect 101 Switching Protocols on a valid session VNC upgrade.
+# A mismatched Origin should get 403.
+curl -sS -i \
+  -H 'Upgrade: websocket' \
+  -H 'Connection: Upgrade' \
+  -H 'Sec-WebSocket-Version: 13' \
+  -H 'Sec-WebSocket-Key: abcdefghijklmnop' \
+  -H 'Origin: https://attacker.example.com' \
+  https://selenwright.example.com/api/vnc/does-not-exist
+----
+
+The last call should return `403 Forbidden` from the UI because the origin doesn't match, regardless of what the session id is.
+
+== Debugging `401` loops
+
+If `/whoami` returns `401` and the UI redirects to `/login` which immediately sends you back:
+
+- The auth cookie is being dropped on the way through. Check that the proxy is **not** stripping `Set-Cookie` on the login response.
+- The cookie domain is wrong. If UI and upstream are on different hostnames, the cookie set by `/api/login` (forwarded from upstream) must be on a shared parent domain.
+- Upstream `-auth-mode` is `trusted-proxy` but the proxy isn't setting the expected identity header. The UI cannot see the header — it only calls `/whoami`.
+
+== Debugging WebSocket upgrade failures
+
+- `426 Upgrade Required` — the request did not include `Upgrade: websocket`. Proxy misconfiguration.
+- `403 Forbidden` — Origin check rejected the request. Fix `SELENWRIGHT_ALLOWED_ORIGINS`.
+- `502 Bad Gateway` — upstream refused the WS handshake. Check upstream logs; usually the session id does not exist.

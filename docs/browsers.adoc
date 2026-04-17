@@ -1,0 +1,35 @@
+= Browsers
+
+Route: `/browsers`.
+
+The inventory of browser images the upstream is configured to run.
+
+== Catalogue table
+
+For each browser family the table shows:
+
+- **Family** — `chrome`, `chromium`, `firefox`, etc.
+- **Versions** — every version the upstream catalogue ships, one row each.
+- **Image** — Docker image reference (`selenwright-browsers/chrome:130` style).
+- **Protocol support** — Selenium, Playwright, or both.
+- **Default** — which version is used when a session does not pin a version.
+
+Versions come from the upstream `browsers.json` config file (see the Selenwright docs for the file format).
+
+== Discovery
+
+The upstream can scan Docker for browser images that are present on the host but not in `browsers.json`. The UI exposes three discovery actions:
+
+[cols="1,3",options="header"]
+|===
+| Action | Effect
+| **Rescan** | Upstream enumerates Docker images that match the expected label/naming convention and builds a list of candidates.
+| **Adopt** | Adds the selected candidate to `browsers.json` at runtime.
+| **Dismiss** | Hides the candidate from future listings without deleting the image.
+|===
+
+Discovery is **admin-only**. The UI hides the buttons for non-admins and the upstream re-enforces the check for anyone who tries to go around the UI.
+
+== Reload without restart
+
+Selenwright reloads `browsers.json` when it is rewritten on disk — adopting a browser through the UI takes effect immediately for new sessions. No upstream restart is required.

@@ -1,0 +1,51 @@
+= Sessions
+
+Route: `/sessions`.
+
+The landing page. Every browser session that the upstream knows about — running, pending, queued, completed or failed — shows up here as one row per session.
+
+image::sessions-light.png[Sessions page, 2113, 1106]
+
+== Columns
+
+[cols="1,3",options="header"]
+|===
+| Column | Description
+| **Session** | Shortened session id. Click anywhere on the row (or press `Enter` on a keyboard-selected row) to open <<Session detail>>.
+| **Protocol** | `Selenium` or `Playwright` badge.
+| **Browser** | Browser family + version as reported by the upstream capabilities.
+| **Status** | `Running`, `Pending`, `Queued`, `Completed`, or `Failed`.
+| **Started** | Start time, formatted per the **Settings** time preferences.
+| **Duration** | Live timer for active sessions, final duration for finished ones.
+| **Artefacts** | Small indicators for available video, logs and downloads.
+|===
+
+== Filters and search
+
+The toolbar above the table applies client-side filters — no round-trip to the upstream:
+
+- **Search** — free-text substring match over session id, browser, user.
+- **Protocol** — `All` / `Selenium` / `Playwright`.
+- **Status** — multi-select.
+- **Browser** — multi-select of browser families present in the current snapshot.
+- **Active only** — hide `Completed`/`Failed` rows.
+
+Filters are held in the `sessions` Pinia store and persist across page visits within a tab. They are **not** persisted to `localStorage`.
+
+== Keyboard navigation
+
+The table is keyboard-first:
+
+[cols="1,3",options="header"]
+|===
+| Key | Action
+| `↑` / `↓` (or `k` / `j`) | Move selection up / down the filtered rows
+| `Enter` | Open session detail for the selected row
+| `/` | Focus the global quick-jump input (anywhere in the UI — see <<Quick jump>>)
+|===
+
+Keys are only active when focus is outside an `<input>`, `<textarea>` or `<select>` — so a search box always wins. When focus is in the quick-jump input, `Esc` clears the query and `Enter` submits it.
+
+== Quick jump
+
+The global quick-jump (top-right search icon, or `/` keybind) jumps to any session id in the current snapshot. It is the fastest way to pivot from a CI log ("session `abc123` failed") into the operator console.

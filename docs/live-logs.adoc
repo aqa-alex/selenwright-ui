@@ -1,0 +1,35 @@
+= Live Logs
+
+For every running session, the UI can tail the upstream's per-session log stream in real time.
+
+== Transport
+
+- **Browser → UI**: `EventSource` (Server-Sent Events) at `/api/logs/live/{session-id}`.
+- **UI → Upstream**: `server.mjs` opens a WebSocket to `/logs/{session-id}` on `SELENWRIGHT_TARGET` and relays frames.
+- Each upstream WS text frame becomes one SSE `chunk` event. Control frames (`status`, `shutdown`) are also emitted.
+
+SSE is used between the browser and the UI instead of a naive WS-to-WS proxy because:
+
+- EventSource reconnects are built-in and well-behaved across browsers.
+- SSE frames survive most reverse proxies that strangle generic WebSocket traffic.
+- The UI can attach/detach multiple viewers (e.g. several tabs on the same session) without coordinating WebSocket lifecycles.
+
+== Reconnect strategy
+
+`useLiveLog(sessionId)` manages the lifecycle:
+
+- On `error` the EventSource is closed and a reconnect is scheduled with exponential backoff: **1s → 2s → 4s → 8s → 16s → 30s (cap)**, up to **6 attempts**. After that the stream stops and shows an "reconnection failed — reload to retry" affordance.
+- A **manual reconnect** button resets the attempt counter.
+- When the session transitions to `Completed`/`Failed`, the stream stops cleanly.
+
+Log chunks are written into the console Pinia store with `requestAnimationFrame` debouncing to avoid layout thrash on very chatty sessions.
+
+== Autoscroll and pause-on-scroll
+
+The log panel auto-scrolls to the newest line by default. Scrolling up anywhere in the panel pauses autoscroll — the panel stays where you left it so you can read. Scrolling back to the bottom (or pressing `End`) resumes.
+
+== What lines you see
+
+The UI does not parse or filter the log stream — it is the upstream's raw text, line by line. For Selenium the lines come from the browser container's stdout/stderr; for Playwright they come from the Playwright server log.
+
+If you need to search or page through a complete log, wait for the session to finish and open the saved log file from **Logs** (see <<Logs>>).

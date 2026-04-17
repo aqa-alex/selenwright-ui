@@ -1,0 +1,34 @@
+= Logs
+
+Route: `/artifacts/logs`.
+
+Two kinds of logs end up here:
+
+- **Saved log files** — written by the upstream to `-log-output-dir` after a session ends.
+- **Live logs** — the per-session stream for still-running sessions (documented separately in <<Live Logs>>).
+
+The Logs page lists saved files. Open a running session's detail view to see the live stream.
+
+== Table columns
+
+[cols="1,3",options="header"]
+|===
+| Column | Description
+| **Session** | Session id derived from the filename.
+| **Browser / Protocol** | As reported by the upstream log index.
+| **Size** | File size.
+| **Created** | File mtime.
+|===
+
+== Drawer content
+
+Selecting a row loads the full log file and renders it in the right pane with:
+
+- **Per-line search.** Case-insensitive substring match; filtered out lines stay counted so the "showing N of M" indicator is accurate.
+- **Pagination.** Very large log files are paginated on the client side — configurable lines-per-page in the toolbar.
+- **Line anchors.** Click a line number to get a shareable URL like `/artifacts/logs?file=foo.log#L1234`.
+- **Copy as text.** Copies the currently-filtered subset to clipboard.
+
+== Retention and privacy
+
+Log files contain whatever the browser and driver write to stdout/stderr — which for driver-level errors can include page URLs, capability dictionaries, and occasionally secrets embedded in test code. Treat log files as sensitive and apply the same retention rules as the sessions themselves. See <<Settings>> for the artefact history knob.

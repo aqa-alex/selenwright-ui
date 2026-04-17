@@ -1,0 +1,88 @@
+= Deployment Security
+
+Selenwright UI is a proxy with no built-in authentication. Every production deployment must answer three questions:
+
+1. **Who can reach the HTTP port?**
+2. **Who authenticates requests?**
+3. **Is the WebSocket upgrade protected?**
+
+== Bind address
+
+`server.mjs` binds `127.0.0.1` by default (`HOST` environment variable). Running on loopback means nothing on the network can reach the UI unless you explicitly front it with a reverse proxy that listens on a real interface.
+
+Setting `HOST=0.0.0.0` on an untrusted interface exposes the full upstream API (and VNC, live logs, stack operations) with no authentication beyond what `-auth-mode` enforces upstream. If you do this, make sure `-auth-mode` is `embedded` or `trusted-proxy`, **not** `none`.
+
+The Docker image flips the default to `HOST=0.0.0.0` because a container's loopback is its own container, not the host. Always publish the port only to a specific interface (`-p 127.0.0.1:4173:4173`) or run the container behind a reverse proxy.
+
+== Reverse proxy
+
+The recommended topology is:
+
+```
+Browser ── TLS ── Reverse proxy (nginx/caddy/traefik) ── Selenwright UI ── Upstream
+              │
+              └─ SSO / basic auth / allowlist
+```
+
+The proxy terminates TLS, enforces authentication (SSO, IP allowlist, mTLS — whatever you already have), and forwards to the UI on loopback. The UI does not speak TLS itself.
+
+See <<Reverse Proxy>> for concrete nginx and caddy configs.
+
+== WebSocket Origin check
+
+The proxy opens real WebSocket upgrades for VNC (`/api/vnc/*`) and live logs (`/api/logs/live/*`). Browser clients send an `Origin` header on WS upgrades, and `server.mjs` rejects requests where:
+
+- `Origin` is set but does not match `Host`, AND
+- `Origin` is not in `SELENWRIGHT_ALLOWED_ORIGINS`.
+
+Non-browser clients (CLI WS libraries, curl) that omit `Origin` are allowed through — the attack model is cross-origin browsers, not deliberate API consumers.
+
+When you run behind a reverse proxy that presents a different public origin, set:
+
+[source,bash]
+----
+SELENWRIGHT_ALLOWED_ORIGINS=https://selenwright.example.com
+----
+
+Comma-separate multiple origins. Exact match only — no wildcards, no path segments.
+
+== Body size limits
+
+`SELENWRIGHT_MAX_BODY_BYTES` caps request bodies (default 1 MiB). Oversize requests get `413 Request Too Large` and never touch the upstream. The cap guards against someone hammering the proxy with huge POSTs.
+
+== SSE client cap
+
+`SELENWRIGHT_MAX_SSE_CLIENTS` caps concurrent console-snapshot SSE subscribers (default 64). Over-cap gets `503 Retry-After: 5`. Without this, a script opening thousands of SSE connections would hold memory for each.
+
+== WebSocket frame size caps
+
+`SELENWRIGHT_WS_MAX_FRAME_BYTES` caps a single WS frame; `SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES` caps the total size of a reassembled fragmented message (default 4 MiB). Over-cap closes the stream with WS code `1009`. This prevents a misbehaving upstream from driving the proxy into unbounded memory.
+
+== Timeouts
+
+- `SELENWRIGHT_UPSTREAM_TIMEOUT_MS` — per-request timeout for `/api/*` (default 5000).
+- `SELENWRIGHT_ARTIFACT_TIMEOUT_MS` — timeout for large artefact fetches (default 15000).
+- `SELENWRIGHT_TERMINATE_TIMEOUT_MS` — session DELETE timeout (default 3000).
+
+Timeouts produce `504 Upstream Timeout`, not a hang.
+
+== Security headers
+
+The UI sets these on every HTTP response:
+
+- `Referrer-Policy: no-referrer`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: SAMEORIGIN`
+- `Content-Security-Policy` (on HTML responses) — `default-src 'self'`, `frame-ancestors 'self'`, `object-src 'none'`, etc.
+
+If you need to embed the UI in an iframe from another origin you must set `frame-ancestors` upstream; the header is not user-configurable.
+
+== Checklist before going public
+
+. Terminate TLS at a reverse proxy.
+. `HOST` on the UI container bound only to the proxy's interface.
+. `SELENWRIGHT_ALLOWED_ORIGINS` contains the public origin.
+. Upstream `-auth-mode` is `embedded` or `trusted-proxy`.
+. Admin users list is the minimum viable set.
+. Body and SSE caps left at defaults unless you have a reason.
+. `/api/whoami` returns `authenticated: true` for real users and `401` for unauthenticated ones — test both before announcing the URL.

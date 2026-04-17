@@ -1,0 +1,28 @@
+= System
+
+Route: `/system`.
+
+At-a-glance runtime health of the upstream grid.
+
+== Panels
+
+[cols="2,3",options="header"]
+|===
+| Panel | Content
+| **Readiness** | Overall boolean health flag plus a readiness message if the upstream provides one.
+| **Capacity** | `used` / `total` slots, `pending` and `queued` counts. Live.
+| **Browser usage** | Breakdown of the `used` slots by browser family and version. Sparkline shows the last N snapshot ticks.
+| **Quota** | If the upstream has quotas configured, shows quota remaining per user/group.
+| **Health notes** | Any warning the upstream emits in its status payload (e.g. "Docker daemon unreachable", "artefact directory full").
+|===
+
+== What "pending" vs "queued" mean
+
+- **Pending** — the upstream accepted the session request and is starting the container. Usually sub-second.
+- **Queued** — the upstream could not start the container yet because `used == total` (the `-limit` flag is saturated). The session waits, then promotes to `Pending` when a slot frees.
+
+If **queued** is chronically non-zero, the grid is a capacity bottleneck. Options: raise `-limit` (if the host has capacity), scale out to another upstream, or reduce test concurrency.
+
+== Using this page as a dashboard
+
+`/system` is deliberately dense and refreshes on every snapshot tick. It is the page to open on a wall display or the second monitor during a release. The UI is loopback-bound by default — to put it on a wall display, front it with an authenticating reverse proxy (see <<Deployment Security>>).

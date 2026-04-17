@@ -1,0 +1,56 @@
+= Settings
+
+Route: `/settings`.
+
+Two kinds of settings live here: local UI preferences (per-browser, stored in `localStorage`), and upstream operations (mutate state on the Go service). The page also includes a read-only view of the current data-source connection.
+
+== UI preferences
+
+=== Theme mode
+
+`System` (default) / `Light` / `Dark`. Applied via the `data-theme` attribute on `<html>`.
+
+The theme is read from `localStorage` by an inline boot script in `index.html` **before** the main bundle loads, so there is no light-flash when you open a dark-themed page in a fresh tab. Picking "System" re-reads `prefers-color-scheme` on the fly.
+
+=== Viewer behavior
+
+Three independent preferences:
+
+[cols="2,3",options="header"]
+|===
+| Preference | Values
+| **Detail panels** | `Collapsed` (default) / `Expanded` — default open-state of the collapsible sections on the <<Configuration>> page.
+| **Timezone** | `Local` (browser) / `UTC` — used for every timestamp in the UI.
+| **Time format** | `24h` (default) / `12h`.
+|===
+
+All four preferences persist to `localStorage` under `selenwright-ui.*` keys; clearing site data resets everything to defaults.
+
+== Artifact history
+
+Controls the upstream's retention of videos, logs and downloads past session lifetime.
+
+- **Retention mode** — `Disabled` / `Enabled`.
+- **Retention days** — an integer between 1 and 365. The upstream removes artefact files older than this daily.
+
+The panel shows the currently loaded backend value, lets you edit the draft, and saves on demand with a **Save settings** button. The button is disabled while there are no changes, and while a save is in flight. If the backend does not support artifact history (depends on the upstream build and flags), the panel shows why it is unavailable and disables the controls.
+
+Saves are accepted from any user, but the upstream re-checks admin rights — non-admin callers get an error back.
+
+== Stack
+
+Visible when the upstream reports it is running under Docker Compose.
+
+- **Pull latest images** — upstream runs `docker compose pull` against its own stack. The result list shows, per service, whether the image was updated (with short image id) or is already up to date.
+- **Apply update** — only enabled after a successful pull that reported updates. Upstream runs `docker compose up -d --force-recreate`.
+
+Both buttons are **admin-only** in the UI (disabled with an "Admin access required" tooltip for non-admins). Long-running: the UI tolerates up to 150s per action. Applying an update replaces the upstream container, which briefly drops the UI's data stream — the page reconnects automatically when services are back.
+
+This is the only way to update browser images without shell access to the host.
+
+== Connection
+
+Read-only footer panel showing how this UI instance is wired to the upstream:
+
+- **Data source** — `Live` when streaming real snapshots, `demo` when running against the built-in fixture dataset (see <<Running Locally>>).
+- **Target** — the upstream URL this UI is proxying to.

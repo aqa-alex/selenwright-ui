@@ -1,0 +1,37 @@
+= Live View
+
+Entry point: `/vnc.html?session={session-id}`. Also embedded inline in the session detail panel for active sessions.
+
+Selenwright UI ships a vendored https://github.com/novnc/noVNC[noVNC] client (`vendor/novnc-client/`, version-pinned) and a dedicated Vite entrypoint so the VNC viewer can open in a standalone browser tab or window without loading the full console bundle.
+
+== How it works
+
+1. The browser opens a WebSocket to `wss://{ui-host}/api/vnc/{session-id}` (or `ws://` in HTTP deployments).
+2. `server.mjs` verifies the `Origin` header (see <<Deployment Security>>) and opens a raw TCP socket to the upstream noVNC endpoint (`/vnc/{session-id}` on `SELENWRIGHT_TARGET`).
+3. Frames are piped bidirectionally until either side closes.
+
+The proxy does not decode VNC frames — it is a byte-level WebSocket relay.
+
+== Enabling VNC on a session
+
+VNC works identically for Selenium and Playwright sessions — the `vnc.go` proxy on the upstream is protocol-agnostic, it only looks at whether the session has a VNC host-port assigned at start time. What differs is how the client requests VNC at session-create time:
+
+- **Selenium capability.** Add `enableVNC: true` to the session capabilities (or nest it under `selenwright:options` / `se:selenwright:options` depending on your client).
+- **Playwright query parameter.** Append `?enableVNC=true` to the WebSocket connection URL: `ws://selenwright:4444/playwright/chromium?enableVNC=true`. The upstream's `playwright.go` handler reads the query param and sets the same `caps.VNC` flag the Selenium path uses.
+- **Server default.** Start the upstream with `-default-enable-vnc=true` (the shipped `docker-compose.yml` does this) and VNC is on for every new session unless the client explicitly turns it off (`enableVNC: false` capability for Selenium, `?enableVNC=false` for Playwright).
+
+Once enabled, the browser container exposes a VNC server and the UI can attach to it through `/api/vnc/{session-id}` — regardless of which protocol created the session.
+
+== Controls
+
+The vendored noVNC client supports:
+
+- **Scaling** — viewer auto-fits by default; toggle remote-resize in the settings bar.
+- **Clipboard** — paste into the remote browser via the clipboard panel (the UI uses the upstream `/clipboard/{id}` endpoint for this; it is protocol-agnostic).
+- **Full-screen** — browser-native fullscreen button in the toolbar.
+
+Keyboard focus: click into the VNC surface, then type. `Esc` exits the VNC pane and returns focus to the console.
+
+== Security
+
+The VNC stream is as sensitive as screen-sharing with a live test — assume everything rendered in the browser is visible. Do not expose the UI on an untrusted interface without fronting it with an authenticating reverse proxy. See <<Deployment Security>>.

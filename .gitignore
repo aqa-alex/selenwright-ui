@@ -2,6 +2,7 @@
 node_modules
 coverage
 dist
+docs/output
 playwright-report
 test-results
 CLAUDE.md

@@ -1,0 +1,22 @@
+= Artefacts
+
+"Artefact" in Selenwright UI means any file a session produced that outlives the session: video recording, log file, or downloaded content. All three are listed on dedicated pages under the **Console** navigation group.
+
+== Drawer pattern
+
+All three artefact pages use the same layout:
+
+- **Left pane** — dense filterable table of artefacts.
+- **Right pane (drawer)** — preview of the currently selected artefact. Width is user-adjustable (drag the splitter or use `←` / `→` with the splitter focused) and persists in `localStorage`.
+
+Selecting a row opens the drawer, deselecting collapses it.
+
+== Retention
+
+By default the upstream does not delete artefacts — they accumulate under `-video-output-dir` / `-log-output-dir` / `-downloads-output-dir`.
+
+Turn on **artifact history** (see <<Settings>>) to have the upstream rotate artefacts older than N days. The artefact pages show the current retention setting (e.g. "Retention: 7 days") so operators know the cliff date.
+
+== Filtering by session
+
+Each artefact page has a **session** filter that narrows the table to artefacts of a single session id. Deep-links like `/artifacts/videos?session=abc-123` are supported and used by the session detail view when you click an artefact indicator.

@@ -1,0 +1,31 @@
+= Downloads
+
+Route: `/artifacts/downloads`.
+
+Files that a session downloaded from a website under test — captured from the browser's download directory by the upstream. Useful for asserting "this report was generated", "the CSV has the right rows", or "the invoice PDF is not empty".
+
+== Table columns
+
+[cols="1,3",options="header"]
+|===
+| Column | Description
+| **Session** | Session id of the session that produced the file.
+| **Filename** | Relative path inside the session's download directory.
+| **MIME** | Detected content type (from the upstream, not sniffed by the UI).
+| **Size** | File size.
+| **Downloaded** | When the file appeared in the browser's download folder.
+|===
+
+== Drawer content
+
+Selecting a row previews the file in the drawer:
+
+- **Text-like types** (`text/*`, `application/json`, `application/xml`) — rendered as monospace text with word-wrap toggle.
+- **Images** — native `<img>` preview with natural-size toggle.
+- **Everything else** — "no preview available" placeholder with a download link.
+
+Every row also offers a plain "download" link — the UI streams the raw bytes from the upstream with the artefact timeout applied per-chunk.
+
+== Session scoping
+
+Downloads are grouped by session. The toolbar has a session filter so you can focus on a single run, and the session detail page links directly to this page pre-filtered.

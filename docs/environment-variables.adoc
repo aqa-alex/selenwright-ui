@@ -1,0 +1,86 @@
+= Environment Variables
+
+All runtime knobs are environment variables read by `server.mjs` at startup.
+
+== Listen
+
+[cols="2,1,3",options="header"]
+|===
+| Variable | Default | Description
+| `HOST` | `127.0.0.1` | Bind address. Loopback by default; Docker image overrides to `0.0.0.0`.
+| `PORT` | `4173` | Listen port.
+|===
+
+== Upstream target
+
+[cols="2,2,3",options="header"]
+|===
+| Variable | Default | Description
+| `SELENWRIGHT_TARGET` | `http://127.0.0.1:4444` | Upstream Selenwright service. Supports `http://` and `https://`.
+| `DEMO_MODE` | `false` | When `true`, serves a built-in fixture dataset and ignores `SELENWRIGHT_TARGET`.
+| `SELENWRIGHT_API_ONLY` | `false` | When `true`, disables static asset serving. Used by the dev harness so Vite handles HTML/JS/CSS while `server.mjs` only proxies the API.
+| `SELENWRIGHT_STATIC_ROOT` | _(auto)_ | Override the directory served as static assets. Defaults to `dist/` if present, else the working directory.
+|===
+
+== Origins and CORS
+
+[cols="2,2,3",options="header"]
+|===
+| Variable | Default | Description
+| `SELENWRIGHT_ALLOWED_ORIGINS` | _(empty)_ | Comma-separated exact-match origins allowed on WebSocket upgrades in addition to `Host`. See <<Deployment Security>>.
+|===
+
+== Console snapshot stream
+
+[cols="2,2,3",options="header"]
+|===
+| Variable | Default | Description
+| `SELENWRIGHT_WATCH_INTERVAL_MS` | `3000` | How often `server.mjs` re-fetches the upstream snapshot while any SSE client is connected.
+| `SELENWRIGHT_MAX_SSE_CLIENTS` | `64` | Hard cap on concurrent console-snapshot subscribers. Over-cap gets `503 Retry-After: 5`.
+| `SELENWRIGHT_MAX_SSE_CLIENT_AGE_MS` | `14400000` (4 h) | Max lifetime of a single SSE subscription before a graceful `shutdown` event. Keeps long-lived tabs from accumulating state forever.
+|===
+
+== Timeouts
+
+[cols="2,2,3",options="header"]
+|===
+| Variable | Default | Description
+| `SELENWRIGHT_UPSTREAM_TIMEOUT_MS` | `5000` | Per-request timeout for standard `/api/*` calls.
+| `SELENWRIGHT_ARTIFACT_TIMEOUT_MS` | `15000` | Per-chunk timeout for large artefact fetches (videos, log/download bytes).
+| `SELENWRIGHT_TERMINATE_TIMEOUT_MS` | `3000` | Timeout for `DELETE /api/sessions/{id}`.
+|===
+
+The stack management routes (`/api/stack/pull`, `/api/stack/recreate`) use a hard-coded 150s timeout — those calls shell out to `docker compose` on the upstream host and need time.
+
+== Size caps
+
+[cols="2,2,3",options="header"]
+|===
+| Variable | Default | Description
+| `SELENWRIGHT_MAX_BODY_BYTES` | `1048576` (1 MiB) | Max request body size. Over-cap gets `413 Request Too Large` without touching the upstream.
+| `SELENWRIGHT_WS_MAX_FRAME_BYTES` | `1048576` (1 MiB) | Max size of a single WebSocket frame from the upstream.
+| `SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES` | `4194304` (4 MiB) | Max size of a reassembled fragmented WebSocket message. Over-cap closes the stream with code `1009`.
+|===
+
+== Examples
+
+Typical production invocation behind a reverse proxy:
+
+[source,bash]
+----
+HOST=127.0.0.1 \
+PORT=4173 \
+SELENWRIGHT_TARGET=http://selenwright.internal:4444 \
+SELENWRIGHT_ALLOWED_ORIGINS=https://selenwright.example.com \
+node server.mjs
+----
+
+Demo-only instance on a shared host:
+
+[source,bash]
+----
+DEMO_MODE=true \
+HOST=0.0.0.0 \
+PORT=4173 \
+node server.mjs
+----

@@ -1,0 +1,54 @@
+= Quick Start Guide
+
+The fastest way to try Selenwright UI is the combined stack that also launches the upstream Selenwright grid. You need a machine with Docker and the Docker Compose plugin.
+
+== Start the stack
+
+Clone the parent repository (which ships a ready-to-run `docker-compose.yml`) and bring it up:
+
+[source,bash]
+----
+git clone https://github.com/aqa-alex/selenwright.git
+cd selenwright
+docker compose up -d
+----
+
+This starts three services on the `selenwright-net` Docker network:
+
+[cols="1,2,1",options="header"]
+|===
+| Service | Role | Host port
+| `selenwright` | Go grid orchestrator (Selenium + Playwright) | `4444`
+| `selenwright-ui` | This operator console | `4173`
+| `selenwright-video-recorder` | Per-session video capture | _internal_
+|===
+
+Open http://localhost:4173 in a browser.
+
+== Log in
+
+The shipped compose file runs the upstream with `-auth-mode=embedded` and an `htpasswd` user database. Sign in with a user from `selenwright/config/users.htpasswd`; users listed in `-admin-users` (default `admin`) see the full admin surface.
+
+See <<Authentication>> for the other auth modes (`none`, `trusted-proxy`) and how the UI maps identity onto the navigation.
+
+== What you should see
+
+- **Sessions** — the default page. Empty until you start a session.
+- **Videos / Logs / Downloads** — populate as sessions finish (subject to the retention window).
+- **Browsers / Configuration / System / Settings** — runtime state of the upstream.
+
+Start a Selenium or Playwright session against `http://localhost:4444` from your test runner to see it appear live.
+
+== Run the UI without the upstream
+
+If you only want to look around the UI, run it in demo mode — it serves a built-in fixture dataset without contacting an upstream:
+
+[source,bash]
+----
+docker run --rm -p 4173:4173 \
+  -e HOST=0.0.0.0 \
+  -e DEMO_MODE=true \
+  selenwright-ui:latest
+----
+
+See <<Running Locally>> for the `npm` equivalent.

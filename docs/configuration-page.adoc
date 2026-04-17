@@ -1,0 +1,29 @@
+= Configuration
+
+Route: `/configuration`.
+
+Read-only view of the upstream's runtime configuration snapshot. Nothing on this page mutates state — it is for operators asking "what flags is this upstream running with?" without SSH'ing into the host.
+
+== Sections
+
+[cols="2,3",options="header"]
+|===
+| Section | Content
+| **Identity** | Service version, build timestamp, commit hash (if the build embeds one).
+| **Listen** | Listen address, optional TLS certificate path, remote health-check path.
+| **Browser** | `browsers.json` path, state-dir path, browser family defaults (video/VNC/log).
+| **Artefact directories** | Video, log, download, artefact-history output paths.
+| **Timeouts and limits** | Session timeout, queue length, per-host concurrency cap.
+| **Integration** | Container network name, video recorder image, S3 upload flags, metadata tags.
+| **Feature flags** | `-enable-metrics`, `-enable-devtools`, clipboard proxy on/off, etc.
+|===
+
+Only the subset of flags the upstream explicitly exposes is shown. Flags that would leak secrets (e.g. htpasswd content, S3 credentials) are never included.
+
+== Refresh
+
+The page re-reads configuration on every snapshot tick (default 3s) so a runtime reload of `browsers.json` or a hot-applied setting change shows up automatically.
+
+== Where to change things
+
+Configuration here is **read-only**. The mutable settings (artefact history retention, stack pull/recreate) live under <<Settings>>. Everything else is set via the upstream's CLI flags at start time — see the Selenwright CLI Flags reference.

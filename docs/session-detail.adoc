@@ -1,0 +1,72 @@
+= Session detail
+
+Route: `/sessions/{session-id}`.
+
+Full-page view with everything the UI knows about one session. Deep-linking is supported: share a `/sessions/abc-123` URL and any authenticated user who can see the session will land on the same view.
+
+== Header
+
+- Session display name + summary line.
+- Protocol badge (Selenium / Playwright).
+- Status badge (Running / Pending / Queued / Completed / Failed).
+
+== Action row
+
+Three buttons:
+
+[cols="1,3",options="header"]
+|===
+| Button | Behavior
+| **Open VNC** | Opens `/vnc.html?session=...` in a new browser tab. Enabled only when the session has VNC available; disabled otherwise. See <<Live View>>.
+| **Copy DevTools endpoint** | Visible only when the session exposes a DevTools endpoint. Copies the endpoint URL to the clipboard.
+| **Terminate** | Always rendered. Disabled when the session has already ended, or when the current user cannot manage it (tooltip: "You can only terminate your own sessions"). A browser confirm dialog runs before the destructive call; on success the page navigates back to the Sessions list.
+|===
+
+== Overview panel
+
+Key/value list with:
+
+- **Session ID** — full id, monospaced.
+- **Protocol** — badge (duplicate of the header badge, kept here for copy/paste convenience).
+- **Browser** — family + version.
+- **Started** — absolute timestamp, formatted per <<Settings>>.
+- **Duration** — live-counting for active sessions, final duration for finished ones.
+- **Last activity** — relative time since the last request to the upstream for this session.
+- **Quota** — the quota name the session was counted against (if any).
+- **Artifacts** — compact chips indicating which of video / saved logs / live logs / downloads / clipboard / devtools are present.
+
+== Artifacts panel
+
+One row per artefact kind. Each row has the status on the left and an **Open** button on the right — when there is something to open. Rows that have nothing yet show muted status text instead of a button.
+
+[cols="1,2,2",options="header"]
+|===
+| Kind | Status shown | Action
+| **Video** | `{session-id}.mp4` when a recording exists, otherwise `Unavailable` | **Open** → <<Videos>> pre-filtered to this session, or no button
+| **Logs** | Saved filename (or `{session-id}.log`) when the upstream saved a file; `Live stream available` while the session is running without a saved file yet; `Unavailable` otherwise | **Open** → <<Logs>> for saved; `Live in detail` hint for live-only (no button — the live tail is already in the side pane); no button when unavailable
+| **Downloads** | `N files` when the session produced downloads, else `None` | **Open** → <<Downloads>>, or no button
+| **Clipboard** | `Snapshot available` / `Unavailable` | No button — clipboard is read via the noVNC viewer's clipboard panel (see <<Live View>>)
+| **DevTools** | `Endpoint available` / `Unavailable` | No button — the endpoint URL is copied via the **Copy DevTools endpoint** button in the action row
+|===
+
+== Logs (side pane)
+
+A **Logs** panel sits to the right of the main content. For active sessions it tails the upstream log stream live (see <<Live Logs>>); for finished sessions it renders the saved log file if one exists, with search and pagination.
+
+Auto-scroll is on by default. Scrolling up pauses it; scrolling to the bottom (or pressing **Jump to end**) resumes.
+
+== Session termination
+
+Covered by the **Terminate** button above. Works identically for Selenium and Playwright sessions (the upstream handles the protocol difference). Ownership rules:
+
+- **Admins** — can terminate any session.
+- **Regular users** — can terminate their own sessions, and any session owned by another user in one of their groups.
+- **Auth mode `none`** — everyone is effectively admin.
+
+See <<Authentication>>.
+
+== Relationship to artefacts
+
+When a session ends the live log stream closes. The saved log file — if the upstream is configured to persist one — appears under **Logs** and replaces the live tail in the side pane. Videos and downloads follow the same pattern.
+
+If **artifact history** is enabled (see <<Settings>>), the session detail view keeps its artefact links after the session is gone, for the configured retention window.

@@ -1,0 +1,67 @@
+= Docker
+
+The UI ships as a single multi-stage Node 22 Alpine image. Build context is the repo root, Dockerfile at `./Dockerfile`.
+
+== Prebuilt image
+
+[source,bash]
+----
+docker pull aqaalex/selenwright-ui:latest
+docker run --rm -p 127.0.0.1:4173:4173 \
+  -e SELENWRIGHT_TARGET=http://host.docker.internal:4444 \
+  aqaalex/selenwright-ui:latest
+----
+
+Container defaults: `HOST=0.0.0.0`, `PORT=4173`. Publish to a specific host interface rather than `0.0.0.0` unless you have a reverse proxy in front.
+
+Tags:
+
+[cols="1,3",options="header"]
+|===
+| Tag | Meaning
+| `latest` | Head of `main`. Can change at any time. CI pushes on every green build.
+| `latest-release` | Most recent published release. Stable.
+| `vX.Y.Z` | Specific release. Immutable.
+|===
+
+== Building locally
+
+From the repo root:
+
+[source,bash]
+----
+docker build -t selenwright-ui:dev .
+----
+
+Or use the convenience script that runs the test gate first:
+
+[source,bash]
+----
+bash build.sh
+----
+
+== Environment
+
+All variables documented in <<Environment Variables>> work identically inside Docker. The two you will almost always set:
+
+- `SELENWRIGHT_TARGET` — upstream URL reachable from inside the container (use the container name on a shared network, e.g. `http://selenwright:4444`; or `http://host.docker.internal:4444` for Docker Desktop on macOS/Windows).
+- `SELENWRIGHT_ALLOWED_ORIGINS` — public origin(s) the browser will use when hitting the UI through a reverse proxy.
+
+== Volumes
+
+The image serves only built-in static assets and proxies `/api/*`. There is nothing to volume-mount. If you need to override assets, build your own image.
+
+== Health check
+
+The image does not ship a `HEALTHCHECK` directive. A simple one you can add in compose or at `docker run --health-cmd`:
+
+[source,bash]
+----
+docker run --rm \
+  --health-cmd 'wget -qO- http://localhost:4173/ | head -c 1' \
+  --health-interval 10s \
+  -p 127.0.0.1:4173:4173 \
+  aqaalex/selenwright-ui:latest
+----
+
+`GET /` always returns the SPA shell regardless of upstream state, so it is a liveness probe only. For readiness, hit `/api/meta` — it returns `200` with the target URL, or `200` with `target: "demo"` in demo mode.
