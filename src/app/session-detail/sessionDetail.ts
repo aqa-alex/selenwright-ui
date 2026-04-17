@@ -168,7 +168,7 @@ export function getLiveLogEmptyText(liveState: SessionDetailLiveLogState | null)
     case "error":
       return "Live stream failed. Retry is available.";
     case "reconnecting":
-      return liveState.message || "Live stream dropped. Reconnecting.";
+      return "Waiting for next live log attempt.";
     case "inactive":
       return "Session is no longer active.";
     case "closed":
