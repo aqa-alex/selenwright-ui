@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import type { ConsoleSession } from "../api";
 import {
   fetchIdentity,
   login as apiLogin,
@@ -13,6 +14,7 @@ export interface IdentityState {
   authMode: AuthMode;
   authenticated: boolean;
   loaded: boolean;
+  groups: string[];
 }
 
 export const useIdentityStore = defineStore("identity", {
@@ -22,6 +24,7 @@ export const useIdentityStore = defineStore("identity", {
     authMode: "none",
     authenticated: false,
     loaded: false,
+    groups: [],
   }),
   getters: {
     effectiveAdmin(state): boolean {
@@ -37,6 +40,7 @@ export const useIdentityStore = defineStore("identity", {
       this.isAdmin = identity.isAdmin;
       this.authMode = identity.authMode;
       this.authenticated = identity.authenticated;
+      this.groups = [...identity.groups];
       this.loaded = true;
     },
     async load() {
@@ -52,12 +56,27 @@ export const useIdentityStore = defineStore("identity", {
       this.user = "unknown";
       this.isAdmin = false;
       this.authenticated = false;
+      this.groups = [];
     },
-    canManageSession(sessionOwner: string): boolean {
+    canManageSession(session: ConsoleSession): boolean {
       if (this.effectiveAdmin) {
         return true;
       }
-      return this.user !== "" && this.user === sessionOwner;
+      const owner = session.metadata.quota;
+      if (this.user !== "" && this.user === owner) {
+        return true;
+      }
+      const ownerGroups = session.metadata.ownerGroups;
+      if (!ownerGroups || ownerGroups.length === 0 || this.groups.length === 0) {
+        return false;
+      }
+      const mine = new Set(this.groups);
+      for (const g of ownerGroups) {
+        if (mine.has(g)) {
+          return true;
+        }
+      }
+      return false;
     },
   },
 });

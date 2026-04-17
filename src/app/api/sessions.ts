@@ -202,6 +202,11 @@ export function buildSessionsFromStatus(
               logFilename: "",
               protocolEndpoint: endpoint,
               quota: quotaName,
+              ownerGroups: Array.isArray(raw.ownerGroups)
+                ? raw.ownerGroups.filter(
+                    (g): g is string => typeof g === "string" && g.length > 0,
+                  )
+                : [],
               screen,
               videoFilename: "",
               vncEndpoint,

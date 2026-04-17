@@ -151,6 +151,7 @@ export interface SessionMetadata {
   logFilename: string;
   protocolEndpoint: string;
   quota: string;
+  ownerGroups: string[];
   screen: string;
   videoFilename: string;
   vncEndpoint: string;

@@ -14,6 +14,7 @@ export interface UserIdentity {
   isAdmin: boolean;
   authMode: AuthMode;
   authenticated: boolean;
+  groups: string[];
 }
 
 const anonymousIdentity: UserIdentity = {
@@ -21,6 +22,7 @@ const anonymousIdentity: UserIdentity = {
   isAdmin: false,
   authMode: "none",
   authenticated: false,
+  groups: [],
 };
 
 const validAuthModes = new Set<string>(["embedded", "trusted-proxy", "none"]);
@@ -72,7 +74,17 @@ export async function login(
     isAdmin: Boolean(payload.isAdmin),
     authMode: "embedded",
     authenticated: true,
+    groups: extractGroups(payload.groups),
   };
+}
+
+function extractGroups(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (g): g is string => typeof g === "string" && g.length > 0,
+  );
 }
 
 export async function logout(): Promise<void> {
@@ -99,5 +111,6 @@ export function normalizeIdentity(value: unknown): UserIdentity {
     isAdmin: Boolean(value.isAdmin),
     authMode,
     authenticated: Boolean(value.authenticated),
+    groups: extractGroups(value.groups),
   };
 }

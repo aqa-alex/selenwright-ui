@@ -41,7 +41,7 @@ const terminatePending = computed(() =>
   session.value ? isTerminatePending(session.value, terminatingSessionId.value) : false,
 );
 const canManage = computed(() =>
-  session.value ? identityStore.canManageSession(session.value.metadata.quota) : false,
+  session.value ? identityStore.canManageSession(session.value) : false,
 );
 const terminateEnabled = computed(() =>
   session.value
