@@ -52,7 +52,7 @@ export const navGroups: NavGroup[] = [
       { href: "/configuration", icon: "configuration", label: "Configuration" },
       { href: "/system", icon: "system", label: "System" },
       { href: "/settings", icon: "settings", label: "Settings" },
-      { href: "/settings/api-tokens", icon: "settings", label: "API Tokens", adminOnly: true },
+      { href: "/settings/api-tokens", icon: "key", label: "API Tokens", adminOnly: true },
     ],
   },
 ];

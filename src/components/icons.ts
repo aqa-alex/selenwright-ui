@@ -7,6 +7,8 @@ const icons = {
     '<path d="M3 4.5h12v8H3z"/><path d="M6 15.5h6"/><path d="M8 12.5v3"/><path d="M5.5 6.5l2.5 2-2.5 2"/><path d="M10 10.5h2.5"/>',
   downloads:
     '<path d="M8.5 3v7"/><path d="M6 8.5l2.5 2.5L11 8.5"/><path d="M3.5 13h10"/>',
+  key:
+    '<circle cx="5" cy="9" r="2.5"/><path d="M7.5 9h7.5"/><path d="M12.5 9v2"/><path d="M14.5 9v1.5"/>',
   logs:
     '<path d="M4 3.5h8l3 3v7A1.5 1.5 0 0 1 13.5 15h-9A1.5 1.5 0 0 1 3 13.5v-8A2 2 0 0 1 5 3.5z"/><path d="M11.5 3.5v3h3"/><path d="M5.5 9h6"/><path d="M5.5 11.5h5"/>',
   search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/>',
