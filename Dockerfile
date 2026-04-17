@@ -32,7 +32,7 @@ RUN if [ -f package-lock.json ]; then \
       npm install --omit=dev --no-audit --no-fund; \
     fi
 
-COPY server.mjs server-origin.mjs server-ws-frame.mjs ./
+COPY server.mjs server-origin.mjs server-ws-auth.mjs server-ws-frame.mjs ./
 COPY --from=build /app/dist ./dist
 
 EXPOSE 4173

@@ -1058,7 +1058,6 @@ summary::-webkit-details-marker {
 
 .log-preview-header,
 .drawer-toolbar,
-.artifact-row,
 .copyable-row {
   align-items: center;
   display: flex;
@@ -1113,27 +1112,6 @@ summary::-webkit-details-marker {
 .log-note-error {
   border-color: var(--danger);
   color: var(--danger);
-}
-
-.artifact-list {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.artifact-row {
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: var(--space-3);
-}
-
-.artifact-row strong {
-  display: block;
-  font-weight: 500;
-}
-
-.artifact-row span {
-  color: var(--text-muted);
 }
 
 .key-value-list {

@@ -24,6 +24,14 @@ The upstream `-admin-users=user1,user2` flag lists admins. Admins get the full a
 
 If the upstream associates users with groups (configurable via upstream flags — see the Selenwright auth docs), groups feed into ownership checks: a user can terminate any session owned by another member of the same group.
 
+=== API tokens for machine clients
+
+Humans log into the UI with an htpasswd password. Playwright, Selenium, and CI runners use **bearer tokens** instead — the UI never shows them the login form. An admin mints tokens on behalf of team members from **Settings → API Tokens**, then hands them over through a secret manager (1Password, Bitwarden, Keybase). Plaintext is shown once at creation time and then only stored as a bcrypt hash.
+
+If a token is lost: the admin revokes it on the same page and creates a replacement. When a team member leaves, the admin filters the page by owner and revokes the whole batch in one action.
+
+Tokens inherit the owner's groups at creation time, so group-based session ACL continues to apply. The UI itself does not accept a pasted token in place of a password — the login form is always an htpasswd user/password pair.
+
 == Auth mode: `trusted-proxy`
 
 The upstream trusts an identity header set by a reverse proxy in front of it. Useful for SSO integrations — the proxy does OIDC/SAML/Kerberos, then stamps a header like `X-Forwarded-User` and forwards the request.

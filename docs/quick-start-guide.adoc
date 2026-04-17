@@ -31,6 +31,10 @@ The shipped compose file runs the upstream with `-auth-mode=embedded` and an `ht
 
 See <<Authentication>> for the other auth modes (`none`, `trusted-proxy`) and how the UI maps identity onto the navigation.
 
+== Issue tokens to your team
+
+Once you're signed in as an admin, go to **Settings → API Tokens** to mint a bearer token for each Playwright/Selenium runner or teammate. Pick the owner from the dropdown, give the token a human-readable name (e.g. `laptop-alice`, `ci-runner`), and copy the plaintext from the modal — it is shown once. Hand it over through a secret manager, not chat. Revocation lives on the same page (single token or bulk by owner, useful for offboarding).
+
 == What you should see
 
 - **Sessions** — the default page. Empty until you start a session.

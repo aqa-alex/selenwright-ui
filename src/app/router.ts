@@ -13,6 +13,7 @@ export type RouteName =
   | "configuration"
   | "system"
   | "settings"
+  | "api-tokens"
   | "login"
   | "not-found";
 
@@ -25,6 +26,8 @@ export interface NavItem {
   href: string;
   icon: string;
   label: string;
+  /** Item is only shown when the current identity is admin. */
+  adminOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -49,6 +52,7 @@ export const navGroups: NavGroup[] = [
       { href: "/configuration", icon: "configuration", label: "Configuration" },
       { href: "/system", icon: "system", label: "System" },
       { href: "/settings", icon: "settings", label: "Settings" },
+      { href: "/settings/api-tokens", icon: "key", label: "API Tokens", adminOnly: true },
     ],
   },
 ];
@@ -93,6 +97,9 @@ export function parseRoute(pathname: string): ParsedRoute {
   }
   if (pathname === "/settings") {
     return { name: "settings" };
+  }
+  if (pathname === "/settings/api-tokens") {
+    return { name: "api-tokens" };
   }
   if (pathname === "/login") {
     return { name: "login" };
@@ -160,6 +167,11 @@ const routes: RouteRecordRaw[] = [
     component: RouteAnchor,
     name: "settings",
     path: "/settings",
+  },
+  {
+    component: RouteAnchor,
+    name: "api-tokens",
+    path: "/settings/api-tokens",
   },
   {
     component: LoginPage,

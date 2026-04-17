@@ -97,11 +97,16 @@ export function useLiveLog(sessionIdInput: MaybeRefOrGetter<string | null | unde
       },
       onStatusChange(nextStatus) {
         if (token !== subscriptionToken) return;
+        const transientStatuses = new Set([
+          "open",
+          "streaming",
+          "connecting",
+          "reconnecting",
+        ]);
         consoleStore.setLiveLogState({
-          error:
-            nextStatus.status === "open" || nextStatus.status === "streaming"
-              ? ""
-              : consoleStore.liveLogs.error,
+          error: transientStatuses.has(nextStatus.status)
+            ? ""
+            : consoleStore.liveLogs.error,
           message: nextStatus.message,
           sessionId,
           source: "live",

@@ -6,7 +6,6 @@ import { formatStatus } from "../../lib/format";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import StatusBadge from "../components/ui/StatusBadge.vue";
 import ProtocolBadge from "../session-detail/ProtocolBadge.vue";
-import SessionArtifactsPanel from "../session-detail/SessionArtifactsPanel.vue";
 import SessionLogsPanel from "../session-detail/SessionLogsPanel.vue";
 import SessionOverviewPanel from "../session-detail/SessionOverviewPanel.vue";
 import type { SessionDetailPageModel } from "../session-detail/sessionDetail";
@@ -128,7 +127,6 @@ async function terminate() {
     <div class="detail-grid">
       <div class="detail-main stack-layout">
         <SessionOverviewPanel :preferences="model.preferences" :session="session" />
-        <SessionArtifactsPanel :session="session" />
       </div>
       <aside class="detail-side stack-layout">
         <ConsolePanel title="Logs">
