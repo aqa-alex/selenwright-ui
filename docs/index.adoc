@@ -15,7 +15,7 @@
 This reference covers version: _{revnumber}_
 
 Selenwright UI is the operator console for https://github.com/aqa-alex/selenwright[Selenwright] — a browser automation grid with native Selenium WebDriver and Playwright WebSocket support.
-It is a single-page Vue application served by a small Node.js HTTP proxy that forwards `/api/*`, SSE, and WebSocket traffic to the upstream Selenwright service.
+It is a Vue frontend served by a small Node.js HTTP proxy that forwards `/api/*`, SSE, and WebSocket traffic to the upstream Selenwright service.
 Please refer to the https://github.com/aqa-alex/selenwright-ui[GitHub repository] if you need source code.
 
 == Getting Started

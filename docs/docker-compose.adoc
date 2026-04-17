@@ -14,7 +14,7 @@ networks:
 
 services:
   selenwright:
-    image: aqaalex/selenwright:latest
+    image: selenwright/hub:latest-release
     container_name: selenwright
     restart: unless-stopped
     command:
@@ -38,7 +38,7 @@ services:
       - selenwright-net
 
   selenwright-ui:
-    image: aqaalex/selenwright-ui:latest
+    image: selenwright/selenwright-ui:latest-release
     container_name: selenwright-ui
     restart: unless-stopped
     depends_on:
@@ -74,14 +74,18 @@ See <<Settings>>.
 
 == Versions
 
-Pin versions in production:
+Pin versions in production. Substitute the actual release tag (see the Docker Hub pages for https://hub.docker.com/r/selenwright/hub/tags[`selenwright/hub`] and https://hub.docker.com/r/selenwright/selenwright-ui/tags[`selenwright/selenwright-ui`]):
 
 [source,yaml]
 ----
   selenwright:
-    image: aqaalex/selenwright:v1.2.3
+    image: selenwright/hub:vX.Y.Z
   selenwright-ui:
-    image: aqaalex/selenwright-ui:v0.1.0
+    image: selenwright/selenwright-ui:vX.Y.Z
 ----
 
-The `latest` tag moves on every green build and `latest-release` moves on every published release — convenient for dev, dangerous for prod.
+Three rolling tags are published by CI:
+
+- `:latest` — moves on every green build from `main`. Convenient for dev, dangerous for prod.
+- `:latest-release` — moves on every published GitHub release. Safe default for the Minimal stack above.
+- `:vX.Y.Z` — immutable per release. Use this when you need to pin a known-good version.

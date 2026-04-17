@@ -16,8 +16,8 @@ The proxy does not decode VNC frames — it is a byte-level WebSocket relay.
 
 VNC works identically for Selenium and Playwright sessions — the `vnc.go` proxy on the upstream is protocol-agnostic, it only looks at whether the session has a VNC host-port assigned at start time. What differs is how the client requests VNC at session-create time:
 
-- **Selenium capability.** Add `enableVNC: true` to the session capabilities (or nest it under `selenwright:options` / `se:selenwright:options` depending on your client).
-- **Playwright query parameter.** Append `?enableVNC=true` to the WebSocket connection URL: `ws://selenwright:4444/playwright/chromium?enableVNC=true`. The upstream's `playwright.go` handler reads the query param and sets the same `caps.VNC` flag the Selenium path uses.
+- **Selenium capability.** Add `enableVNC: true` to the session capabilities — either top-level, or nested under the Selenoid-inherited `selenoid:options` extension object.
+- **Playwright query parameter.** Append `?enableVNC=true` to the WebSocket connection URL. The full path is `/playwright/<browser>/<playwright-version>` — for example `ws://selenwright:4444/playwright/chromium/1.56.1?enableVNC=true`. The upstream's `playwright.go` handler reads the query param and sets the same `caps.VNC` flag the Selenium path uses.
 - **Server default.** Start the upstream with `-default-enable-vnc=true` (the shipped `docker-compose.yml` does this) and VNC is on for every new session unless the client explicitly turns it off (`enableVNC: false` capability for Selenium, `?enableVNC=false` for Playwright).
 
 Once enabled, the browser container exposes a VNC server and the UI can attach to it through `/api/vnc/{session-id}` — regardless of which protocol created the session.

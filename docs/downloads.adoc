@@ -28,4 +28,4 @@ Every row also offers a plain "download" link — the UI streams the raw bytes f
 
 == Session scoping
 
-Downloads are grouped by session. The toolbar has a session filter so you can focus on a single run, and the session detail page links directly to this page pre-filtered.
+Each row's **Session** column identifies the session that produced the file. See <<Filtering by session>> under <<Artefacts>> for how the shared session filter is set and cleared.

@@ -33,21 +33,7 @@ Key/value list with:
 - **Duration** — live-counting for active sessions, final duration for finished ones.
 - **Last activity** — relative time since the last request to the upstream for this session.
 - **Quota** — the quota name the session was counted against (if any).
-- **Artifacts** — compact chips indicating which of video / saved logs / live logs / downloads / clipboard / devtools are present.
-
-== Artifacts panel
-
-One row per artefact kind. Each row has the status on the left and an **Open** button on the right — when there is something to open. Rows that have nothing yet show muted status text instead of a button.
-
-[cols="1,2,2",options="header"]
-|===
-| Kind | Status shown | Action
-| **Video** | `{session-id}.mp4` when a recording exists, otherwise `Unavailable` | **Open** → <<Videos>> pre-filtered to this session, or no button
-| **Logs** | Saved filename (or `{session-id}.log`) when the upstream saved a file; `Live stream available` while the session is running without a saved file yet; `Unavailable` otherwise | **Open** → <<Logs>> for saved; `Live in detail` hint for live-only (no button — the live tail is already in the side pane); no button when unavailable
-| **Downloads** | `N files` when the session produced downloads, else `None` | **Open** → <<Downloads>>, or no button
-| **Clipboard** | `Snapshot available` / `Unavailable` | No button — clipboard is read via the noVNC viewer's clipboard panel (see <<Live View>>)
-| **DevTools** | `Endpoint available` / `Unavailable` | No button — the endpoint URL is copied via the **Copy DevTools endpoint** button in the action row
-|===
+- **Artifacts** — compact chips: **Video**, **Logs**, and a downloads chip labelled `DL N` where _N_ is the number of captured files (e.g. `DL 3`). Shows **None** when nothing is attached.
 
 == Logs (side pane)
 

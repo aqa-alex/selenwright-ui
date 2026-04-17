@@ -19,4 +19,6 @@ Turn on **artifact history** (see <<Settings>>) to have the upstream rotate arte
 
 == Filtering by session
 
-Each artefact page has a **session** filter that narrows the table to artefacts of a single session id. Deep-links like `/artifacts/videos?session=abc-123` are supported and used by the session detail view when you click an artefact indicator.
+The artefact pages share a single session filter. It is set by the **Open saved log** / **Open logs** button on the session detail **Logs** pane — clicking either navigates to the Logs artefact page filtered to that session. From there, switching to **Videos** or **Downloads** via the sidebar keeps the filter applied, so you can see everything produced by the same run.
+
+While the filter is active, a **Clear session filter** button appears in the page header. The filter is in-memory UI state — it is not part of the URL and does not survive a full page reload.

@@ -15,17 +15,14 @@ Route: `/artifacts/videos`.
 | **Recorded** | Creation timestamp formatted per **Settings**.
 |===
 
-Sort by any column, filter by session in the toolbar, search by filename.
+Rows are plain — no column sorting, no search, and no toolbar filter. The **Actions** column gives each row an **Inspect** button that opens the drawer. For narrowing the list to a single session see <<Filtering by session>> under <<Artefacts>>.
 
 == Drawer preview
 
-Selecting a row opens the video in the right-hand drawer:
+Selecting a row opens a metadata inspector — the video itself is **not** embedded or streamed in the UI.
 
-- **Native HTML5 `<video>` element** streamed from the upstream on demand (subject to `SELENWRIGHT_ARTIFACT_TIMEOUT_MS`, default 15s per chunk).
-- **Standard controls** — play/pause, scrub, volume, full-screen, playback rate.
-- **Download link** — offers the raw MP4 for save-as.
-
-Codec: the upstream video recorder ships MP4 (H.264 / AAC) by default. Browsers without MP4 playback support can still download the file via the drawer's link.
+- Key/value list: **Session**, **Browser**, **Protocol**, **Created**, **Duration**, **Size**.
+- **Copy filename** copies the filename to the clipboard.
 
 == Where videos come from
 
