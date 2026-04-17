@@ -921,6 +921,23 @@ function resolveApiRoute(requestUrl) {
     };
   }
 
+  if (requestUrl.pathname.startsWith("/api/video/")) {
+    const rawFilename = requestUrl.pathname.slice("/api/video/".length);
+    if (!rawFilename) {
+      return {
+        error: {
+          message: "Video filename is required",
+          statusCode: 400,
+        },
+      };
+    }
+
+    return {
+      accept: "application/octet-stream",
+      buildUpstreamUrl: () => buildUpstreamVideoFileUrl(requestUrl),
+    };
+  }
+
   if (requestUrl.pathname.startsWith("/api/admin/tokens/")) {
     const rawTokenId = requestUrl.pathname.slice("/api/admin/tokens/".length);
     if (!rawTokenId || rawTokenId.includes("/")) {
@@ -994,6 +1011,12 @@ function buildUpstreamDownloadFileUrl(requestUrl) {
   const rawPath = requestUrl.pathname.slice("/api/downloads/file/".length);
   const encodedPath = encodePathPreservingSlashes(rawPath);
   return new URL(`/downloads/${encodedPath}${requestUrl.search}`, target);
+}
+
+function buildUpstreamVideoFileUrl(requestUrl) {
+  const rawFilename = requestUrl.pathname.slice("/api/video/".length);
+  const encodedFilename = encodePathSegment(rawFilename);
+  return new URL(`/video/${encodedFilename}${requestUrl.search}`, target);
 }
 
 function buildUpstreamClipboardUrl(requestUrl) {

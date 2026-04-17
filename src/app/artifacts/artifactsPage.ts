@@ -218,6 +218,10 @@ export function buildDownloadArtifactHref(item: DownloadArtifact | null): string
   return item?.downloadUrl || "#";
 }
 
+export function buildVideoFileApiPath(filename: string): string {
+  return `/api/video/${encodeURIComponent(filename)}`;
+}
+
 function getFilteredLogs(model: ArtifactPageModel): LogArtifact[] {
   const items = model.logs;
   if (!model.artifactSessionFilter) {

@@ -4,18 +4,39 @@ import type { VideoArtifact } from "../api";
 import { formatBytes, formatDateTime, formatDuration, titleCase } from "../../lib/format";
 import ArtifactKeyValueRow from "./ArtifactKeyValueRow.vue";
 import type { ArtifactPageModel } from "./artifactsPage";
-import { getSelectedArtifact } from "./artifactsPage";
+import { buildVideoFileApiPath, getSelectedArtifact } from "./artifactsPage";
 import { useClipboard } from "../composables/useClipboard";
+import { useDeleteVideoMutation } from "../queries/useDeleteVideoMutation";
+import { useShellStore } from "../stores/shell";
 
 const props = defineProps<{
   model: ArtifactPageModel;
 }>();
 
 const copy = useClipboard();
+const shellStore = useShellStore();
+const deleteMutation = useDeleteVideoMutation();
 const selected = computed(() => getSelectedArtifact(props.model) as VideoArtifact | null);
 const created = computed(() =>
   selected.value?.createdAt ? formatDateTime(selected.value.createdAt, props.model.preferences) : "—",
 );
+const deletePending = computed(() => deleteMutation.isPending.value);
+
+async function onDelete() {
+  const current = selected.value;
+  if (!current) return;
+  const confirmed =
+    typeof window !== "undefined" && typeof window.confirm === "function"
+      ? window.confirm(`Delete video ${current.filename}?`)
+      : true;
+  if (!confirmed) return;
+  try {
+    await deleteMutation.mutateAsync({ filename: current.filename });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Delete failed";
+    shellStore.setNotice(message);
+  }
+}
 </script>
 
 <template>
@@ -41,8 +62,21 @@ const created = computed(() =>
       >
         Copy filename
       </button>
-      <button class="button secondary" type="button">Download</button>
-      <button class="button danger" type="button">Delete</button>
+      <a
+        class="button secondary"
+        :download="selected.filename"
+        :href="buildVideoFileApiPath(selected.filename)"
+      >
+        Download
+      </a>
+      <button
+        class="button danger"
+        :disabled="deletePending"
+        type="button"
+        @click="onDelete"
+      >
+        {{ deletePending ? "Deleting..." : "Delete" }}
+      </button>
     </div>
   </div>
   <p v-else class="hint-text">Select a video to inspect metadata.</p>
