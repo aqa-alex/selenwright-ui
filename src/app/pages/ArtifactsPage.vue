@@ -7,10 +7,10 @@ import ArtifactVideoDrawer from "../artifacts/ArtifactVideoDrawer.vue";
 import type { ArtifactPageModel } from "../artifacts/artifactsPage";
 import {
   getArtifactPageCopy,
+  getArtifactPagination,
+  getArtifactPerPageOptions,
   getDrawerRatio,
   getFilteredArtifactItems,
-  getLogPagination,
-  getLogsPerPageOptions,
   getVisibleArtifactItems,
 } from "../artifacts/artifactsPage";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
@@ -26,14 +26,14 @@ const uiStore = useUiStore();
 function onPerPageChange(event: Event) {
   const target = event.target as HTMLSelectElement | null;
   if (!target) return;
-  uiStore.setLogsPerPage(Number(target.value));
+  uiStore.setArtifactPageSize(props.model.pageKey, Number(target.value));
 }
 
 const copy = computed(() => getArtifactPageCopy(props.model));
 const visibleItems = computed(() => getVisibleArtifactItems(props.model));
 const filteredItems = computed(() => getFilteredArtifactItems(props.model));
-const logPagination = computed(() => getLogPagination(props.model));
-const logsPerPageOptions = computed(() => getLogsPerPageOptions());
+const pagination = computed(() => getArtifactPagination(props.model));
+const perPageOptions = computed(() => getArtifactPerPageOptions());
 const drawerPercent = computed(() => Math.round(getDrawerRatio(props.model) * 100));
 const drawerTitle = computed(() => {
   if (props.model.pageKey === "videos") {
@@ -44,9 +44,7 @@ const drawerTitle = computed(() => {
   }
   return "Details";
 });
-const showPagination = computed(
-  () => props.model.pageKey === "logs" && filteredItems.value.length > 0,
-);
+const showPagination = computed(() => filteredItems.value.length > 0);
 
 const pageKey = computed(() => props.model.pageKey);
 useAutoSelectArtifact(pageKey, filteredItems);
@@ -81,11 +79,11 @@ useAutoSelectArtifact(pageKey, filteredItems);
             <label class="filter-select">
               <span>Per page</span>
               <select
-                data-input="logs-per-page"
-                :value="model.logsPerPage"
+                :data-input="`${model.pageKey}-per-page`"
+                :value="model.perPage"
                 @change="onPerPageChange"
               >
-                <option v-for="option in logsPerPageOptions" :key="option" :value="option">
+                <option v-for="option in perPageOptions" :key="option" :value="option">
                   {{ option }}
                 </option>
               </select>
@@ -94,19 +92,19 @@ useAutoSelectArtifact(pageKey, filteredItems);
               <button
                 class="button secondary"
                 type="button"
-                :disabled="logPagination.currentPage <= 1"
-                @click="uiStore.prevLogsPage()"
+                :disabled="pagination.currentPage <= 1"
+                @click="uiStore.prevArtifactPage(model.pageKey)"
               >
                 Prev
               </button>
               <span class="pagination-info">
-                {{ logPagination.currentPage }} / {{ logPagination.totalPages }}
+                {{ pagination.currentPage }} / {{ pagination.totalPages }}
               </span>
               <button
                 class="button secondary"
                 type="button"
-                :disabled="logPagination.currentPage >= logPagination.totalPages"
-                @click="uiStore.nextLogsPage()"
+                :disabled="pagination.currentPage >= pagination.totalPages"
+                @click="uiStore.nextArtifactPage(model.pageKey)"
               >
                 Next
               </button>

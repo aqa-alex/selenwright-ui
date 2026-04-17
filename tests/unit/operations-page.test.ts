@@ -106,7 +106,7 @@ describe("OperationsPage", () => {
       },
     });
 
-    expect(html).toContain("<h1>Settings</h1>");
+    expect(html).toMatch(/<h1[^>]*>Settings<\/h1>/);
     expect(html).toContain('value="21"');
     expect(html).toMatch(/<button[^>]*class="button"(?![^>]*disabled)[^>]*>\s*Save settings/);
   });

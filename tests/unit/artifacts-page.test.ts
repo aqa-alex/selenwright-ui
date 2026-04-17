@@ -5,8 +5,8 @@ import ArtifactsPage from "../../src/app/pages/ArtifactsPage.vue";
 import type { ArtifactPageModel } from "../../src/app/artifacts/artifactsPage";
 import {
   filterLogContent,
+  getArtifactPagination,
   getFilteredArtifactItems,
-  getLogPagination,
 } from "../../src/app/artifacts/artifactsPage";
 import type {
   ConsoleSession,
@@ -58,7 +58,7 @@ describe("ArtifactsPage", () => {
         buildLog({ filename: "fixture-session-01.log", sessionId: "fixture-session-01" }),
         buildLog({ filename: "fixture-session-02.log", sessionId: "fixture-session-02" }),
       ],
-      logsPerPage: 1,
+      perPage: 1,
       pageKey: "logs",
       selectedArtifacts: {
         downloads: null,
@@ -117,13 +117,47 @@ describe("artifact page helpers", () => {
         buildLog({ filename: "b.log" }),
         buildLog({ filename: "c.log" }),
       ],
-      logsPage: 2,
-      logsPerPage: 2,
+      page: 2,
+      perPage: 2,
       pageKey: "logs",
     });
 
-    expect(getLogPagination(model).pageItems.map((item) => item.filename)).toEqual(["c.log"]);
+    expect(getArtifactPagination(model).pageItems.map((item) => item.filename)).toEqual(["c.log"]);
     expect(filterLogContent("alpha\nbeta\ngamma", "ta")).toBe("beta");
+  });
+
+  it("paginates downloads across pages", () => {
+    const model = buildModel({
+      downloads: [
+        buildDownload({ filename: "a.json" }),
+        buildDownload({ filename: "b.json" }),
+        buildDownload({ filename: "c.json" }),
+      ],
+      page: 2,
+      perPage: 2,
+      pageKey: "downloads",
+    });
+
+    expect(getArtifactPagination(model).pageItems.map((item) => item.filename)).toEqual([
+      "c.json",
+    ]);
+  });
+
+  it("paginates videos across pages", () => {
+    const model = buildModel({
+      page: 2,
+      perPage: 2,
+      pageKey: "videos",
+      videos: [
+        buildVideo({ filename: "a.mp4" }),
+        buildVideo({ filename: "b.mp4" }),
+        buildVideo({ filename: "c.mp4" }),
+      ],
+    });
+
+    expect(getArtifactPagination(model).pageItems.map((item) => item.filename)).toEqual([
+      "c.mp4",
+    ]);
   });
 });
 
@@ -149,8 +183,8 @@ function buildModel(overrides: Partial<ArtifactPageModel> = {}): ArtifactPageMod
     downloads: [],
     logFiles: {},
     logs: [],
-    logsPage: 1,
-    logsPerPage: 10,
+    page: 1,
+    perPage: 10,
     logSearch: "",
     pageKey: "videos",
     preferences: {

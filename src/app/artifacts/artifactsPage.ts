@@ -23,7 +23,7 @@ export interface ArtifactLogFileState {
 
 export interface ArtifactPagination {
   currentPage: number;
-  pageItems: LogArtifact[];
+  pageItems: ArtifactItem[];
   perPage: number;
   totalPages: number;
 }
@@ -33,8 +33,8 @@ export interface ArtifactPageModel {
   downloads: DownloadArtifact[];
   logFiles: Record<string, ArtifactLogFileState>;
   logs: LogArtifact[];
-  logsPage: number;
-  logsPerPage: number;
+  page: number;
+  perPage: number;
   logSearch: string;
   pageKey: ArtifactPageKey;
   preferences: ArtifactPagePreferences;
@@ -62,7 +62,7 @@ export const artifactPageTitles: Record<ArtifactPageKey, string> = {
 };
 
 const defaultDrawerRatio = 0.37;
-const logsPerPageOptions = [10, 20, 50, 100];
+const artifactPerPageOptions = [10, 20, 50, 100];
 
 export function getArtifactPageCopy(model: ArtifactPageModel): ArtifactPageCopy {
   const title = artifactPageTitles[model.pageKey];
@@ -119,30 +119,26 @@ export function getFilteredArtifactItems(model: ArtifactPageModel): ArtifactItem
 }
 
 export function getVisibleArtifactItems(model: ArtifactPageModel): ArtifactItem[] {
-  if (model.pageKey !== "logs") {
-    return getFilteredArtifactItems(model);
-  }
-
-  return getLogPagination(model).pageItems;
+  return getArtifactPagination(model).pageItems;
 }
 
-export function getLogPagination(model: ArtifactPageModel): ArtifactPagination {
-  const filteredLogs = getFilteredLogs(model);
-  const perPage = model.logsPerPage;
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / perPage));
-  const currentPage = Math.min(model.logsPage, totalPages);
+export function getArtifactPagination(model: ArtifactPageModel): ArtifactPagination {
+  const filtered = getFilteredArtifactItems(model);
+  const perPage = model.perPage;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const currentPage = Math.min(Math.max(1, model.page), totalPages);
   const start = (currentPage - 1) * perPage;
 
   return {
     currentPage,
-    pageItems: filteredLogs.slice(start, start + perPage),
+    pageItems: filtered.slice(start, start + perPage),
     perPage,
     totalPages,
   };
 }
 
-export function getLogsPerPageOptions(): number[] {
-  return [...logsPerPageOptions];
+export function getArtifactPerPageOptions(): number[] {
+  return [...artifactPerPageOptions];
 }
 
 export function getSelectedArtifact(model: ArtifactPageModel): ArtifactItem | null {

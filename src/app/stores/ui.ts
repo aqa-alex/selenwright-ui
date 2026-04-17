@@ -3,23 +3,33 @@ import { defineStore } from "pinia";
 export type ArtifactPage = "videos" | "logs" | "downloads";
 
 export type SelectedArtifacts = Record<ArtifactPage, string | null>;
+export type ArtifactPageNumbers = Record<ArtifactPage, number>;
+export type ArtifactPageSizes = Record<ArtifactPage, number>;
 
 export interface UiState {
   artifactSessionFilter: string;
-  logsPage: number;
-  logsPerPage: number;
+  artifactPageNumbers: ArtifactPageNumbers;
+  artifactPageSizes: ArtifactPageSizes;
   logSearch: string;
   quickJumpQuery: string;
   selectedArtifacts: SelectedArtifacts;
 }
 
-const defaultLogsPerPage = 10;
+const defaultPageSize = 10;
+
+function initialPageNumbers(): ArtifactPageNumbers {
+  return { downloads: 1, logs: 1, videos: 1 };
+}
+
+function initialPageSizes(): ArtifactPageSizes {
+  return { downloads: defaultPageSize, logs: defaultPageSize, videos: defaultPageSize };
+}
 
 export const useUiStore = defineStore("ui", {
   state: (): UiState => ({
     artifactSessionFilter: "",
-    logsPage: 1,
-    logsPerPage: defaultLogsPerPage,
+    artifactPageNumbers: initialPageNumbers(),
+    artifactPageSizes: initialPageSizes(),
     logSearch: "",
     quickJumpQuery: "",
     selectedArtifacts: {
@@ -41,19 +51,34 @@ export const useUiStore = defineStore("ui", {
     clearArtifactSessionFilter() {
       this.artifactSessionFilter = "";
     },
-    nextLogsPage() {
-      this.logsPage += 1;
+    nextArtifactPage(pageKey: ArtifactPage) {
+      this.artifactPageNumbers = {
+        ...this.artifactPageNumbers,
+        [pageKey]: this.artifactPageNumbers[pageKey] + 1,
+      };
     },
-    prevLogsPage() {
-      this.logsPage = Math.max(1, this.logsPage - 1);
+    prevArtifactPage(pageKey: ArtifactPage) {
+      this.artifactPageNumbers = {
+        ...this.artifactPageNumbers,
+        [pageKey]: Math.max(1, this.artifactPageNumbers[pageKey] - 1),
+      };
     },
-    setLogsPage(page: number) {
-      this.logsPage = Math.max(1, page);
+    setArtifactPage(pageKey: ArtifactPage, page: number) {
+      this.artifactPageNumbers = {
+        ...this.artifactPageNumbers,
+        [pageKey]: Math.max(1, page),
+      };
     },
-    setLogsPerPage(perPage: number) {
-      const parsed = Number.isFinite(perPage) ? Math.max(1, Math.floor(perPage)) : defaultLogsPerPage;
-      this.logsPerPage = parsed;
-      this.logsPage = 1;
+    setArtifactPageSize(pageKey: ArtifactPage, perPage: number) {
+      const parsed = Number.isFinite(perPage) ? Math.max(1, Math.floor(perPage)) : defaultPageSize;
+      this.artifactPageSizes = {
+        ...this.artifactPageSizes,
+        [pageKey]: parsed,
+      };
+      this.artifactPageNumbers = {
+        ...this.artifactPageNumbers,
+        [pageKey]: 1,
+      };
     },
     setLogSearch(query: string) {
       this.logSearch = query;
