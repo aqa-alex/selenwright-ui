@@ -50,6 +50,11 @@ export function createEmptyDataset(target = DEFAULT_TARGET): ConsoleDataset {
     },
     downloads: [],
     logs: [],
+    sectionErrors: {
+      downloads: "",
+      logs: "",
+      videos: "",
+    },
     settings: {
       artifactHistory: {
         available: false,
@@ -135,14 +140,20 @@ export function buildConsoleDatasetFromSnapshot(snapshot: ConsoleSnapshot = {}):
 
   if (snapshot.logs?.ok && Array.isArray(snapshot.logs.value)) {
     dataset.logs = buildArtifactList(snapshot.logs.value, "log");
+  } else if (snapshot.logs && !snapshot.logs.ok) {
+    dataset.sectionErrors.logs = snapshot.logs.error || "Logs endpoint unavailable";
   }
 
   if (snapshot.videos?.ok && Array.isArray(snapshot.videos.value)) {
     dataset.videos = buildArtifactList(snapshot.videos.value, "video");
+  } else if (snapshot.videos && !snapshot.videos.ok) {
+    dataset.sectionErrors.videos = snapshot.videos.error || "Videos endpoint unavailable";
   }
 
   if (snapshot.downloads?.ok && Array.isArray(snapshot.downloads.value)) {
     dataset.downloads = buildDownloadList(snapshot.downloads.value);
+  } else if (snapshot.downloads && !snapshot.downloads.ok) {
+    dataset.sectionErrors.downloads = snapshot.downloads.error || "Downloads endpoint unavailable";
   }
 
   if (snapshot.historySettings?.ok && snapshot.historySettings.value) {

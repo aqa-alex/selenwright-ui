@@ -5,7 +5,11 @@ export {
   loadConsoleData,
   subscribeToConsoleData,
 } from "./console";
-export { loadLogFileContent, subscribeToLiveLogs } from "./artifacts";
+export {
+  enrichDatasetArtifacts,
+  loadLogFileContent,
+  subscribeToLiveLogs,
+} from "./artifacts";
 export { saveArtifactHistorySettings } from "./settings";
 export { terminateSession, type TerminateProtocol } from "./sessions";
 export { fetchDiscoveredBrowsers, adoptBrowser, dismissBrowser, rescanBrowsers } from "./discovery";

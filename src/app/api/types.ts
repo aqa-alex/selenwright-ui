@@ -212,12 +212,19 @@ export interface DownloadArtifact {
   size: number;
 }
 
+export interface ConsoleDatasetSectionErrors {
+  downloads: string;
+  logs: string;
+  videos: string;
+}
+
 export interface ConsoleDataset {
   browsers: BrowserInventoryRow[];
   configuration: ConfigurationData;
   connection: ConsoleConnectionState;
   downloads: DownloadArtifact[];
   logs: LogArtifact[];
+  sectionErrors: ConsoleDatasetSectionErrors;
   settings: {
     artifactHistory: ArtifactHistorySettings;
   };
