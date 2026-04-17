@@ -547,8 +547,9 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <ul class="sectlevel2">
 <li><a href="#_start_the_stack">2.1. Start the stack</a></li>
 <li><a href="#_log_in">2.2. Log in</a></li>
-<li><a href="#_what_you_should_see">2.3. What you should see</a></li>
-<li><a href="#_run_the_ui_without_the_upstream">2.4. Run the UI without the upstream</a></li>
+<li><a href="#_issue_tokens_to_your_team">2.3. Issue tokens to your team</a></li>
+<li><a href="#_what_you_should_see">2.4. What you should see</a></li>
+<li><a href="#_run_the_ui_without_the_upstream">2.5. Run the UI without the upstream</a></li>
 </ul>
 </li>
 <li><a href="#_running_locally">3. Running Locally</a>
@@ -675,6 +676,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <ul class="sectlevel3">
 <li><a href="#_admin_users">20.2.1. Admin users</a></li>
 <li><a href="#_groups">20.2.2. Groups</a></li>
+<li><a href="#_api_tokens_for_machine_clients">20.2.3. API tokens for machine clients</a></li>
 </ul>
 </li>
 <li><a href="#_auth_mode_trusted_proxy">20.3. Auth mode: <code>trusted-proxy</code></a></li>
@@ -836,7 +838,13 @@ docker compose up -d</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_what_you_should_see"><a class="anchor" href="#_what_you_should_see"></a>2.3. What you should see</h3>
+<h3 id="_issue_tokens_to_your_team"><a class="anchor" href="#_issue_tokens_to_your_team"></a>2.3. Issue tokens to your team</h3>
+<div class="paragraph">
+<p>Once you&#8217;re signed in as an admin, go to <strong>Settings → API Tokens</strong> to mint a bearer token for each Playwright/Selenium runner or teammate. Pick the owner from the dropdown, give the token a human-readable name (e.g. <code>laptop-alice</code>, <code>ci-runner</code>), and copy the plaintext from the modal — it is shown once. Hand it over through a secret manager, not chat. Revocation lives on the same page (single token or bulk by owner, useful for offboarding).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_what_you_should_see"><a class="anchor" href="#_what_you_should_see"></a>2.4. What you should see</h3>
 <div class="ulist">
 <ul>
 <li>
@@ -855,7 +863,7 @@ docker compose up -d</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_run_the_ui_without_the_upstream"><a class="anchor" href="#_run_the_ui_without_the_upstream"></a>2.4. Run the UI without the upstream</h3>
+<h3 id="_run_the_ui_without_the_upstream"><a class="anchor" href="#_run_the_ui_without_the_upstream"></a>2.5. Run the UI without the upstream</h3>
 <div class="paragraph">
 <p>If you only want to look around the UI, run it in demo mode — it serves a built-in fixture dataset without contacting an upstream:</p>
 </div>
@@ -2258,6 +2266,18 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <p>If the upstream associates users with groups (configurable via upstream flags — see the Selenwright auth docs), groups feed into ownership checks: a user can terminate any session owned by another member of the same group.</p>
 </div>
 </div>
+<div class="sect3">
+<h4 id="_api_tokens_for_machine_clients"><a class="anchor" href="#_api_tokens_for_machine_clients"></a>20.2.3. API tokens for machine clients</h4>
+<div class="paragraph">
+<p>Humans log into the UI with an htpasswd password. Playwright, Selenium, and CI runners use <strong>bearer tokens</strong> instead — the UI never shows them the login form. An admin mints tokens on behalf of team members from <strong>Settings → API Tokens</strong>, then hands them over through a secret manager (1Password, Bitwarden, Keybase). Plaintext is shown once at creation time and then only stored as a bcrypt hash.</p>
+</div>
+<div class="paragraph">
+<p>If a token is lost: the admin revokes it on the same page and creates a replacement. When a team member leaves, the admin filters the page by owner and revokes the whole batch in one action.</p>
+</div>
+<div class="paragraph">
+<p>Tokens inherit the owner&#8217;s groups at creation time, so group-based session ACL continues to apply. The UI itself does not accept a pasted token in place of a password — the login form is always an htpasswd user/password pair.</p>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_auth_mode_trusted_proxy"><a class="anchor" href="#_auth_mode_trusted_proxy"></a>20.3. Auth mode: <code>trusted-proxy</code></h3>
@@ -3144,7 +3164,7 @@ curl -sS -i \
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2026-04-17 13:16:20 UTC
+Last updated 2026-04-17 14:00:42 UTC
 </div>
 </div>
 </body>
