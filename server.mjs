@@ -10,6 +10,7 @@ import {
   readWebSocketFrame,
 } from "./server-ws-frame.mjs";
 import { isOriginAllowed, parseAllowedOrigins } from "./server-origin.mjs";
+import { formatForwardedHeaderLines } from "./server-ws-auth.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
@@ -101,6 +102,16 @@ const apiRoutes = new Map([
   ["/api/whoami", { accept: "application/json", upstream: "/whoami" }],
   ["/api/login", { accept: "application/json", upstream: "/login" }],
   ["/api/logout", { accept: "application/json", upstream: "/logout" }],
+  // Admin-managed API token endpoints. buildUpstreamUrl is used instead of a
+  // static `upstream:` so `?owner=` (list/filter, bulk revoke) is forwarded.
+  ["/api/admin/tokens", {
+    accept: "application/json",
+    buildUpstreamUrl: (requestUrl) => new URL(`/api/admin/tokens${requestUrl.search}`, target),
+  }],
+  ["/api/admin/users", {
+    accept: "application/json",
+    buildUpstreamUrl: (requestUrl) => new URL(`/api/admin/users${requestUrl.search}`, target),
+  }],
 ]);
 const consoleStreamClients = new Set();
 let consoleSnapshotCache = null;
@@ -540,15 +551,15 @@ function handleLiveLogStream(req, res, requestUrl) {
       : "connect";
 
   upstreamSocket.once(connectEvent, () => {
-    upstreamSocket.write(buildUpstreamWebSocketHandshake(upstreamUrl));
+    upstreamSocket.write(buildUpstreamWebSocketHandshake(upstreamUrl, req.headers));
   });
 }
 
-function buildUpstreamWebSocketHandshake(upstreamUrl) {
+function buildUpstreamWebSocketHandshake(upstreamUrl, clientHeaders) {
   const key = randomBytes(16).toString("base64");
   const origin = buildUpstreamOrigin(upstreamUrl);
 
-  return [
+  const lines = [
     `GET ${upstreamUrl.pathname}${upstreamUrl.search} HTTP/1.1`,
     `Host: ${upstreamUrl.host}`,
     "Connection: Upgrade",
@@ -556,8 +567,10 @@ function buildUpstreamWebSocketHandshake(upstreamUrl) {
     `Origin: ${origin}`,
     `Sec-WebSocket-Key: ${key}`,
     "Sec-WebSocket-Version: 13",
+    ...formatForwardedHeaderLines(clientHeaders),
     "\r\n",
-  ].join("\r\n");
+  ];
+  return lines.join("\r\n");
 }
 
 function buildUpstreamOrigin(upstreamUrl) {
@@ -908,6 +921,25 @@ function resolveApiRoute(requestUrl) {
     };
   }
 
+  if (requestUrl.pathname.startsWith("/api/admin/tokens/")) {
+    const rawTokenId = requestUrl.pathname.slice("/api/admin/tokens/".length);
+    if (!rawTokenId || rawTokenId.includes("/")) {
+      return {
+        error: {
+          message: "Token id is required",
+          statusCode: 400,
+        },
+      };
+    }
+
+    const encodedTokenId = encodePathSegment(rawTokenId);
+    return {
+      accept: "application/json",
+      buildUpstreamUrl: (url) =>
+        new URL(`/api/admin/tokens/${encodedTokenId}${url.search}`, target),
+    };
+  }
+
   if (requestUrl.pathname.startsWith("/api/clipboard/")) {
     const rawSessionId = requestUrl.pathname.slice("/api/clipboard/".length);
     if (!rawSessionId) {
@@ -1049,6 +1081,7 @@ function handleWebSocketProxyUpgrade(req, socket, head, buildUpstreamUrl) {
     }
   }
 
+  upstreamHeaders.push(...formatForwardedHeaderLines(req.headers));
   upstreamHeaders.push("\r\n");
 
   upstreamSocket.on("error", () => {
