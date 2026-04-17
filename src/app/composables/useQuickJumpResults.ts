@@ -2,11 +2,13 @@ import { computed, type ComputedRef } from "vue";
 import { formatStatus } from "../../lib/format";
 import { buildSessionPath, navGroups } from "../router";
 import { useConsoleSnapshotQuery } from "../queries/useConsoleSnapshotQuery";
+import { useIdentityStore } from "../stores/identity";
 import { useUiStore } from "../stores/ui";
 import type { ShellQuickJumpResult } from "../types";
 
 export function useQuickJumpResults(): ComputedRef<ShellQuickJumpResult[]> {
   const snapshotQuery = useConsoleSnapshotQuery();
+  const identityStore = useIdentityStore();
   const uiStore = useUiStore();
 
   return computed<ShellQuickJumpResult[]>(() => {
@@ -15,6 +17,7 @@ export function useQuickJumpResults(): ComputedRef<ShellQuickJumpResult[]> {
 
     const pageResults: ShellQuickJumpResult[] = navGroups
       .flatMap((group) => group.items)
+      .filter((item) => !item.adminOnly || identityStore.effectiveAdmin)
       .map((item) => ({
         kind: "Page",
         meta: item.href,

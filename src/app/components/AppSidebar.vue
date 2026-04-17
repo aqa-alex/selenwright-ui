@@ -2,20 +2,27 @@
 import { computed } from "vue";
 import { icon } from "../../components/icons";
 import { navGroups } from "../router";
+import { useIdentityStore } from "../stores/identity";
 
 const props = defineProps<{
   routeName: string;
 }>();
 
+const identityStore = useIdentityStore();
+
 const navigationGroups = computed(() =>
-  navGroups.map((group) => ({
-    ...group,
-    items: group.items.map((item) => ({
-      ...item,
-      active: isNavItemActive(props.routeName, item.href),
-      iconMarkup: icon(item.icon),
-    })),
-  })),
+  navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items
+        .filter((item) => !item.adminOnly || identityStore.effectiveAdmin)
+        .map((item) => ({
+          ...item,
+          active: isNavItemActive(props.routeName, item.href),
+          iconMarkup: icon(item.icon),
+        })),
+    }))
+    .filter((group) => group.items.length > 0),
 );
 
 function isNavItemActive(routeName: string, href: string) {
@@ -30,6 +37,9 @@ function isNavItemActive(routeName: string, href: string) {
   }
   if (href === "/artifacts/downloads") {
     return routeName === "downloads";
+  }
+  if (href === "/settings/api-tokens") {
+    return routeName === "api-tokens";
   }
   return href.endsWith(routeName);
 }
