@@ -260,7 +260,7 @@ watch(
     <ConsolePanel title="Stack">
       <p class="hint-text">Pull updated container images and recreate the compose stack.</p>
       <template v-if="stackStatus && stackAvailable">
-        <div class="key-value-list compact">
+        <div class="key-value-list compact stack-rows">
           <div
             v-for="svc in stackStatus.services"
             :key="svc.service"
@@ -293,7 +293,7 @@ watch(
           </div>
           <div
             v-if="stackUi.pullResult"
-            class="key-value-list compact"
+            class="key-value-list compact stack-rows"
           >
             <div
               v-for="r in stackUi.pullResult.results"
@@ -353,3 +353,24 @@ watch(
     </ConsolePanel>
   </div>
 </template>
+
+<style scoped>
+.stack-rows :deep(.copyable-row) {
+  align-items: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.stack-rows :deep(.copyable-row > span) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stack-rows :deep(.copyable-row > strong) {
+  flex: 0 0 auto;
+  text-align: right;
+}
+</style>
