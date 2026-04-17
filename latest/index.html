@@ -583,10 +583,9 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <li><a href="#_header">7.1. Header</a></li>
 <li><a href="#_action_row">7.2. Action row</a></li>
 <li><a href="#_overview_panel">7.3. Overview panel</a></li>
-<li><a href="#_artifacts_panel">7.4. Artifacts panel</a></li>
-<li><a href="#_logs_side_pane">7.5. Logs (side pane)</a></li>
-<li><a href="#_session_termination">7.6. Session termination</a></li>
-<li><a href="#_relationship_to_artefacts">7.7. Relationship to artefacts</a></li>
+<li><a href="#_logs_side_pane">7.4. Logs (side pane)</a></li>
+<li><a href="#_session_termination">7.5. Session termination</a></li>
+<li><a href="#_relationship_to_artefacts">7.6. Relationship to artefacts</a></li>
 </ul>
 </li>
 <li><a href="#_live_view">8. Live View</a>
@@ -746,7 +745,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 </div>
 <div class="paragraph">
 <p>Selenwright UI is the operator console for <a href="https://github.com/aqa-alex/selenwright">Selenwright</a> — a browser automation grid with native Selenium WebDriver and Playwright WebSocket support.
-It is a single-page Vue application served by a small Node.js HTTP proxy that forwards <code>/api/*</code>, SSE, and WebSocket traffic to the upstream Selenwright service.
+It is a Vue frontend served by a small Node.js HTTP proxy that forwards <code>/api/*</code>, SSE, and WebSocket traffic to the upstream Selenwright service.
 Please refer to the <a href="https://github.com/aqa-alex/selenwright-ui">GitHub repository</a> if you need source code.</p>
 </div>
 </div>
@@ -1339,60 +1338,13 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <p><strong>Quota</strong> — the quota name the session was counted against (if any).</p>
 </li>
 <li>
-<p><strong>Artifacts</strong> — compact chips indicating which of video / saved logs / live logs / downloads / clipboard / devtools are present.</p>
+<p><strong>Artifacts</strong> — compact chips: <strong>Video</strong>, <strong>Logs</strong>, and a downloads chip labelled <code>DL N</code> where <em>N</em> is the number of captured files (e.g. <code>DL 3</code>). Shows <strong>None</strong> when nothing is attached.</p>
 </li>
 </ul>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_artifacts_panel"><a class="anchor" href="#_artifacts_panel"></a>7.4. Artifacts panel</h3>
-<div class="paragraph">
-<p>One row per artefact kind. Each row has the status on the left and an <strong>Open</strong> button on the right — when there is something to open. Rows that have nothing yet show muted status text instead of a button.</p>
-</div>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 20%;">
-<col style="width: 40%;">
-<col style="width: 40%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Kind</th>
-<th class="tableblock halign-left valign-top">Status shown</th>
-<th class="tableblock halign-left valign-top">Action</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Video</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>{session-id}.mp4</code> when a recording exists, otherwise <code>Unavailable</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Open</strong> → <a href="#_videos">Videos</a> pre-filtered to this session, or no button</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Logs</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Saved filename (or <code>{session-id}.log</code>) when the upstream saved a file; <code>Live stream available</code> while the session is running without a saved file yet; <code>Unavailable</code> otherwise</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Open</strong> → <a href="#_logs">Logs</a> for saved; <code>Live in detail</code> hint for live-only (no button — the live tail is already in the side pane); no button when unavailable</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Downloads</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>N files</code> when the session produced downloads, else <code>None</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Open</strong> → <a href="#_downloads">Downloads</a>, or no button</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Clipboard</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Snapshot available</code> / <code>Unavailable</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">No button — clipboard is read via the noVNC viewer&#8217;s clipboard panel (see <a href="#_live_view">Live View</a>)</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>DevTools</strong></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>Endpoint available</code> / <code>Unavailable</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">No button — the endpoint URL is copied via the <strong>Copy DevTools endpoint</strong> button in the action row</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="sect2">
-<h3 id="_logs_side_pane"><a class="anchor" href="#_logs_side_pane"></a>7.5. Logs (side pane)</h3>
+<h3 id="_logs_side_pane"><a class="anchor" href="#_logs_side_pane"></a>7.4. Logs (side pane)</h3>
 <div class="paragraph">
 <p>A <strong>Logs</strong> panel sits to the right of the main content. For active sessions it tails the upstream log stream live (see <a href="#_live_logs">Live Logs</a>); for finished sessions it renders the saved log file if one exists, with search and pagination.</p>
 </div>
@@ -1401,7 +1353,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_session_termination"><a class="anchor" href="#_session_termination"></a>7.6. Session termination</h3>
+<h3 id="_session_termination"><a class="anchor" href="#_session_termination"></a>7.5. Session termination</h3>
 <div class="paragraph">
 <p>Covered by the <strong>Terminate</strong> button above. Works identically for Selenium and Playwright sessions (the upstream handles the protocol difference). Ownership rules:</p>
 </div>
@@ -1423,7 +1375,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_relationship_to_artefacts"><a class="anchor" href="#_relationship_to_artefacts"></a>7.7. Relationship to artefacts</h3>
+<h3 id="_relationship_to_artefacts"><a class="anchor" href="#_relationship_to_artefacts"></a>7.6. Relationship to artefacts</h3>
 <div class="paragraph">
 <p>When a session ends the live log stream closes. The saved log file — if the upstream is configured to persist one — appears under <strong>Logs</strong> and replaces the live tail in the side pane. Videos and downloads follow the same pattern.</p>
 </div>
@@ -1469,10 +1421,10 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Selenium capability.</strong> Add <code>enableVNC: true</code> to the session capabilities (or nest it under <code>selenwright:options</code> / <code>se:selenwright:options</code> depending on your client).</p>
+<p><strong>Selenium capability.</strong> Add <code>enableVNC: true</code> to the session capabilities — either top-level, or nested under the Selenoid-inherited <code>selenoid:options</code> extension object.</p>
 </li>
 <li>
-<p><strong>Playwright query parameter.</strong> Append <code>?enableVNC=true</code> to the WebSocket connection URL: <code>ws://selenwright:4444/playwright/chromium?enableVNC=true</code>. The upstream&#8217;s <code>playwright.go</code> handler reads the query param and sets the same <code>caps.VNC</code> flag the Selenium path uses.</p>
+<p><strong>Playwright query parameter.</strong> Append <code>?enableVNC=true</code> to the WebSocket connection URL. The full path is <code>/playwright/&lt;browser&gt;/&lt;playwright-version&gt;</code> — for example <code>ws://selenwright:4444/playwright/chromium/1.56.1?enableVNC=true</code>. The upstream&#8217;s <code>playwright.go</code> handler reads the query param and sets the same <code>caps.VNC</code> flag the Selenium path uses.</p>
 </li>
 <li>
 <p><strong>Server default.</strong> Start the upstream with <code>-default-enable-vnc=true</code> (the shipped <code>docker-compose.yml</code> does this) and VNC is on for every new session unless the client explicitly turns it off (<code>enableVNC: false</code> capability for Selenium, <code>?enableVNC=false</code> for Playwright).</p>
@@ -1627,7 +1579,10 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <div class="sect2">
 <h3 id="_filtering_by_session"><a class="anchor" href="#_filtering_by_session"></a>10.3. Filtering by session</h3>
 <div class="paragraph">
-<p>Each artefact page has a <strong>session</strong> filter that narrows the table to artefacts of a single session id. Deep-links like <code>/artifacts/videos?session=abc-123</code> are supported and used by the session detail view when you click an artefact indicator.</p>
+<p>The artefact pages share a single session filter. It is set by the <strong>Open saved log</strong> / <strong>Open logs</strong> button on the session detail <strong>Logs</strong> pane — clicking either navigates to the Logs artefact page filtered to that session. From there, switching to <strong>Videos</strong> or <strong>Downloads</strong> via the sidebar keeps the filter applied, so you can see everything produced by the same run.</p>
+</div>
+<div class="paragraph">
+<p>While the filter is active, a <strong>Clear session filter</strong> button appears in the page header. The filter is in-memory UI state — it is not part of the URL and does not survive a full page reload.</p>
 </div>
 </div>
 </div>
@@ -1679,29 +1634,23 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </tbody>
 </table>
 <div class="paragraph">
-<p>Sort by any column, filter by session in the toolbar, search by filename.</p>
+<p>Rows are plain — no column sorting, no search, and no toolbar filter. The <strong>Actions</strong> column gives each row an <strong>Inspect</strong> button that opens the drawer. For narrowing the list to a single session see <a href="#_filtering_by_session">Filtering by session</a> under <a href="#_artefacts">Artefacts</a>.</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_drawer_preview"><a class="anchor" href="#_drawer_preview"></a>11.2. Drawer preview</h3>
 <div class="paragraph">
-<p>Selecting a row opens the video in the right-hand drawer:</p>
+<p>Selecting a row opens a metadata inspector — the video itself is <strong>not</strong> embedded or streamed in the UI.</p>
 </div>
 <div class="ulist">
 <ul>
 <li>
-<p><strong>Native HTML5 <code>&lt;video&gt;</code> element</strong> streamed from the upstream on demand (subject to <code>SELENWRIGHT_ARTIFACT_TIMEOUT_MS</code>, default 15s per chunk).</p>
+<p>Key/value list: <strong>Session</strong>, <strong>Browser</strong>, <strong>Protocol</strong>, <strong>Created</strong>, <strong>Duration</strong>, <strong>Size</strong>.</p>
 </li>
 <li>
-<p><strong>Standard controls</strong> — play/pause, scrub, volume, full-screen, playback rate.</p>
-</li>
-<li>
-<p><strong>Download link</strong> — offers the raw MP4 for save-as.</p>
+<p><strong>Copy filename</strong> copies the filename to the clipboard.</p>
 </li>
 </ul>
-</div>
-<div class="paragraph">
-<p>Codec: the upstream video recorder ships MP4 (H.264 / AAC) by default. Browsers without MP4 playback support can still download the file via the drawer&#8217;s link.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1868,7 +1817,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <div class="sect2">
 <h3 id="_session_scoping"><a class="anchor" href="#_session_scoping"></a>13.3. Session scoping</h3>
 <div class="paragraph">
-<p>Downloads are grouped by session. The toolbar has a session filter so you can focus on a single run, and the session detail page links directly to this page pre-filtered.</p>
+<p>Each row&#8217;s <strong>Session</strong> column identifies the session that produced the file. See <a href="#_filtering_by_session">Filtering by session</a> under <a href="#_artefacts">Artefacts</a> for how the shared session filter is set and cleared.</p>
 </div>
 </div>
 </div>
@@ -2890,7 +2839,7 @@ docker run --rm -p 127.0.0.1:4173:4173 \
 
 <span class="key">services</span>:
   <span class="key">selenwright</span>:
-    <span class="key">image</span>: <span class="string"><span class="content">aqaalex/selenwright:latest</span></span>
+    <span class="key">image</span>: <span class="string"><span class="content">selenwright/hub:latest-release</span></span>
     <span class="key">container_name</span>: <span class="string"><span class="content">selenwright</span></span>
     <span class="key">restart</span>: <span class="string"><span class="content">unless-stopped</span></span>
     <span class="key">command</span>:
@@ -2914,7 +2863,7 @@ docker run --rm -p 127.0.0.1:4173:4173 \
       - <span class="string"><span class="content">selenwright-net</span></span>
 
   <span class="key">selenwright-ui</span>:
-    <span class="key">image</span>: <span class="string"><span class="content">aqaalex/selenwright-ui:latest</span></span>
+    <span class="key">image</span>: <span class="string"><span class="content">selenwright/selenwright-ui:latest-release</span></span>
     <span class="key">container_name</span>: <span class="string"><span class="content">selenwright-ui</span></span>
     <span class="key">restart</span>: <span class="string"><span class="content">unless-stopped</span></span>
     <span class="key">depends_on</span>:
@@ -2974,18 +2923,31 @@ docker run --rm -p 127.0.0.1:4173:4173 \
 <div class="sect2">
 <h3 id="_versions"><a class="anchor" href="#_versions"></a>25.4. Versions</h3>
 <div class="paragraph">
-<p>Pin versions in production:</p>
+<p>Pin versions in production. Substitute the actual release tag (see the Docker Hub pages for <a href="https://hub.docker.com/r/selenwright/hub/tags"><code>selenwright/hub</code></a> and <a href="https://hub.docker.com/r/selenwright/selenwright-ui/tags"><code>selenwright/selenwright-ui</code></a>):</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="CodeRay highlight"><code data-lang="yaml">  <span class="key">selenwright</span>:
-    <span class="key">image</span>: <span class="string"><span class="content">aqaalex/selenwright:v1.2.3</span></span>
+    <span class="key">image</span>: <span class="string"><span class="content">selenwright/hub:vX.Y.Z</span></span>
   <span class="key">selenwright-ui</span>:
-    <span class="key">image</span>: <span class="string"><span class="content">aqaalex/selenwright-ui:v0.1.0</span></span></code></pre>
+    <span class="key">image</span>: <span class="string"><span class="content">selenwright/selenwright-ui:vX.Y.Z</span></span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>latest</code> tag moves on every green build and <code>latest-release</code> moves on every published release — convenient for dev, dangerous for prod.</p>
+<p>Three rolling tags are published by CI:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>:latest</code> — moves on every green build from <code>main</code>. Convenient for dev, dangerous for prod.</p>
+</li>
+<li>
+<p><code>:latest-release</code> — moves on every published GitHub release. Safe default for the Minimal stack above.</p>
+</li>
+<li>
+<p><code>:vX.Y.Z</code> — immutable per release. Use this when you need to pin a known-good version.</p>
+</li>
+</ul>
 </div>
 </div>
 </div>
@@ -3164,7 +3126,7 @@ curl -sS -i \
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2026-04-17 15:17:45 UTC
+Last updated 2026-04-17 15:19:54 UTC
 </div>
 </div>
 </body>
