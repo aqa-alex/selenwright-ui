@@ -15,15 +15,16 @@ export function useArtifactPageModel(
 
   return computed<ArtifactPageModel>(() => {
     const dataset = snapshotQuery.data.value;
+    const pageKey = toValue(pageKeyInput);
     return {
       artifactSessionFilter: uiStore.artifactSessionFilter,
       downloads: dataset?.downloads ?? [],
       logFiles: { ...consoleStore.logFiles },
       logs: dataset?.logs ?? [],
-      logsPage: uiStore.logsPage,
-      logsPerPage: uiStore.logsPerPage,
+      page: uiStore.artifactPageNumbers[pageKey],
+      perPage: uiStore.artifactPageSizes[pageKey],
       logSearch: uiStore.logSearch,
-      pageKey: toValue(pageKeyInput),
+      pageKey,
       preferences: {
         artifactPaneWidths: { ...preferencesStore.artifactPaneWidths },
         timeFormat: preferencesStore.timeFormat,
