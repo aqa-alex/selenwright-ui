@@ -9,6 +9,11 @@ export function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+export function formatSseEvent(eventName, payload) {
+  const lines = JSON.stringify(payload).split("\n");
+  return `event: ${eventName}\ndata: ${lines.join("\ndata: ")}\n\n`;
+}
+
 export function formatTimeoutMs(timeoutMs) {
   return timeoutMs % 1000 === 0 ? `${timeoutMs / 1000}s` : `${timeoutMs}ms`;
 }
