@@ -26,6 +26,7 @@ export interface ConfigurationItem {
 export interface BrowserCatalogVersion {
   version: string;
   image: string;
+  protocol?: string;
 }
 
 export interface BrowserCatalogEntry {

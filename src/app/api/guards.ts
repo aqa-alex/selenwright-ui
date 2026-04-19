@@ -17,6 +17,7 @@ export function isBrowserCatalogEntry(value: unknown): value is BrowserCatalogEn
     (version) =>
       isRecord(version) &&
       typeof version.version === "string" &&
-      (version.image === undefined || typeof version.image === "string"),
+      (version.image === undefined || typeof version.image === "string") &&
+      (version.protocol === undefined || typeof version.protocol === "string"),
   );
 }

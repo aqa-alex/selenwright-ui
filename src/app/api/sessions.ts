@@ -62,16 +62,19 @@ export function buildBrowserInventoryFromStatus(
   browserTree: JsonRecord,
   browserCatalog: BrowserCatalogEntry[] = [],
 ): BrowserInventoryRow[] {
-  const catalogMap = new Map<string, Map<string, string>>();
+  const catalogMap = new Map<string, Map<string, { image: string; protocol?: string }>>();
   for (const entry of browserCatalog) {
     if (!entry.name || !Array.isArray(entry.versions)) {
       continue;
     }
 
-    const versionMap = new Map(
+    const versionMap = new Map<string, { image: string; protocol?: string }>(
       entry.versions
         .filter((version) => version?.version)
-        .map((version) => [version.version, version.image || "—"]),
+        .map((version) => [
+          version.version,
+          { image: version.image || "—", protocol: version.protocol },
+        ]),
     );
     catalogMap.set(entry.name, versionMap);
   }
@@ -83,11 +86,12 @@ export function buildBrowserInventoryFromStatus(
     }
 
     for (const version of Object.keys(versions)) {
+      const catalogEntry = catalogMap.get(browser)?.get(version);
       rows.push({
         browser,
         version,
-        protocol: inferProtocol(browser),
-        source: catalogMap.get(browser)?.get(version) || "—",
+        protocol: normalizeProtocol(catalogEntry?.protocol) || inferProtocol(browser),
+        source: catalogEntry?.image || "—",
         status: "ready",
       });
     }
@@ -100,6 +104,20 @@ export function inferProtocol(browser: string): string {
   return browser === "chromium" || browser === "webkit"
     ? "playwright"
     : "selenium";
+}
+
+function normalizeProtocol(protocol: string | undefined): string {
+  if (!protocol) {
+    return "";
+  }
+  const lowered = protocol.toLowerCase();
+  if (lowered === "playwright") {
+    return "playwright";
+  }
+  if (lowered === "webdriver" || lowered === "selenium") {
+    return "selenium";
+  }
+  return "";
 }
 
 export function normalizeSessionStatus(raw: RawSessionEntry): string {

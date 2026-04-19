@@ -152,6 +152,52 @@ describe("data service normalization", () => {
     });
   });
 
+  it("derives inventory protocol from the browser catalog, not the browser name", () => {
+    const dataset = buildConsoleDatasetFromSnapshot({
+      fetchedAt: NOW_ISO,
+      config: {
+        ok: true,
+        value: {
+          raw: {
+            browserCatalog: [
+              {
+                name: "firefox",
+                versions: [
+                  { version: "1.59.1", image: "selenwright/playwright-firefox:1.59.1", protocol: "playwright" },
+                ],
+              },
+              {
+                name: "chrome",
+                versions: [
+                  { version: "stable", image: "selenwright/chrome:stable", protocol: "webdriver" },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      status: {
+        ok: true,
+        value: {
+          browsers: {
+            firefox: { "1.59.1": {} },
+            chrome: { stable: {} },
+          },
+          pending: 0,
+          queued: 0,
+          total: 0,
+          used: 0,
+          value: { message: "Ready", ready: true },
+        },
+      },
+    });
+
+    const firefox = dataset.browsers.find((row) => row.browser === "firefox");
+    const chrome = dataset.browsers.find((row) => row.browser === "chrome");
+    expect(firefox?.protocol).toBe("playwright");
+    expect(chrome?.protocol).toBe("selenium");
+  });
+
   it("respects explicit artifact history availability flags", () => {
     const dataset = buildConsoleDatasetFromSnapshot({
       fetchedAt: NOW_ISO,
