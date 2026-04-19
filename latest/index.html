@@ -645,6 +645,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <li><a href="#_sections">16.1. Sections</a></li>
 <li><a href="#_refresh">16.2. Refresh</a></li>
 <li><a href="#_where_to_change_things">16.3. Where to change things</a></li>
+<li><a href="#_non_obvious_fields">16.4. Non-obvious fields</a></li>
 </ul>
 </li>
 <li><a href="#_system">17. System</a>
@@ -1979,6 +1980,21 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <p>Configuration here is <strong>read-only</strong>. The mutable settings (artefact history retention, stack pull/recreate) live under <a href="#_settings">Settings</a>. Everything else is set via the upstream&#8217;s CLI flags at start time — see the Selenwright CLI Flags reference.</p>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_non_obvious_fields"><a class="anchor" href="#_non_obvious_fields"></a>16.4. Non-obvious fields</h3>
+<div class="paragraph">
+<p>A few entries on this page read oddly at first glance. They are accurate — the UI just surfaces upstream state directly.</p>
+</div>
+<div class="paragraph">
+<p><strong>Log config, Container log driver, Container log options</strong> — all three reflect the upstream&#8217;s <code>-log-conf &lt;path&gt;</code> flag, which points at a JSON file describing the Docker log driver applied to browser containers (<code>json-file</code>, <code>syslog</code>, <code>journald</code>, <code>awslogs</code>, etc.). "Unavailable" means the upstream was started without that flag. This is the default and is fine unless your environment requires a specific log driver. The schema and examples live in Selenwright&#8217;s <a href="https://github.com/aqa-alex/selenwright/blob/main/docs/logging-configuration-file.adoc">logging configuration file</a> reference.</p>
+</div>
+<div class="paragraph">
+<p><strong>Effective log capture</strong> — this row answers the practical question "will logs be written for new sessions?". Log capture is gated by an OR across three sources: the <code>-save-all-logs</code> flag, the artifact history toggle under <a href="#_settings">Settings</a>, and a per-session <code>enableLog</code> capability. The field spells out which source is active (<code>Enabled (via -save-all-logs)</code> or <code>Enabled (via artifact history)</code>), or <code>Opt-in (enableLog capability)</code> when only the per-session capability can turn capture on. The raw <code>-save-all-logs</code> flag value is available in the Raw configuration block at the bottom of the page.</p>
+</div>
+<div class="paragraph">
+<p><strong>File upload</strong> — "Disabled" by default. Enabled with the upstream&#8217;s <code>-enable-file-upload</code> flag, and only needed when Selenwright proxies directly to driver binaries without Docker. Official Docker browser images already bundle the required shim, so most deployments leave this off. Selenwright&#8217;s <a href="https://github.com/aqa-alex/selenwright/blob/main/docs/file-upload.adoc">File upload</a> reference covers the endpoint contract.</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -3126,7 +3142,7 @@ curl -sS -i \
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2026-04-17 15:19:54 UTC
+Last updated 2026-04-19 13:56:14 UTC
 </div>
 </div>
 </body>
