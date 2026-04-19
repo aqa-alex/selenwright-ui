@@ -1,6 +1,7 @@
-import { existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { withSecurityHeaders } from "./security.mjs";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(rootDir, "..");
@@ -31,6 +32,29 @@ export function resolveStaticRootDir() {
   }
 
   return repoRoot;
+}
+
+export function serveStaticFile(req, res, staticRootDir, urlPath) {
+  const filePath = resolveStaticFile(staticRootDir, urlPath);
+  if (!filePath) {
+    res.writeHead(404, withSecurityHeaders({ "Content-Type": "text/plain; charset=utf-8" }));
+    res.end("Not found");
+    return;
+  }
+
+  const contentType = mimeTypes[path.extname(filePath)] || "application/octet-stream";
+
+  res.writeHead(200, withSecurityHeaders({
+    "Cache-Control": "no-store",
+    "Content-Type": contentType,
+  }));
+
+  if (req.method === "HEAD") {
+    res.end();
+    return;
+  }
+
+  createReadStream(filePath).pipe(res);
 }
 
 export function resolveStaticFile(staticRootDir, urlPath) {

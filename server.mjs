@@ -1,5 +1,5 @@
-import { createReadStream, readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -11,18 +11,15 @@ import {
   target,
 } from "./server/config.mjs";
 import { withSecurityHeaders } from "./server/security.mjs";
-import { mimeTypes, resolveStaticFile, resolveStaticRootDir } from "./server/static.mjs";
+import { resolveStaticRootDir, serveStaticFile } from "./server/static.mjs";
 import { resolveApiRoute, resolveUpgradeHandler } from "./server/api-routes.mjs";
 import { handleApi } from "./server/api-proxy.mjs";
 import { handleConsoleStream } from "./server/console-hub.mjs";
 import { handleLiveLogStream } from "./server/live-log-relay.mjs";
 import { handleWebSocketProxyUpgrade } from "./server/ws-proxy.mjs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = __dirname;
-
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const staticRootDir = resolveStaticRootDir();
-
 
 const server = createServer(async (req, res) => {
   const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
@@ -38,7 +35,6 @@ const server = createServer(async (req, res) => {
   }
 
   const route = resolveApiRoute(requestUrl);
-
   if (route) {
     await handleApi(req, res, route, requestUrl);
     return;
@@ -56,27 +52,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  const filePath = resolveStaticFile(staticRootDir, requestUrl.pathname);
-  if (!filePath) {
-    res.writeHead(404, withSecurityHeaders({ "Content-Type": "text/plain; charset=utf-8" }));
-    res.end("Not found");
-    return;
-  }
-
-  const extension = path.extname(filePath);
-  const contentType = mimeTypes[extension] || "application/octet-stream";
-
-  res.writeHead(200, withSecurityHeaders({
-    "Cache-Control": "no-store",
-    "Content-Type": contentType,
-  }));
-
-  if (req.method === "HEAD") {
-    res.end();
-    return;
-  }
-
-  createReadStream(filePath).pipe(res);
+  serveStaticFile(req, res, staticRootDir, requestUrl.pathname);
 });
 
 server.on("upgrade", (req, socket, head) => {
