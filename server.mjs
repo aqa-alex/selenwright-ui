@@ -5,71 +5,42 @@ import { createConnection as createNetConnection } from "node:net";
 import path from "node:path";
 import { connect as createTlsConnection } from "node:tls";
 import { fileURLToPath } from "node:url";
-import {
-  DEFAULT_MAX_WS_FRAME_BYTES,
-  readWebSocketFrame,
-} from "./server-ws-frame.mjs";
-import { isOriginAllowed, parseAllowedOrigins } from "./server-origin.mjs";
+import { readWebSocketFrame } from "./server-ws-frame.mjs";
+import { isOriginAllowed } from "./server-origin.mjs";
 import { formatForwardedHeaderLines } from "./server-ws-auth.mjs";
+import {
+  allowedOrigins,
+  apiOnlyMode,
+  consoleHeartbeatIntervalMs,
+  consoleStreamPath,
+  consoleWatchIntervalMs,
+  demoMode,
+  host,
+  maxSseClientAgeMs,
+  maxSseClients,
+  maxWsFragmentedBytes,
+  maxWsFrameBytes,
+  port,
+  target,
+  terminateAttemptTimeoutMs,
+  upstreamArtifactTimeoutMs,
+  upstreamRequestTimeoutMs,
+} from "./server/config.mjs";
+import { withSecurityHeaders } from "./server/security.mjs";
+import {
+  fetchWithTimeout,
+  isUpstreamTimeoutError,
+  readRequestBody,
+  sendJson,
+  truncateBodyPreview,
+  withTimeout,
+} from "./server/http-utils.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
 const distDir = path.join(rootDir, "dist");
 
-const DEFAULT_UPSTREAM_TARGET = "http://127.0.0.1:4444";
-const DEFAULT_HOST = "127.0.0.1";
-const DEFAULT_PORT = 4173;
-
-const target = process.env.SELENWRIGHT_TARGET || DEFAULT_UPSTREAM_TARGET;
-const port = Number(process.env.PORT || DEFAULT_PORT);
-const host = process.env.HOST || DEFAULT_HOST;
-const apiOnlyMode = process.env.SELENWRIGHT_API_ONLY === "true";
-const consoleStreamPath = "/api/stream/console";
-const consoleWatchIntervalMs = Number(process.env.SELENWRIGHT_WATCH_INTERVAL_MS || 3000);
-const consoleHeartbeatIntervalMs = 15000;
-const upstreamRequestTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_UPSTREAM_TIMEOUT_MS, 5000);
-const upstreamArtifactTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_ARTIFACT_TIMEOUT_MS, 15000);
-const terminateAttemptTimeoutMs = readTimeoutMs(process.env.SELENWRIGHT_TERMINATE_TIMEOUT_MS, 3000);
-const demoMode = process.env.DEMO_MODE === "true";
 const staticRootDir = resolveStaticRootDir();
-const maxRequestBodyBytes = Number(process.env.SELENWRIGHT_MAX_BODY_BYTES || 1024 * 1024);
-const maxSseClients = Number(process.env.SELENWRIGHT_MAX_SSE_CLIENTS || 64);
-const maxSseClientAgeMs = Number(process.env.SELENWRIGHT_MAX_SSE_CLIENT_AGE_MS || 4 * 60 * 60 * 1000);
-const maxWsFrameBytes = Number(
-  process.env.SELENWRIGHT_WS_MAX_FRAME_BYTES || DEFAULT_MAX_WS_FRAME_BYTES,
-);
-const maxWsFragmentedBytes = Number(
-  process.env.SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES || 4 << 20,
-);
-const allowedOrigins = parseAllowedOrigins(process.env.SELENWRIGHT_ALLOWED_ORIGINS);
-
-const baseSecurityHeaders = {
-  "Referrer-Policy": "no-referrer",
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "SAMEORIGIN",
-};
-
-const htmlContentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
-  "font-src 'self' data:",
-  "connect-src 'self'",
-  "frame-ancestors 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join("; ");
-
-function withSecurityHeaders(headers = {}) {
-  const contentType = headers["Content-Type"] || headers["content-type"] || "";
-  const merged = { ...baseSecurityHeaders, ...headers };
-  if (/html/i.test(contentType) && !merged["Content-Security-Policy"]) {
-    merged["Content-Security-Policy"] = htmlContentSecurityPolicy;
-  }
-  return merged;
-}
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -118,55 +89,6 @@ let consoleSnapshotCache = null;
 let consoleSnapshotInFlight = null;
 let consoleSnapshotSignature = "";
 let consoleWatchTimer = null;
-
-function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, withSecurityHeaders({
-    "Cache-Control": "no-store",
-    "Content-Type": "application/json; charset=utf-8",
-  }));
-  res.end(JSON.stringify(payload));
-}
-
-function readTimeoutMs(rawValue, fallbackMs) {
-  const parsed = Number(rawValue);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs;
-}
-
-function formatTimeoutMs(timeoutMs) {
-  return timeoutMs % 1000 === 0 ? `${timeoutMs / 1000}s` : `${timeoutMs}ms`;
-}
-
-function createUpstreamTimeoutError(contextLabel, timeoutMs, cause) {
-  const error = new Error(`${contextLabel} timed out after ${formatTimeoutMs(timeoutMs)}.`);
-  error.cause = cause;
-  error.code = "UPSTREAM_TIMEOUT";
-  return error;
-}
-
-function isUpstreamTimeoutError(error) {
-  return Boolean(error) && typeof error === "object" && error.code === "UPSTREAM_TIMEOUT";
-}
-
-async function fetchWithTimeout(resource, options = {}, timeoutMs, contextLabel) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    return await fetch(resource, {
-      ...options,
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw createUpstreamTimeoutError(contextLabel, timeoutMs, error);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 function startConsoleWatcher() {
   if (consoleWatchTimer || !consoleStreamClients.size) {
@@ -1400,56 +1322,6 @@ async function readUpstreamJsonWithTimeout(response, timeoutMs, contextLabel) {
 
 async function readUpstreamArrayBufferWithTimeout(response, timeoutMs, contextLabel) {
   return withTimeout(response.arrayBuffer(), timeoutMs, contextLabel);
-}
-
-async function withTimeout(promise, timeoutMs, contextLabel) {
-  let timer = 0;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timer = setTimeout(() => {
-          reject(createUpstreamTimeoutError(contextLabel, timeoutMs));
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function readRequestBody(req) {
-  const contentLength = Number(req.headers["content-length"]);
-  if (Number.isFinite(contentLength) && contentLength > maxRequestBodyBytes) {
-    const error = new Error(`Request body exceeds ${maxRequestBodyBytes} bytes`);
-    error.code = "REQUEST_TOO_LARGE";
-    throw error;
-  }
-
-  const chunks = [];
-  let totalBytes = 0;
-  for await (const chunk of req) {
-    totalBytes += chunk.length;
-    if (totalBytes > maxRequestBodyBytes) {
-      const error = new Error(`Request body exceeds ${maxRequestBodyBytes} bytes`);
-      error.code = "REQUEST_TOO_LARGE";
-      throw error;
-    }
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-}
-
-function truncateBodyPreview(value) {
-  const normalized = String(value || "").replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return "<empty body>";
-  }
-  if (normalized.length <= 120) {
-    return normalized;
-  }
-  return `${normalized.slice(0, 117)}...`;
 }
 
 const server = createServer(async (req, res) => {
