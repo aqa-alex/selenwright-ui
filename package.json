@@ -14,7 +14,7 @@
     "check": "node scripts/check.mjs && npm run typecheck && npm run test:unit && playwright test",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
-    "lint": "eslint server.mjs server-origin.mjs server-ws-auth.mjs server-ws-frame.mjs scripts/ tests/ playwright.config.mjs"
+    "lint": "eslint server.mjs server-origin.mjs server-ws-auth.mjs server-ws-frame.mjs scripts/ tests/ playwright.config.mjs src/"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -22,9 +22,12 @@
     "@types/node": "^25.6.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^10.8.0",
     "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
     "vite": "~8.0.8",
     "vitest": "^4.1.4",
+    "vue-eslint-parser": "^10.4.0",
     "vue-tsc": "^3.1.1"
   },
   "dependencies": {

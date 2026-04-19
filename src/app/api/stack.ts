@@ -1,6 +1,5 @@
 import {
   buildHttpErrorMessage,
-  DEFAULT_REQUEST_TIMEOUT_MS,
   extractResponseErrorMessage,
   fetchJson,
   fetchWithTimeout,
