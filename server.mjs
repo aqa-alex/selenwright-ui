@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import { createConnection as createNetConnection } from "node:net";
@@ -31,29 +31,19 @@ import {
   fetchWithTimeout,
   isUpstreamTimeoutError,
   readRequestBody,
+  readUpstreamArrayBufferWithTimeout,
+  readUpstreamTextWithTimeout,
   sendJson,
   truncateBodyPreview,
-  withTimeout,
 } from "./server/http-utils.mjs";
+import { mimeTypes, resolveStaticFile, resolveStaticRootDir } from "./server/static.mjs";
+import { fetchConsoleSnapshot, stableSerialize } from "./server/snapshot.mjs";
+import { buildDemoConsoleSnapshot } from "./server/demo.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = __dirname;
-const distDir = path.join(rootDir, "dist");
 
 const staticRootDir = resolveStaticRootDir();
-
-const mimeTypes = {
-  ".css": "text/css; charset=utf-8",
-  ".html": "text/html; charset=utf-8",
-  ".ico": "image/x-icon",
-  ".js": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".map": "application/json; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-  ".txt": "text/plain; charset=utf-8",
-};
 
 const apiRoutes = new Map([
   ["/api/config", { accept: "application/json", upstream: "/config" }],
@@ -594,198 +584,6 @@ function parseWebSocketCloseFrame(payload) {
   };
 }
 
-function buildDemoConsoleSnapshot() {
-  const now = new Date();
-  const t = (offsetMs) => new Date(now.getTime() - offsetMs).toISOString();
-
-  return {
-    config: {
-      ok: true,
-      value: {
-        browserCatalog: [
-          { name: "chromium", versions: [{ version: "latest", image: "chromium:latest" }] },
-          { name: "chrome", versions: [{ version: "latest", image: "chrome:latest" }, { version: "130", image: "chrome:130" }] },
-          { name: "firefox", versions: [{ version: "latest", image: "firefox:latest" }, { version: "130", image: "firefox:130" }] },
-        ],
-      },
-    },
-    downloads: { ok: true, value: [] },
-    historySettings: { ok: true, value: { enabled: true, retentionDays: 7 } },
-    logs: {
-      ok: true,
-      value: [
-        { filename: "demo-abc123.log", sessionId: "demo-abc123", browser: "chromium", protocol: "playwright", size: 42800, createdAt: t(2 * 60 * 1000) },
-        { filename: "demo-def456.log", sessionId: "demo-def456", browser: "chromium", protocol: "playwright", size: 18300, createdAt: t(8 * 60 * 1000) },
-        { filename: "demo-ghi789.log", sessionId: "demo-ghi789", browser: "firefox", protocol: "selenium", size: 5100, createdAt: t(3600 * 1000) },
-      ],
-    },
-    status: {
-      ok: true,
-      value: {
-        browsers: {
-          chromium: {
-            latest: {
-              default: {
-                count: 2,
-                sessions: [
-                  { id: "demo-abc123", started: t(2 * 60 * 1000), vnc: true, caps: { version: "latest" } },
-                  { id: "demo-def456", started: t(8 * 60 * 1000), vnc: true, caps: { version: "latest" } },
-                ],
-              },
-            },
-          },
-          firefox: {
-            latest: {
-              default: {
-                count: 1,
-                sessions: [
-                  { id: "demo-jkl012", started: t(15 * 60 * 1000), caps: { version: "latest" } },
-                ],
-              },
-            },
-          },
-        },
-        pending: 0,
-        queued: 1,
-        total: 4,
-        used: 3,
-        value: { message: "Demo mode — no upstream connected", ready: true },
-      },
-    },
-    target: "demo",
-    videos: {
-      ok: true,
-      value: [
-        { filename: "demo-abc123.mp4", sessionId: "demo-abc123", browser: "chromium", protocol: "playwright", size: 1258000, durationMs: 93000, createdAt: t(2 * 60 * 1000) },
-      ],
-    },
-  };
-}
-
-async function fetchConsoleSnapshot() {
-  if (demoMode) return { ...buildDemoConsoleSnapshot(), fetchedAt: new Date().toISOString() };
-
-  const [configResult, statusResult, logsResult, videosResult, downloadsResult, historySettingsResult] = await Promise.allSettled([
-    fetchUpstreamJson("/config"),
-    fetchUpstreamJson("/status"),
-    fetchUpstreamJson("/logs/?json"),
-    fetchUpstreamJson("/video/?json"),
-    fetchUpstreamJson("/downloads/?json"),
-    fetchUpstreamJson("/history/settings"),
-  ]);
-
-  return {
-    config: normalizeSnapshotResult(configResult, "Configuration endpoint unavailable"),
-    downloads: normalizeSnapshotResult(downloadsResult, "Downloads endpoint unavailable"),
-    historySettings: normalizeSnapshotResult(
-      historySettingsResult,
-      "Artifact history settings unavailable",
-    ),
-    logs: normalizeSnapshotResult(logsResult, "Logs endpoint unavailable"),
-    status: normalizeSnapshotResult(statusResult, "Status endpoint unavailable"),
-    target,
-    videos: normalizeSnapshotResult(videosResult, "Videos endpoint unavailable"),
-  };
-}
-
-async function fetchUpstreamJson(upstreamPath) {
-  const response = await fetchWithTimeout(
-    new URL(upstreamPath, target),
-    {
-      headers: { accept: "application/json" },
-    },
-    upstreamRequestTimeoutMs,
-    `Upstream ${upstreamPath}`,
-  );
-
-  if (!response.ok) {
-    throw new Error(`Request failed for ${upstreamPath} (${response.status})`);
-  }
-
-  const contentType = response.headers.get("content-type") || "";
-  if (!contentType.toLowerCase().includes("application/json")) {
-    const body = await readUpstreamTextWithTimeout(
-      response,
-      upstreamRequestTimeoutMs,
-      `Upstream ${upstreamPath} response`,
-    );
-    throw new Error(
-      `Expected application/json from ${upstreamPath}, got ${contentType || "unknown content-type"}: ${truncateBodyPreview(body)}`,
-    );
-  }
-
-  return readUpstreamJsonWithTimeout(response, upstreamRequestTimeoutMs, `Upstream ${upstreamPath} response`);
-}
-
-function normalizeSnapshotResult(result, fallbackError) {
-  if (result.status === "fulfilled") {
-    return {
-      ok: true,
-      value: result.value,
-    };
-  }
-
-  return {
-    error: result.reason instanceof Error ? result.reason.message : fallbackError,
-    ok: false,
-  };
-}
-
-function stableSerialize(value) {
-  if (Array.isArray(value)) {
-    return `[${value.map((entry) => stableSerialize(entry)).join(",")}]`;
-  }
-
-  if (value && typeof value === "object") {
-    const keys = Object.keys(value).sort();
-    return `{${keys
-      .map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`)
-      .join(",")}}`;
-  }
-
-  return JSON.stringify(value);
-}
-
-function resolveStaticRootDir() {
-  const explicitRoot = process.env.SELENWRIGHT_STATIC_ROOT;
-  if (explicitRoot) {
-    return path.resolve(rootDir, explicitRoot);
-  }
-
-  const builtIndexPath = path.join(distDir, "index.html");
-  if (existsSync(builtIndexPath)) {
-    return distDir;
-  }
-
-  return rootDir;
-}
-
-function resolveStaticFile(urlPath) {
-  const trimmedPath = urlPath === "/" ? "/index.html" : urlPath;
-  let decoded;
-  try {
-    decoded = decodeURIComponent(trimmedPath);
-  } catch {
-    return null;
-  }
-  const absolutePath = path.resolve(staticRootDir, `.${decoded.startsWith("/") ? decoded : `/${decoded}`}`);
-  const rootWithSep = staticRootDir.endsWith(path.sep) ? staticRootDir : staticRootDir + path.sep;
-
-  if (absolutePath !== staticRootDir && !absolutePath.startsWith(rootWithSep)) {
-    return null;
-  }
-
-  if (existsSync(absolutePath) && statSync(absolutePath).isFile()) {
-    return absolutePath;
-  }
-
-  if (!path.extname(absolutePath)) {
-    return path.join(staticRootDir, "index.html");
-  }
-
-  return null;
-}
-
 function resolveApiRoute(requestUrl) {
   const route = apiRoutes.get(requestUrl.pathname);
   if (route) {
@@ -1312,18 +1110,6 @@ function extractUpstreamResponseMessage(responseText) {
   return truncateBodyPreview(trimmed);
 }
 
-async function readUpstreamTextWithTimeout(response, timeoutMs, contextLabel) {
-  return withTimeout(response.text(), timeoutMs, contextLabel);
-}
-
-async function readUpstreamJsonWithTimeout(response, timeoutMs, contextLabel) {
-  return withTimeout(response.json(), timeoutMs, contextLabel);
-}
-
-async function readUpstreamArrayBufferWithTimeout(response, timeoutMs, contextLabel) {
-  return withTimeout(response.arrayBuffer(), timeoutMs, contextLabel);
-}
-
 const server = createServer(async (req, res) => {
   const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
 
@@ -1356,7 +1142,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  const filePath = resolveStaticFile(requestUrl.pathname);
+  const filePath = resolveStaticFile(staticRootDir, requestUrl.pathname);
   if (!filePath) {
     res.writeHead(404, withSecurityHeaders({ "Content-Type": "text/plain; charset=utf-8" }));
     res.end("Not found");

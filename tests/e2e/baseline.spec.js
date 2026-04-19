@@ -125,7 +125,7 @@ test("artifact routes render videos logs and downloads", async ({ page }) => {
   }
 });
 
-test("theme modes persist and inline bootstrap applies before app paint", async ({ browser }) => {
+test("theme modes persist and theme bootstrap applies before app paint", async ({ browser }) => {
   for (const colorScheme of ["light", "dark"]) {
     const context = await browser.newContext({ colorScheme });
     const page = await context.newPage();

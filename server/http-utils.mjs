@@ -62,6 +62,18 @@ export async function withTimeout(promise, timeoutMs, contextLabel) {
   }
 }
 
+export async function readUpstreamTextWithTimeout(response, timeoutMs, contextLabel) {
+  return withTimeout(response.text(), timeoutMs, contextLabel);
+}
+
+export async function readUpstreamJsonWithTimeout(response, timeoutMs, contextLabel) {
+  return withTimeout(response.json(), timeoutMs, contextLabel);
+}
+
+export async function readUpstreamArrayBufferWithTimeout(response, timeoutMs, contextLabel) {
+  return withTimeout(response.arrayBuffer(), timeoutMs, contextLabel);
+}
+
 export async function readRequestBody(req) {
   const contentLength = Number(req.headers["content-length"]);
   if (Number.isFinite(contentLength) && contentLength > maxRequestBodyBytes) {
