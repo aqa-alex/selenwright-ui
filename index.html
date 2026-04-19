@@ -8,27 +8,7 @@
       name="description"
       content="Dense operator console for Selenwright sessions, artifacts, and browser inventory."
     />
-    <script>
-      (function () {
-        function readStorage(key) {
-          try {
-            return localStorage.getItem(key);
-          } catch (error) {
-            return null;
-          }
-        }
-        var themeMode = readStorage("selenwright-ui.theme-mode") || "system";
-        var isDark = false;
-        try {
-          isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        } catch (error) {
-          isDark = false;
-        }
-        var resolvedTheme = themeMode === "system" ? (isDark ? "dark" : "light") : themeMode;
-        document.documentElement.dataset.themeMode = themeMode;
-        document.documentElement.dataset.theme = resolvedTheme;
-      })();
-    </script>
+    <script src="/theme-bootstrap.js"></script>
     <link rel="icon" href="/favicon.ico?v=1" sizes="16x16" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1" />
     <link rel="icon" type="image/png" href="/favicon.png?v=1" />
