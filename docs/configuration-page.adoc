@@ -27,3 +27,13 @@ The page re-reads configuration on every snapshot tick (default 3s) so a runtime
 == Where to change things
 
 Configuration here is **read-only**. The mutable settings (artefact history retention, stack pull/recreate) live under <<Settings>>. Everything else is set via the upstream's CLI flags at start time — see the Selenwright CLI Flags reference.
+
+== Non-obvious fields
+
+A few entries on this page read oddly at first glance. They are accurate — the UI just surfaces upstream state directly.
+
+*Log config, Container log driver, Container log options* — all three reflect the upstream's `-log-conf <path>` flag, which points at a JSON file describing the Docker log driver applied to browser containers (`json-file`, `syslog`, `journald`, `awslogs`, etc.). "Unavailable" means the upstream was started without that flag. This is the default and is fine unless your environment requires a specific log driver. The schema and examples live in Selenwright's https://github.com/aqa-alex/selenwright/blob/main/docs/logging-configuration-file.adoc[logging configuration file] reference.
+
+*Effective log capture* — this row answers the practical question "will logs be written for new sessions?". Log capture is gated by an OR across three sources: the `-save-all-logs` flag, the artifact history toggle under <<Settings>>, and a per-session `enableLog` capability. The field spells out which source is active (`Enabled (via -save-all-logs)` or `Enabled (via artifact history)`), or `Opt-in (enableLog capability)` when only the per-session capability can turn capture on. The raw `-save-all-logs` flag value is available in the Raw configuration block at the bottom of the page.
+
+*File upload* — "Disabled" by default. Enabled with the upstream's `-enable-file-upload` flag, and only needed when Selenwright proxies directly to driver binaries without Docker. Official Docker browser images already bundle the required shim, so most deployments leave this off. Selenwright's https://github.com/aqa-alex/selenwright/blob/main/docs/file-upload.adoc[File upload] reference covers the endpoint contract.
