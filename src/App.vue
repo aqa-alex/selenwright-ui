@@ -28,11 +28,17 @@ const showShell = computed(() => routeName.value !== "login" && !identityStore.r
 </script>
 
 <template>
-  <div v-if="showShell" class="shell">
+  <div
+    v-if="showShell"
+    class="shell"
+  >
     <AppHeader />
     <div class="workspace">
       <AppSidebar :route-name="routeName" />
-      <PageFrame :notice="notice" :page-title="pageTitle" />
+      <PageFrame
+        :notice="notice"
+        :page-title="pageTitle"
+      />
     </div>
   </div>
   <router-view v-else />

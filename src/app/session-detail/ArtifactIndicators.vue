@@ -15,5 +15,8 @@ defineProps<{
   >
     {{ indicator.label }}
   </span>
-  <span v-if="!buildArtifactIndicators(session).length" class="secondary-text">None</span>
+  <span
+    v-if="!buildArtifactIndicators(session).length"
+    class="secondary-text"
+  >None</span>
 </template>

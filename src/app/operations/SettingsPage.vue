@@ -145,7 +145,9 @@ watch(
   </div>
   <div class="stack-layout">
     <ConsolePanel title="Theme mode">
-      <p class="hint-text">Follow system theme or override it manually.</p>
+      <p class="hint-text">
+        Follow system theme or override it manually.
+      </p>
       <SegmentedControl
         :options="themeOptions"
         :selected-value="themeMode"
@@ -184,7 +186,9 @@ watch(
       <div class="settings-grid">
         <div class="settings-field">
           <h3>Retention mode</h3>
-          <p class="hint-text">Persist downloads and saved session artifacts after sessions end.</p>
+          <p class="hint-text">
+            Persist downloads and saved session artifacts after sessions end.
+          </p>
           <div
             :class="['segmented-control', { 'is-disabled': controlsDisabled }]"
             role="group"
@@ -210,7 +214,9 @@ watch(
         </div>
         <div class="settings-field">
           <h3>Retention days</h3>
-          <p class="hint-text">Keep history for 1 to 365 whole days.</p>
+          <p class="hint-text">
+            Keep history for 1 to 365 whole days.
+          </p>
           <label
             :class="[
               'search-field',
@@ -227,7 +233,7 @@ watch(
               type="text"
               :value="retentionValue"
               @input="(event) => settingsStore.setHistoryRetentionDays(((event.target as HTMLInputElement).value))"
-            />
+            >
           </label>
         </div>
       </div>
@@ -258,7 +264,9 @@ watch(
       </div>
     </ConsolePanel>
     <ConsolePanel title="Stack">
-      <p class="hint-text">Pull updated container images and recreate the compose stack.</p>
+      <p class="hint-text">
+        Pull updated container images and recreate the compose stack.
+      </p>
       <template v-if="stackStatus && stackAvailable">
         <div class="key-value-list compact stack-rows">
           <div

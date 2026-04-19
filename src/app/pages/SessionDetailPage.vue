@@ -88,7 +88,10 @@ async function terminate() {
       </div>
       <div class="page-intro-meta">
         <ProtocolBadge :protocol="session.protocol" />
-        <StatusBadge :label="formatStatus(session.status)" :status="session.status" />
+        <StatusBadge
+          :label="formatStatus(session.status)"
+          :status="session.status"
+        />
       </div>
     </div>
     <div class="detail-header-row">
@@ -102,7 +105,14 @@ async function terminate() {
         >
           Open VNC
         </a>
-        <button v-else class="button secondary" disabled type="button">VNC</button>
+        <button
+          v-else
+          class="button secondary"
+          disabled
+          type="button"
+        >
+          VNC
+        </button>
         <button
           v-if="session.artifacts.devtools"
           class="button secondary"
@@ -126,11 +136,17 @@ async function terminate() {
     </div>
     <div class="detail-grid">
       <div class="detail-main stack-layout">
-        <SessionOverviewPanel :preferences="model.preferences" :session="session" />
+        <SessionOverviewPanel
+          :preferences="model.preferences"
+          :session="session"
+        />
       </div>
       <aside class="detail-side stack-layout">
         <ConsolePanel title="Logs">
-          <SessionLogsPanel :model="model" :session="session" />
+          <SessionLogsPanel
+            :model="model"
+            :session="session"
+          />
         </ConsolePanel>
       </aside>
     </div>
@@ -147,7 +163,11 @@ async function terminate() {
       <div class="empty-state">
         <h2>Unknown session</h2>
         <p>The session id is not present in the current dataset.</p>
-        <a class="button secondary" data-link href="/sessions">Back to sessions</a>
+        <a
+          class="button secondary"
+          data-link
+          href="/sessions"
+        >Back to sessions</a>
       </div>
     </ConsolePanel>
   </template>

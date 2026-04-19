@@ -79,7 +79,10 @@ function jumpToEnd() {
 </script>
 
 <template>
-  <div v-if="selected" class="artifact-drawer-body">
+  <div
+    v-if="selected"
+    class="artifact-drawer-body"
+  >
     <div class="drawer-toolbar">
       <label class="search-field compact">
         <input
@@ -88,9 +91,9 @@ function jumpToEnd() {
           type="search"
           :value="model.logSearch"
           @input="onLogSearchInput"
-        />
+        >
       </label>
-      <div class="log-toolbar-spacer"></div>
+      <div class="log-toolbar-spacer" />
     </div>
     <div class="drawer-actions">
       <button
@@ -102,7 +105,11 @@ function jumpToEnd() {
       >
         Copy block
       </button>
-      <button class="button secondary" type="button" @click="jumpToEnd">
+      <button
+        class="button secondary"
+        type="button"
+        @click="jumpToEnd"
+      >
         Jump to end
       </button>
       <button
@@ -121,21 +128,35 @@ function jumpToEnd() {
         Download
       </a>
     </div>
-    <div v-if="logState.loading" class="note-block">
+    <div
+      v-if="logState.loading"
+      class="note-block"
+    >
       Loading {{ selected.filename }}&hellip;
     </div>
-    <div v-if="logState.error" class="note-block log-note-error">
+    <div
+      v-if="logState.error"
+      class="note-block log-note-error"
+    >
       {{ logState.error }}
     </div>
     <pre
       v-if="hasContent"
+      id="log-viewer-content"
       ref="logViewer"
       class="code-block log-viewer wrap"
-      id="log-viewer-content"
     >{{ filteredContent }}</pre>
-    <p v-else class="hint-text">
+    <p
+      v-else
+      class="hint-text"
+    >
       {{ getSavedLogEmptyText(logState, model.logSearch) }}
     </p>
   </div>
-  <p v-else class="hint-text">Select a log file to inspect it.</p>
+  <p
+    v-else
+    class="hint-text"
+  >
+    Select a log file to inspect it.
+  </p>
 </template>

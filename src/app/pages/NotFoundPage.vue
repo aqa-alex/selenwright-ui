@@ -10,6 +10,8 @@ import ConsolePanel from "../components/ui/ConsolePanel.vue";
     </div>
   </div>
   <ConsolePanel title="Missing page">
-    <p class="hint-text">Return to Sessions from the sidebar.</p>
+    <p class="hint-text">
+      Return to Sessions from the sidebar.
+    </p>
   </ConsolePanel>
 </template>

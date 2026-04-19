@@ -27,14 +27,35 @@ useSessionsKeyboardNav(filteredSessions);
       <p>Active and recent browser sessions.</p>
     </div>
   </div>
-  <p v-if="!hasSessions" class="page-empty-copy">No active sessions</p>
-  <ConsolePanel v-else title="Session list">
-    <SessionsToolbar :filters="model.filters" :sessions="model.sessions" />
-    <SessionsTable v-if="filteredSessions.length" :model="model" />
-    <div v-else class="empty-state">
+  <p
+    v-if="!hasSessions"
+    class="page-empty-copy"
+  >
+    No active sessions
+  </p>
+  <ConsolePanel
+    v-else
+    title="Session list"
+  >
+    <SessionsToolbar
+      :filters="model.filters"
+      :sessions="model.sessions"
+    />
+    <SessionsTable
+      v-if="filteredSessions.length"
+      :model="model"
+    />
+    <div
+      v-else
+      class="empty-state"
+    >
       <h2>No matching sessions</h2>
       <p>No sessions match the current filters.</p>
-      <button class="button secondary" type="button" @click="sessionsStore.resetFilters()">
+      <button
+        class="button secondary"
+        type="button"
+        @click="sessionsStore.resetFilters()"
+      >
         Reset filters
       </button>
     </div>

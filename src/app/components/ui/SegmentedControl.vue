@@ -15,7 +15,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="segmented-control" role="group">
+  <div
+    class="segmented-control"
+    role="group"
+  >
     <button
       v-for="option in options"
       :key="option.value"

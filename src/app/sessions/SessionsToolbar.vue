@@ -42,14 +42,15 @@ function inputValue(event: Event) {
 <template>
   <div class="toolbar">
     <label class="search-field">
-      <span v-html="searchIcon"></span>
+      <!-- eslint-disable-next-line vue/no-v-html -- icon() returns a fixed-name allowlisted SVG with an escaped aria-label -->
+      <span v-html="searchIcon" />
       <input
         aria-label="Search sessions"
         placeholder="Search session id, name, browser"
         type="search"
         :value="filters.search"
         @input="(event) => sessionsStore.setSearch(inputValue(event))"
-      />
+      >
     </label>
     <label class="filter-select">
       <span>Protocol</span>
@@ -57,7 +58,11 @@ function inputValue(event: Event) {
         :value="filters.protocol"
         @change="(event) => sessionsStore.setProtocolFilter(inputValue(event) as SessionProtocolFilter)"
       >
-        <option v-for="option in protocolOptions" :key="option.value" :value="option.value">
+        <option
+          v-for="option in protocolOptions"
+          :key="option.value"
+          :value="option.value"
+        >
           {{ option.label }}
         </option>
       </select>
@@ -68,7 +73,11 @@ function inputValue(event: Event) {
         :value="filters.status"
         @change="(event) => sessionsStore.setStatusFilter(inputValue(event) as SessionStatusFilter)"
       >
-        <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+        <option
+          v-for="option in statusOptions"
+          :key="option.value"
+          :value="option.value"
+        >
           {{ option.label }}
         </option>
       </select>
@@ -79,7 +88,11 @@ function inputValue(event: Event) {
         :value="filters.browser"
         @change="(event) => sessionsStore.setBrowserFilter(inputValue(event))"
       >
-        <option v-for="option in browserOptions" :key="option.value" :value="option.value">
+        <option
+          v-for="option in browserOptions"
+          :key="option.value"
+          :value="option.value"
+        >
           {{ option.label }}
         </option>
       </select>
@@ -89,7 +102,7 @@ function inputValue(event: Event) {
         :checked="filters.activeOnly"
         type="checkbox"
         @change="(event) => sessionsStore.setActiveOnly((event.target as HTMLInputElement).checked)"
-      />
+      >
       <span>Active only</span>
     </label>
   </div>

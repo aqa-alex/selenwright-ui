@@ -61,7 +61,11 @@ function repoTagDisplay(img: { repoTags: string[]; digest: string }): string {
     </div>
   </div>
   <div class="stack-layout">
-    <ConsolePanel v-for="group in browserGroups" :key="group.browser" :title="group.label">
+    <ConsolePanel
+      v-for="group in browserGroups"
+      :key="group.browser"
+      :title="group.label"
+    >
       <div class="table-shell">
         <table class="data-table">
           <thead>
@@ -73,10 +77,17 @@ function repoTagDisplay(img: { repoTags: string[]; digest: string }): string {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="entry in group.versions" :key="`${entry.browser}:${entry.version}:${entry.protocol}`">
-              <td class="mono">{{ entry.version }}</td>
+            <tr
+              v-for="entry in group.versions"
+              :key="`${entry.browser}:${entry.version}:${entry.protocol}`"
+            >
+              <td class="mono">
+                {{ entry.version }}
+              </td>
               <td><ProtocolBadge :protocol="entry.protocol" /></td>
-              <td class="mono">{{ entry.source }}</td>
+              <td class="mono">
+                {{ entry.source }}
+              </td>
               <td>
                 <StatusBadge
                   :label="entry.status"
@@ -89,7 +100,10 @@ function repoTagDisplay(img: { repoTags: string[]; digest: string }): string {
       </div>
     </ConsolePanel>
 
-    <ConsolePanel v-if="hasDiscovered" title="Discovered images">
+    <ConsolePanel
+      v-if="hasDiscovered"
+      title="Discovered images"
+    >
       <div class="table-shell">
         <table class="data-table">
           <thead>
@@ -102,11 +116,22 @@ function repoTagDisplay(img: { repoTags: string[]; digest: string }): string {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="img in discoveredImages" :key="img.digest">
-              <td class="mono">{{ img.browser }}</td>
-              <td class="mono">{{ img.version }}</td>
-              <td class="mono">{{ repoTagDisplay(img) }}</td>
-              <td class="mono">{{ truncateDigest(img.digest) }}</td>
+            <tr
+              v-for="img in discoveredImages"
+              :key="img.digest"
+            >
+              <td class="mono">
+                {{ img.browser }}
+              </td>
+              <td class="mono">
+                {{ img.version }}
+              </td>
+              <td class="mono">
+                {{ repoTagDisplay(img) }}
+              </td>
+              <td class="mono">
+                {{ truncateDigest(img.digest) }}
+              </td>
               <td class="actions-cell">
                 <ConsoleButton
                   kind="primary"

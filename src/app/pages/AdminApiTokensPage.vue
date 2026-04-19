@@ -102,7 +102,10 @@ function formatLastUsed(iso?: string): string {
 </script>
 
 <template>
-  <div v-if="!identityStore.effectiveAdmin" class="page-intro">
+  <div
+    v-if="!identityStore.effectiveAdmin"
+    class="page-intro"
+  >
     <div>
       <h1>API Tokens</h1>
       <p>Admin access required.</p>
@@ -118,7 +121,12 @@ function formatLastUsed(iso?: string): string {
         </p>
       </div>
       <div class="page-intro-actions">
-        <ConsoleButton kind="primary" @click="openCreate">Create token</ConsoleButton>
+        <ConsoleButton
+          kind="primary"
+          @click="openCreate"
+        >
+          Create token
+        </ConsoleButton>
       </div>
     </div>
 
@@ -126,9 +134,16 @@ function formatLastUsed(iso?: string): string {
       <div class="admin-tokens-filter">
         <label class="admin-tokens-filter-field">
           <span class="hint-text">Filter by owner</span>
-          <select v-model="ownerFilter" class="admin-tokens-filter-select">
+          <select
+            v-model="ownerFilter"
+            class="admin-tokens-filter-select"
+          >
             <option value="">All owners</option>
-            <option v-for="u in users" :key="u" :value="u">{{ u }}</option>
+            <option
+              v-for="u in users"
+              :key="u"
+              :value="u"
+            >{{ u }}</option>
           </select>
         </label>
         <ConsoleButton
@@ -141,7 +156,12 @@ function formatLastUsed(iso?: string): string {
         </ConsoleButton>
       </div>
 
-      <div v-if="loadError" class="note-block log-note-error">{{ loadError }}</div>
+      <div
+        v-if="loadError"
+        class="note-block log-note-error"
+      >
+        {{ loadError }}
+      </div>
 
       <div class="table-shell">
         <table class="data-table">
@@ -151,12 +171,17 @@ function formatLastUsed(iso?: string): string {
               <th>Name</th>
               <th>Created</th>
               <th>Last used</th>
-              <th aria-label="Actions"></th>
+              <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
-            <tr v-for="t in tokens" :key="t.id">
-              <td class="mono">{{ t.owner }}</td>
+            <tr
+              v-for="t in tokens"
+              :key="t.id"
+            >
+              <td class="mono">
+                {{ t.owner }}
+              </td>
               <td>{{ t.name }}</td>
               <td>{{ formatCreated(t.createdAt) }}</td>
               <td>{{ formatLastUsed(t.lastUsedAt) }}</td>
@@ -171,7 +196,10 @@ function formatLastUsed(iso?: string): string {
               </td>
             </tr>
             <tr v-if="!tokens.length && !tokensQuery.isLoading.value">
-              <td colspan="5" class="secondary-text admin-tokens-empty">
+              <td
+                colspan="5"
+                class="secondary-text admin-tokens-empty"
+              >
                 No tokens{{ ownerFilter ? ` for ${ownerFilter}` : "" }}.
               </td>
             </tr>
@@ -181,15 +209,31 @@ function formatLastUsed(iso?: string): string {
     </ConsolePanel>
 
     <!-- Create dialog -->
-    <div v-if="createDialogOpen" class="modal-backdrop" @click.self="createDialogOpen = false">
+    <div
+      v-if="createDialogOpen"
+      class="modal-backdrop"
+      @click.self="createDialogOpen = false"
+    >
       <div class="modal">
         <h2>Create API token</h2>
         <div class="modal-field">
           <label for="admin-tokens-owner">Owner</label>
-          <select id="admin-tokens-owner" v-model="createDraft.owner">
-            <option v-for="u in users" :key="u" :value="u">{{ u }}</option>
+          <select
+            id="admin-tokens-owner"
+            v-model="createDraft.owner"
+          >
+            <option
+              v-for="u in users"
+              :key="u"
+              :value="u"
+            >
+              {{ u }}
+            </option>
           </select>
-          <p v-if="!users.length" class="hint-text">
+          <p
+            v-if="!users.length"
+            class="hint-text"
+          >
             No users found. Add users to htpasswd first, then SIGHUP the upstream.
           </p>
         </div>
@@ -201,12 +245,24 @@ function formatLastUsed(iso?: string): string {
             type="text"
             placeholder="laptop, ci-runner, …"
             maxlength="64"
-          />
-          <p class="hint-text">Free-form identifier shown in the table. Not a secret.</p>
+          >
+          <p class="hint-text">
+            Free-form identifier shown in the table. Not a secret.
+          </p>
         </div>
-        <div v-if="createError403" class="note-block log-note-error">{{ createError403 }}</div>
+        <div
+          v-if="createError403"
+          class="note-block log-note-error"
+        >
+          {{ createError403 }}
+        </div>
         <div class="drawer-actions">
-          <ConsoleButton kind="secondary" @click="createDialogOpen = false">Cancel</ConsoleButton>
+          <ConsoleButton
+            kind="secondary"
+            @click="createDialogOpen = false"
+          >
+            Cancel
+          </ConsoleButton>
           <ConsoleButton
             kind="primary"
             :disabled="createMutation.isPending.value"
@@ -219,7 +275,11 @@ function formatLastUsed(iso?: string): string {
     </div>
 
     <!-- Show plaintext once -->
-    <div v-if="plaintextToken" class="modal-backdrop" @click.self="plaintextToken = null">
+    <div
+      v-if="plaintextToken"
+      class="modal-backdrop"
+      @click.self="plaintextToken = null"
+    >
       <div class="modal">
         <h2>Token created</h2>
         <p>
@@ -228,22 +288,43 @@ function formatLastUsed(iso?: string): string {
         </p>
         <div class="admin-tokens-plaintext">
           <code class="mono">{{ plaintextToken.token }}</code>
-          <ConsoleButton kind="secondary" @click="copyTokenToClipboard">Copy</ConsoleButton>
+          <ConsoleButton
+            kind="secondary"
+            @click="copyTokenToClipboard"
+          >
+            Copy
+          </ConsoleButton>
         </div>
-        <p class="hint-text">Token id: <span class="mono">{{ plaintextToken.id }}</span></p>
+        <p class="hint-text">
+          Token id: <span class="mono">{{ plaintextToken.id }}</span>
+        </p>
         <div class="drawer-actions">
-          <ConsoleButton kind="primary" @click="plaintextToken = null">Done</ConsoleButton>
+          <ConsoleButton
+            kind="primary"
+            @click="plaintextToken = null"
+          >
+            Done
+          </ConsoleButton>
         </div>
       </div>
     </div>
 
     <!-- Revoke confirm -->
-    <div v-if="confirmRevokeId" class="modal-backdrop" @click.self="confirmRevokeId = null">
+    <div
+      v-if="confirmRevokeId"
+      class="modal-backdrop"
+      @click.self="confirmRevokeId = null"
+    >
       <div class="modal">
         <h2>Revoke this token?</h2>
         <p>Clients using it will start getting 401s immediately. This cannot be undone.</p>
         <div class="drawer-actions">
-          <ConsoleButton kind="secondary" @click="confirmRevokeId = null">Cancel</ConsoleButton>
+          <ConsoleButton
+            kind="secondary"
+            @click="confirmRevokeId = null"
+          >
+            Cancel
+          </ConsoleButton>
           <ConsoleButton
             kind="danger"
             :disabled="revokeMutation.isPending.value"
@@ -256,12 +337,21 @@ function formatLastUsed(iso?: string): string {
     </div>
 
     <!-- Bulk revoke confirm -->
-    <div v-if="confirmBulkOwner" class="modal-backdrop" @click.self="confirmBulkOwner = null">
+    <div
+      v-if="confirmBulkOwner"
+      class="modal-backdrop"
+      @click.self="confirmBulkOwner = null"
+    >
       <div class="modal">
         <h2>Revoke every token for {{ confirmBulkOwner }}?</h2>
         <p>Every token owned by this user will be invalidated at once. Use for offboarding.</p>
         <div class="drawer-actions">
-          <ConsoleButton kind="secondary" @click="confirmBulkOwner = null">Cancel</ConsoleButton>
+          <ConsoleButton
+            kind="secondary"
+            @click="confirmBulkOwner = null"
+          >
+            Cancel
+          </ConsoleButton>
           <ConsoleButton
             kind="danger"
             :disabled="bulkRevokeMutation.isPending.value"

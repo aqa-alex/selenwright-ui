@@ -52,12 +52,33 @@ const sessionDetailModel = useSessionDetailPageModel(sessionId);
 </script>
 
 <template>
-  <main class="content" role="main" :aria-label="pageTitle">
-    <div v-if="notice" class="inline-notice">{{ notice }}</div>
-    <ArtifactsPage v-if="isArtifactRoute" :model="artifactModel" />
-    <OperationsPage v-else-if="isOperationsRoute" :model="operationsModel" />
-    <SessionsPage v-else-if="isSessionsRoute" :model="sessionsModel" />
-    <SessionDetailPage v-else-if="isSessionDetailRoute" :model="sessionDetailModel" />
+  <main
+    class="content"
+    role="main"
+    :aria-label="pageTitle"
+  >
+    <div
+      v-if="notice"
+      class="inline-notice"
+    >
+      {{ notice }}
+    </div>
+    <ArtifactsPage
+      v-if="isArtifactRoute"
+      :model="artifactModel"
+    />
+    <OperationsPage
+      v-else-if="isOperationsRoute"
+      :model="operationsModel"
+    />
+    <SessionsPage
+      v-else-if="isSessionsRoute"
+      :model="sessionsModel"
+    />
+    <SessionDetailPage
+      v-else-if="isSessionDetailRoute"
+      :model="sessionDetailModel"
+    />
     <AdminApiTokensPage v-else-if="isApiTokensRoute" />
     <NotFoundPage v-else-if="isNotFoundRoute" />
   </main>

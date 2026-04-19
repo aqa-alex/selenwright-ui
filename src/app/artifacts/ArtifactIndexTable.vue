@@ -46,7 +46,12 @@ function selectArtifact(filename: string) {
     <table :class="tableClassName">
       <thead>
         <tr>
-          <th v-for="column in columns" :key="column.label">{{ column.label }}</th>
+          <th
+            v-for="column in columns"
+            :key="column.label"
+          >
+            {{ column.label }}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -58,16 +63,26 @@ function selectArtifact(filename: string) {
           :data-page="model.pageKey"
           @click="selectArtifact(item.filename)"
         >
-          <td class="artifact-table__truncate-cell" :title="item.filename">
+          <td
+            class="artifact-table__truncate-cell"
+            :title="item.filename"
+          >
             <span class="artifact-table__truncate mono">{{ item.filename }}</span>
           </td>
-          <td class="artifact-table__truncate-cell" :title="item.sessionId">
+          <td
+            class="artifact-table__truncate-cell"
+            :title="item.sessionId"
+          >
             <span class="artifact-table__truncate mono">{{ item.sessionId }}</span>
           </td>
           <td>{{ browserLabel(item) }}</td>
-          <td v-if="model.pageKey === 'videos'">{{ titleCase(item.protocol) }}</td>
+          <td v-if="model.pageKey === 'videos'">
+            {{ titleCase(item.protocol) }}
+          </td>
           <td>{{ createdLabel(item) }}</td>
-          <td class="mono">{{ formatBytes(item.size) }}</td>
+          <td class="mono">
+            {{ formatBytes(item.size) }}
+          </td>
           <td class="artifact-table__action-cell">
             <button
               class="button secondary"

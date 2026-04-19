@@ -18,7 +18,14 @@ function handleSelect(value: string) {
 </script>
 
 <template>
-  <div class="theme-switcher" aria-label="Theme mode">
-    <SegmentedControl :options="options" :selected-value="themeMode" @select="handleSelect" />
+  <div
+    class="theme-switcher"
+    aria-label="Theme mode"
+  >
+    <SegmentedControl
+      :options="options"
+      :selected-value="themeMode"
+      @select="handleSelect"
+    />
   </div>
 </template>

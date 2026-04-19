@@ -14,11 +14,22 @@ async function handleLogout() {
 </script>
 
 <template>
-  <header class="topbar" role="banner">
+  <header
+    class="topbar"
+    role="banner"
+  >
     <div class="brand-block">
-      <a class="brand-link" href="/sessions" data-link>
+      <a
+        class="brand-link"
+        href="/sessions"
+        data-link
+      >
         <span class="brand-mark">
-          <img alt="Selenwright logo" class="brand-favicon" src="/favicon.ico" />
+          <img
+            alt="Selenwright logo"
+            class="brand-favicon"
+            src="/favicon.ico"
+          >
         </span>
         <span class="brand-copy">
           <strong>Selenwright</strong>
@@ -34,7 +45,11 @@ async function handleLogout() {
         class="topbar-identity"
       >
         <span class="topbar-user">{{ identityStore.user }}</span>
-        <button class="button secondary topbar-logout" type="button" @click="handleLogout">
+        <button
+          class="button secondary topbar-logout"
+          type="button"
+          @click="handleLogout"
+        >
           Sign out
         </button>
       </span>

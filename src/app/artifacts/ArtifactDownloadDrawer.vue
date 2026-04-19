@@ -19,14 +19,35 @@ const created = computed(() =>
 </script>
 
 <template>
-  <div v-if="selected" class="artifact-drawer-body">
+  <div
+    v-if="selected"
+    class="artifact-drawer-body"
+  >
     <div class="key-value-list compact">
-      <ArtifactKeyValueRow label="File" :value="selected.filename" />
-      <ArtifactKeyValueRow label="Session" :value="selected.sessionId" />
-      <ArtifactKeyValueRow label="Browser" :value="titleCase(selected.browser)" />
-      <ArtifactKeyValueRow label="Created" :value="created" />
-      <ArtifactKeyValueRow label="Size" :value="formatBytes(selected.size)" />
-      <ArtifactKeyValueRow label="Type" :value="selected.mimeType" />
+      <ArtifactKeyValueRow
+        label="File"
+        :value="selected.filename"
+      />
+      <ArtifactKeyValueRow
+        label="Session"
+        :value="selected.sessionId"
+      />
+      <ArtifactKeyValueRow
+        label="Browser"
+        :value="titleCase(selected.browser)"
+      />
+      <ArtifactKeyValueRow
+        label="Created"
+        :value="created"
+      />
+      <ArtifactKeyValueRow
+        label="Size"
+        :value="formatBytes(selected.size)"
+      />
+      <ArtifactKeyValueRow
+        label="Type"
+        :value="selected.mimeType"
+      />
     </div>
     <div class="drawer-actions">
       <a
@@ -46,5 +67,10 @@ const created = computed(() =>
       </button>
     </div>
   </div>
-  <p v-else class="hint-text">Select a file to inspect metadata.</p>
+  <p
+    v-else
+    class="hint-text"
+  >
+    Select a file to inspect metadata.
+  </p>
 </template>

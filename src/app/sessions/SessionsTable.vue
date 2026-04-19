@@ -91,7 +91,10 @@ function setSort(sort: SessionSort) {
     <table class="data-table sessions-table">
       <thead>
         <tr>
-          <th v-for="header in tableHeaders" :key="header.label">
+          <th
+            v-for="header in tableHeaders"
+            :key="header.label"
+          >
             <button
               v-if="header.sort"
               class="sort-button"
@@ -100,7 +103,9 @@ function setSort(sort: SessionSort) {
             >
               {{ header.label }}
             </button>
-            <template v-else>{{ header.label }}</template>
+            <template v-else>
+              {{ header.label }}
+            </template>
           </th>
         </tr>
       </thead>
@@ -115,10 +120,12 @@ function setSort(sort: SessionSort) {
         >
           <td>
             <div class="session-cell">
+              <!-- eslint-disable vue/no-v-html -- protocolIcon() returns an allowlisted SVG from icon() -->
               <span
                 :class="['protocol-icon', `protocol-${row.original.protocol}`]"
                 v-html="protocolIcon(row.original)"
-              ></span>
+              />
+              <!-- eslint-enable vue/no-v-html -->
               <div class="stacked-cell">
                 <strong>{{ row.original.name }}</strong>
                 <span class="secondary-text mono">{{ row.original.id }}</span>
@@ -126,14 +133,22 @@ function setSort(sort: SessionSort) {
             </div>
           </td>
           <td>{{ titleCaseSessionValue(row.original.browser) }}</td>
-          <td class="mono">{{ row.original.browserVersion }}</td>
+          <td class="mono">
+            {{ row.original.browserVersion }}
+          </td>
           <td>
-            <StatusBadge :label="formatStatus(row.original.status)" :status="row.original.status" />
+            <StatusBadge
+              :label="formatStatus(row.original.status)"
+              :status="row.original.status"
+            />
           </td>
           <td>
             <div class="stacked-cell">
               <span>{{ formatDateTime(row.original.startedAt, model.preferences) }}</span>
-              <span class="secondary-text" :data-time-ago="row.original.startedAt">
+              <span
+                class="secondary-text"
+                :data-time-ago="row.original.startedAt"
+              >
                 {{ timeAgo(row.original.startedAt) }}
               </span>
             </div>
@@ -153,7 +168,10 @@ function setSort(sort: SessionSort) {
             >
               {{ indicator.label }}
             </span>
-            <span v-if="!buildArtifactIndicators(row.original).length" class="secondary-text">
+            <span
+              v-if="!buildArtifactIndicators(row.original).length"
+              class="secondary-text"
+            >
               None
             </span>
           </td>

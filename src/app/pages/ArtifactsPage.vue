@@ -56,7 +56,10 @@ useAutoSelectArtifact(pageKey, filteredItems);
       <h1>{{ copy.title }}</h1>
       <p>{{ copy.intro }}</p>
     </div>
-    <div v-if="model.artifactSessionFilter" class="page-intro-meta">
+    <div
+      v-if="model.artifactSessionFilter"
+      class="page-intro-meta"
+    >
       <button
         class="button secondary"
         type="button"
@@ -71,11 +74,17 @@ useAutoSelectArtifact(pageKey, filteredItems);
     data-artifact-layout
     :data-artifact-page="model.pageKey"
   >
-    <div class="artifact-layout__pane artifact-layout__pane--index" data-artifact-pane="index">
+    <div
+      class="artifact-layout__pane artifact-layout__pane--index"
+      data-artifact-pane="index"
+    >
       <ConsolePanel :title="copy.indexTitle">
         <template v-if="visibleItems.length">
           <ArtifactIndexTable :model="model" />
-          <div v-if="showPagination" class="pagination-bar">
+          <div
+            v-if="showPagination"
+            class="pagination-bar"
+          >
             <label class="filter-select">
               <span>Per page</span>
               <select
@@ -83,7 +92,11 @@ useAutoSelectArtifact(pageKey, filteredItems);
                 :value="model.perPage"
                 @change="onPerPageChange"
               >
-                <option v-for="option in perPageOptions" :key="option" :value="option">
+                <option
+                  v-for="option in perPageOptions"
+                  :key="option"
+                  :value="option"
+                >
                   {{ option }}
                 </option>
               </select>
@@ -111,7 +124,10 @@ useAutoSelectArtifact(pageKey, filteredItems);
             </div>
           </div>
         </template>
-        <div v-else class="empty-state">
+        <div
+          v-else
+          class="empty-state"
+        >
           <h2>{{ copy.emptyTitle }}</h2>
           <p>{{ copy.emptyHint }}</p>
         </div>
@@ -129,12 +145,24 @@ useAutoSelectArtifact(pageKey, filteredItems);
       data-artifact-splitter
       role="separator"
       tabindex="0"
-    ></div>
-    <div class="artifact-layout__pane artifact-layout__pane--drawer" data-artifact-pane="drawer">
+    />
+    <div
+      class="artifact-layout__pane artifact-layout__pane--drawer"
+      data-artifact-pane="drawer"
+    >
       <ConsolePanel :title="drawerTitle">
-        <ArtifactVideoDrawer v-if="model.pageKey === 'videos'" :model="model" />
-        <ArtifactLogDrawer v-else-if="model.pageKey === 'logs'" :model="model" />
-        <ArtifactDownloadDrawer v-else :model="model" />
+        <ArtifactVideoDrawer
+          v-if="model.pageKey === 'videos'"
+          :model="model"
+        />
+        <ArtifactLogDrawer
+          v-else-if="model.pageKey === 'logs'"
+          :model="model"
+        />
+        <ArtifactDownloadDrawer
+          v-else
+          :model="model"
+        />
       </ConsolePanel>
     </div>
   </div>

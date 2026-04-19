@@ -20,7 +20,11 @@ const system = computed(() => props.model.system);
   </div>
   <ConsolePanel title="Current usage">
     <div class="summary-grid">
-      <div v-for="item in system.usageSummary" :key="item.label" class="summary-card">
+      <div
+        v-for="item in system.usageSummary"
+        :key="item.label"
+        class="summary-card"
+      >
         <span>{{ item.label }}</span>
         <strong>{{ item.value }}</strong>
       </div>
@@ -38,7 +42,10 @@ const system = computed(() => props.model.system);
             </tr>
           </thead>
           <tbody>
-            <tr v-for="entry in system.browserUsage" :key="entry.browser">
+            <tr
+              v-for="entry in system.browserUsage"
+              :key="entry.browser"
+            >
               <td>{{ titleCase(entry.browser) }}</td>
               <td>{{ entry.count }}</td>
               <td>{{ entry.running }}</td>
@@ -49,7 +56,11 @@ const system = computed(() => props.model.system);
     </ConsolePanel>
     <ConsolePanel title="Health notes">
       <div class="stack-layout compact">
-        <div v-for="note in system.healthNotes" :key="note" class="note-block">
+        <div
+          v-for="note in system.healthNotes"
+          :key="note"
+          class="note-block"
+        >
           {{ note }}
         </div>
         <div class="note-block">

@@ -349,10 +349,15 @@ function handleBeforeUnload() {
   <main class="vnc-page">
     <header class="vnc-page__header">
       <div class="vnc-page__title">
-        <h1 id="vnc-page-title">{{ pageTitle }}</h1>
+        <h1 id="vnc-page-title">
+          {{ pageTitle }}
+        </h1>
         <p>Read-only VNC stream for the selected session.</p>
       </div>
-      <a class="button secondary" href="/sessions">Session list</a>
+      <a
+        class="button secondary"
+        href="/sessions"
+      >Session list</a>
     </header>
 
     <section class="panel">
@@ -363,8 +368,15 @@ function handleBeforeUnload() {
         <div class="vnc-toolbar__status">
           <span class="artifact-chip">VNC</span>
           <div class="vnc-status-copy">
-            <strong id="vnc-session-label" class="mono">{{ sessionLabel }}</strong>
-            <span id="vnc-status" class="vnc-status" :data-state="status.state">
+            <strong
+              id="vnc-session-label"
+              class="mono"
+            >{{ sessionLabel }}</strong>
+            <span
+              id="vnc-status"
+              class="vnc-status"
+              :data-state="status.state"
+            >
               {{ status.message }}
             </span>
           </div>
@@ -388,8 +400,14 @@ function handleBeforeUnload() {
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <rect x="4.25" y="8" width="9.5" height="6.5" rx="1.5"></rect>
-            <path d="M6.5 8V6.25a2.5 2.5 0 0 1 5 0V8"></path>
+            <rect
+              x="4.25"
+              y="8"
+              width="9.5"
+              height="6.5"
+              rx="1.5"
+            />
+            <path d="M6.5 8V6.25a2.5 2.5 0 0 1 5 0V8" />
           </svg>
           <svg
             class="icon viewer-mode-toggle__icon viewer-mode-toggle__icon--unlock"
@@ -401,18 +419,31 @@ function handleBeforeUnload() {
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <rect x="4.25" y="8" width="9.5" height="6.5" rx="1.5"></rect>
-            <path d="M6.5 8V6.25a2.5 2.5 0 0 1 4.2-1.78"></path>
-            <path d="M11.8 4.47 13.2 3.1"></path>
+            <rect
+              x="4.25"
+              y="8"
+              width="9.5"
+              height="6.5"
+              rx="1.5"
+            />
+            <path d="M6.5 8V6.25a2.5 2.5 0 0 1 4.2-1.78" />
+            <path d="M11.8 4.47 13.2 3.1" />
           </svg>
           <span id="vnc-viewer-mode-label">{{ viewerModeLabel }}</span>
         </button>
       </div>
       <div class="vnc-screen-shell">
-        <div id="vnc-screen" ref="screenElement" class="vnc-screen"></div>
+        <div
+          id="vnc-screen"
+          ref="screenElement"
+          class="vnc-screen"
+        />
       </div>
       <div class="vnc-clipboard-drawer-wrap">
-        <div class="vnc-clipboard-drawer" :data-expanded="String(clipboardExpanded)">
+        <div
+          class="vnc-clipboard-drawer"
+          :data-expanded="String(clipboardExpanded)"
+        >
           <button
             id="vnc-clipboard-toggle"
             class="vnc-clipboard-drawer__toggle"
@@ -462,7 +493,7 @@ function handleBeforeUnload() {
               rows="4"
               spellcheck="false"
               placeholder="Pull from session to load its clipboard, or paste text here and push."
-            ></textarea>
+            />
             <div class="vnc-clipboard-drawer__actions">
               <button
                 id="vnc-clipboard-pull"
@@ -507,12 +538,16 @@ function handleBeforeUnload() {
           @mouseenter="showHelpDelayed"
           @mouseleave="hideHelp"
         >
-          Push: paste text in window → Push to session → right-click → Paste in VNC.<br />
+          Push: paste text in window → Push to session → right-click → Paste in VNC.<br>
           Pull: right-click → Copy in VNC → Pull from session.
         </span>
       </div>
       <div class="vnc-footer">
-        <a id="vnc-open-session" class="button secondary" :href="sessionDetailHref">
+        <a
+          id="vnc-open-session"
+          class="button secondary"
+          :href="sessionDetailHref"
+        >
           Open session detail
         </a>
       </div>

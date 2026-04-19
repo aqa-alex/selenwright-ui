@@ -76,7 +76,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="quick-jump">
-    <span v-html="searchIcon"></span>
+    <!-- eslint-disable-next-line vue/no-v-html -- icon() returns a fixed-name allowlisted SVG with an escaped aria-label -->
+    <span v-html="searchIcon" />
     <input
       ref="inputRef"
       aria-label="Global search and quick jump"
@@ -85,9 +86,17 @@ onBeforeUnmount(() => {
       type="search"
       :value="quickJumpQuery"
       @input="onQueryInput"
-    />
-    <div v-if="quickJumpQuery.trim()" class="quick-jump-results">
-      <div v-if="!quickJumpResults.length" class="quick-jump-empty">No matches</div>
+    >
+    <div
+      v-if="quickJumpQuery.trim()"
+      class="quick-jump-results"
+    >
+      <div
+        v-if="!quickJumpResults.length"
+        class="quick-jump-empty"
+      >
+        No matches
+      </div>
       <button
         v-for="result in quickJumpResults.slice(0, 6)"
         v-else

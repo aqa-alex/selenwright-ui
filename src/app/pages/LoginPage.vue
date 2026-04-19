@@ -31,9 +31,16 @@ async function handleSubmit() {
 
 <template>
   <div class="login-page">
-    <form class="login-form" @submit.prevent="handleSubmit">
-      <h1 class="login-title">Selenwright</h1>
-      <p class="login-subtitle">Sign in to continue</p>
+    <form
+      class="login-form"
+      @submit.prevent="handleSubmit"
+    >
+      <h1 class="login-title">
+        Selenwright
+      </h1>
+      <p class="login-subtitle">
+        Sign in to continue
+      </p>
       <label class="login-field">
         <span class="login-label">Username</span>
         <input
@@ -43,7 +50,7 @@ async function handleSubmit() {
           class="login-input"
           :disabled="submitting"
           type="text"
-        />
+        >
       </label>
       <label class="login-field">
         <span class="login-label">Password</span>
@@ -53,10 +60,19 @@ async function handleSubmit() {
           class="login-input"
           :disabled="submitting"
           type="password"
-        />
+        >
       </label>
-      <div v-if="error" class="login-error">{{ error }}</div>
-      <button class="button login-button" :disabled="submitting" type="submit">
+      <div
+        v-if="error"
+        class="login-error"
+      >
+        {{ error }}
+      </div>
+      <button
+        class="button login-button"
+        :disabled="submitting"
+        type="submit"
+      >
         {{ submitting ? "Signing in..." : "Sign in" }}
       </button>
     </form>

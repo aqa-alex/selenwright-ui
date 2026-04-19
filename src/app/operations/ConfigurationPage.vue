@@ -36,20 +36,35 @@ const statusClass = computed(() => getConfigurationStatusClass(configuration.val
     </div>
     <div class="two-column-layout">
       <ConsolePanel title="Limits and timeouts">
-        <KeyValueList :empty-label="emptyLabel" :items="configuration.limits" />
+        <KeyValueList
+          :empty-label="emptyLabel"
+          :items="configuration.limits"
+        />
       </ConsolePanel>
       <ConsolePanel title="Paths and storage">
-        <KeyValueList :empty-label="emptyLabel" :items="configuration.paths" />
+        <KeyValueList
+          :empty-label="emptyLabel"
+          :items="configuration.paths"
+        />
       </ConsolePanel>
       <ConsolePanel title="Logging">
-        <KeyValueList :empty-label="emptyLabel" :items="configuration.logging" />
+        <KeyValueList
+          :empty-label="emptyLabel"
+          :items="configuration.logging"
+        />
       </ConsolePanel>
       <ConsolePanel title="Feature availability">
-        <KeyValueList :empty-label="emptyLabel" :items="configuration.featureAvailability" />
+        <KeyValueList
+          :empty-label="emptyLabel"
+          :items="configuration.featureAvailability"
+        />
       </ConsolePanel>
     </div>
     <ConsolePanel title="Raw configuration">
-      <div v-if="!rawSections.length" class="note-block configuration-panel-empty">
+      <div
+        v-if="!rawSections.length"
+        class="note-block configuration-panel-empty"
+      >
         No raw configuration data
       </div>
       <template v-else>

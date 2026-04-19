@@ -141,7 +141,11 @@ function refetchLog() {
 </script>
 
 <template>
-  <div v-if="showLivePanel" class="log-preview-panel" id="session-logs-panel">
+  <div
+    v-if="showLivePanel"
+    id="session-logs-panel"
+    class="log-preview-panel"
+  >
     <div class="log-preview-header">
       <span>Live stream</span>
       <div class="panel-actions">
@@ -170,7 +174,11 @@ function refetchLog() {
       >
         Copy block
       </button>
-      <button class="button secondary" type="button" @click="jumpLiveToEnd">
+      <button
+        class="button secondary"
+        type="button"
+        @click="jumpLiveToEnd"
+      >
         Jump to end
       </button>
       <button
@@ -182,25 +190,36 @@ function refetchLog() {
         Reconnect
       </button>
     </div>
-    <div v-if="liveState?.error" class="note-block log-note-error">
+    <div
+      v-if="liveState?.error"
+      class="note-block log-note-error"
+    >
       {{ liveState.error }}
     </div>
-    <p v-if="!liveContent" class="hint-text">{{ getLiveLogEmptyText(liveState) }}</p>
-    <p v-if="liveState?.truncated && liveContent" class="hint-text log-truncated-hint">
+    <p
+      v-if="!liveContent"
+      class="hint-text"
+    >
+      {{ getLiveLogEmptyText(liveState) }}
+    </p>
+    <p
+      v-if="liveState?.truncated && liveContent"
+      class="hint-text log-truncated-hint"
+    >
       Earlier output trimmed to keep the viewer responsive.
     </p>
     <pre
+      id="log-viewer-content"
       ref="liveViewer"
       class="code-block log-viewer wrap"
-      id="log-viewer-content"
       @scroll="onLiveScroll"
     >{{ liveContent }}</pre>
   </div>
 
   <div
     v-else-if="session.artifacts.savedLogs"
-    class="log-preview-panel"
     id="session-logs-panel"
+    class="log-preview-panel"
   >
     <div class="log-preview-header">
       <span>{{ filename }}</span>
@@ -222,9 +241,9 @@ function refetchLog() {
           type="search"
           :value="model.logSearch"
           @input="onLogSearchInput"
-        />
+        >
       </label>
-      <div class="log-toolbar-spacer"></div>
+      <div class="log-toolbar-spacer" />
     </div>
     <div class="drawer-actions">
       <button
@@ -236,7 +255,11 @@ function refetchLog() {
       >
         Copy block
       </button>
-      <button class="button secondary" type="button" @click="jumpSavedToEnd">
+      <button
+        class="button secondary"
+        type="button"
+        @click="jumpSavedToEnd"
+      >
         Jump to end
       </button>
       <button
@@ -247,29 +270,50 @@ function refetchLog() {
       >
         Retry
       </button>
-      <a class="button secondary" :download="filename" :href="buildLogDownloadHref(filename)">
+      <a
+        class="button secondary"
+        :download="filename"
+        :href="buildLogDownloadHref(filename)"
+      >
         Download
       </a>
     </div>
-    <div v-if="effectiveLogState.loading" class="note-block">Loading {{ filename }}&hellip;</div>
-    <div v-if="effectiveLogState.error" class="note-block log-note-error">
+    <div
+      v-if="effectiveLogState.loading"
+      class="note-block"
+    >
+      Loading {{ filename }}&hellip;
+    </div>
+    <div
+      v-if="effectiveLogState.error"
+      class="note-block log-note-error"
+    >
       {{ effectiveLogState.error }}
     </div>
     <pre
       v-if="hasContent"
+      id="log-viewer-content"
       ref="savedViewer"
       class="code-block log-viewer wrap"
-      id="log-viewer-content"
     >{{ filteredContent }}</pre>
-    <p v-else class="hint-text">
+    <p
+      v-else
+      class="hint-text"
+    >
       {{ getSavedLogEmptyText(effectiveLogState, model.logSearch) }}
     </p>
   </div>
 
-  <div v-else class="log-preview-panel" id="session-logs-panel">
+  <div
+    v-else
+    id="session-logs-panel"
+    class="log-preview-panel"
+  >
     <div class="log-preview-header">
       <span>No log source</span>
     </div>
-    <p class="hint-text">{{ getMissingSessionLogText(session) }}</p>
+    <p class="hint-text">
+      {{ getMissingSessionLogText(session) }}
+    </p>
   </div>
 </template>

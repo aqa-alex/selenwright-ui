@@ -46,8 +46,15 @@ function isNavItemActive(routeName: string, href: string) {
 </script>
 
 <template>
-  <aside class="sidebar" aria-label="Primary navigation">
-    <section v-for="group in navigationGroups" :key="group.title" class="sidebar-group">
+  <aside
+    class="sidebar"
+    aria-label="Primary navigation"
+  >
+    <section
+      v-for="group in navigationGroups"
+      :key="group.title"
+      class="sidebar-group"
+    >
       <h2>{{ group.title }}</h2>
       <a
         v-for="item in group.items"
@@ -57,7 +64,8 @@ function isNavItemActive(routeName: string, href: string) {
         :href="item.href"
       >
         <span class="sidebar-link-icon">
-          <span v-html="item.iconMarkup"></span>
+          <!-- eslint-disable-next-line vue/no-v-html -- icon() validates name against an allowlist and escapes the aria-label -->
+          <span v-html="item.iconMarkup" />
         </span>
         <span>{{ item.label }}</span>
       </a>

@@ -40,18 +40,41 @@ async function onDelete() {
 </script>
 
 <template>
-  <div v-if="selected" class="artifact-drawer-body">
+  <div
+    v-if="selected"
+    class="artifact-drawer-body"
+  >
     <div class="drawer-media-placeholder">
-      <div class="video-poster">{{ selected.filename }}</div>
+      <div class="video-poster">
+        {{ selected.filename }}
+      </div>
       <p>Preview stays paused by default. Use inspect or download as the primary action.</p>
     </div>
     <div class="key-value-list compact">
-      <ArtifactKeyValueRow label="Session" :value="selected.sessionId" />
-      <ArtifactKeyValueRow label="Browser" :value="titleCase(selected.browser)" />
-      <ArtifactKeyValueRow label="Protocol" :value="titleCase(selected.protocol)" />
-      <ArtifactKeyValueRow label="Created" :value="created" />
-      <ArtifactKeyValueRow label="Duration" :value="formatDuration(selected.durationMs)" />
-      <ArtifactKeyValueRow label="Size" :value="formatBytes(selected.size)" />
+      <ArtifactKeyValueRow
+        label="Session"
+        :value="selected.sessionId"
+      />
+      <ArtifactKeyValueRow
+        label="Browser"
+        :value="titleCase(selected.browser)"
+      />
+      <ArtifactKeyValueRow
+        label="Protocol"
+        :value="titleCase(selected.protocol)"
+      />
+      <ArtifactKeyValueRow
+        label="Created"
+        :value="created"
+      />
+      <ArtifactKeyValueRow
+        label="Duration"
+        :value="formatDuration(selected.durationMs)"
+      />
+      <ArtifactKeyValueRow
+        label="Size"
+        :value="formatBytes(selected.size)"
+      />
     </div>
     <div class="drawer-actions">
       <button
@@ -79,5 +102,10 @@ async function onDelete() {
       </button>
     </div>
   </div>
-  <p v-else class="hint-text">Select a video to inspect metadata.</p>
+  <p
+    v-else
+    class="hint-text"
+  >
+    Select a video to inspect metadata.
+  </p>
 </template>
