@@ -18,6 +18,6 @@ fi
 
 docker build --pull -t "$IMAGE" .
 docker tag "$IMAGE" "$IMAGE:$TAG"
-docker login -u="$DOCKERHUB_USERNAME" -p="$DOCKERHUB_TOKEN"
+printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 docker push "$IMAGE"
 docker push "$IMAGE:$TAG"
