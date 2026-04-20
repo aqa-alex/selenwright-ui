@@ -185,6 +185,13 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
+// How long (ms) the router guard trusts a cached identity before re-fetching
+// /api/whoami. Short enough that a cookie invalidated server-side (restart,
+// TTL, revocation) is detected on the next navigation, long enough that clicks
+// within the same page don't round-trip to the upstream.
+const IDENTITY_REVALIDATE_MS = 5_000;
+let lastIdentityCheckAt = 0;
+
 export function createConsoleRouter() {
   const router = createRouter({
     history: createWebHistory(),
@@ -193,11 +200,13 @@ export function createConsoleRouter() {
 
   router.beforeEach(async (to) => {
     const identity = useIdentityStore();
-    if (!identity.loaded) {
+    const now = Date.now();
+    if (!identity.loaded || now - lastIdentityCheckAt > IDENTITY_REVALIDATE_MS) {
       await identity.load();
+      lastIdentityCheckAt = now;
     }
     if (identity.requiresLogin && to.name !== "login") {
-      return { name: "login" };
+      return { name: "login", query: { reason: "session_expired" } };
     }
     if (!identity.requiresLogin && to.name === "login") {
       return { name: "sessions" };
@@ -205,4 +214,10 @@ export function createConsoleRouter() {
   });
 
   return router;
+}
+
+// Exposed for tests: reset the memoised last-check timestamp so each test case
+// gets a fresh re-validation cycle.
+export function __resetIdentityRevalidationCache(): void {
+  lastIdentityCheckAt = 0;
 }

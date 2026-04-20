@@ -5,6 +5,76 @@ export const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
 export const TERMINATE_REQUEST_TIMEOUT_MS = 8000;
 export const ARTIFACT_REQUEST_TIMEOUT_MS = 15_000;
 
+type UnauthorizedHandler = () => void;
+
+// Paths whose 401 must NOT trigger the global unauthorized handler:
+// /api/whoami is the identity probe itself (returns 200 with anonymous body
+// rather than 401, but belt-and-braces), and /api/login / /api/logout are the
+// auth-bootstrap endpoints — firing a logout redirect from them creates a loop.
+const UNAUTHORIZED_SKIP_PATHS = new Set([
+  "/api/whoami",
+  "/api/login",
+  "/api/logout",
+]);
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler;
+}
+
+// Explicit escape hatch for callers that detect an auth failure outside the
+// normal fetch pipeline — e.g. an EventSource whose 401 never reaches
+// fetchWithTimeout. The caller is responsible for verifying the auth failure
+// (e.g. by probing /api/whoami) before invoking this so the UI does not
+// redirect on transient network blips.
+export function triggerUnauthorized(): void {
+  if (!unauthorizedHandler) {
+    return;
+  }
+  try {
+    unauthorizedHandler();
+  } catch {
+    // never let a buggy handler break the caller
+  }
+}
+
+function extractRequestPath(resource: RequestInfo | URL): string {
+  try {
+    if (typeof resource === "string") {
+      const base =
+        typeof window !== "undefined" && window.location
+          ? window.location.origin
+          : "http://localhost";
+      return new URL(resource, base).pathname;
+    }
+    if (resource instanceof URL) {
+      return resource.pathname;
+    }
+    if (typeof Request !== "undefined" && resource instanceof Request) {
+      return new URL(resource.url).pathname;
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function notifyUnauthorized(resource: RequestInfo | URL): void {
+  if (!unauthorizedHandler) {
+    return;
+  }
+  const path = extractRequestPath(resource);
+  if (!path || UNAUTHORIZED_SKIP_PATHS.has(path)) {
+    return;
+  }
+  try {
+    unauthorizedHandler();
+  } catch {
+    // never let a buggy handler break the calling request
+  }
+}
+
 export async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetchWithTimeout(
     url,
@@ -72,11 +142,15 @@ export async function fetchWithTimeout(
   }, timeoutMs);
 
   try {
-    return await fetch(resource, {
+    const response = await fetch(resource, {
       credentials: "include",
       ...options,
       signal: controller.signal,
     });
+    if (response.status === 401) {
+      notifyUnauthorized(resource);
+    }
+    return response;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error(`${contextLabel} timed out after ${formatTimeoutMs(timeoutMs)}.`);

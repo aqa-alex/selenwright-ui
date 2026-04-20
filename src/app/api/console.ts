@@ -10,6 +10,7 @@ import {
 } from "./configuration";
 import { asString, isRecord } from "./guards";
 import { fetchJson } from "./http";
+import { detectStreamAuthLoss } from "./identity";
 import {
   buildBrowserInventoryFromStatus,
   buildBrowserUsageFromStatus,
@@ -271,6 +272,7 @@ export function subscribeToConsoleData(
         ),
       );
       scheduleReconnect();
+      void detectStreamAuthLoss();
     };
   };
 

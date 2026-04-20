@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useIdentityStore } from "../stores/identity";
 
 const identityStore = useIdentityStore();
 const router = useRouter();
+const route = useRoute();
 
 const username = ref("");
 const password = ref("");
 const error = ref("");
 const submitting = ref(false);
+
+const notice = computed(() =>
+  route.query.reason === "session_expired"
+    ? "Your session expired or was revoked. Please sign in again."
+    : "",
+);
 
 async function handleSubmit() {
   error.value = "";
@@ -41,6 +48,12 @@ async function handleSubmit() {
       <p class="login-subtitle">
         Sign in to continue
       </p>
+      <div
+        v-if="notice"
+        class="login-notice"
+      >
+        {{ notice }}
+      </div>
       <label class="login-field">
         <span class="login-label">Username</span>
         <input
@@ -151,6 +164,15 @@ async function handleSubmit() {
   border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
   border-radius: var(--control-radius);
   color: var(--danger);
+  font-size: 0.75rem;
+  padding: var(--space-2) var(--space-3);
+}
+
+.login-notice {
+  background: color-mix(in srgb, var(--warning, var(--accent)) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, var(--accent)) 30%, transparent);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
   font-size: 0.75rem;
   padding: var(--space-2) var(--space-3);
 }

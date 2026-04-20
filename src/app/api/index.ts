@@ -14,3 +14,4 @@ export { saveArtifactHistorySettings } from "./settings";
 export { terminateSession, type TerminateProtocol } from "./sessions";
 export { fetchDiscoveredBrowsers, adoptBrowser, dismissBrowser, rescanBrowsers } from "./discovery";
 export { fetchStackStatus, pullStackImages, recreateStack } from "./stack";
+export { setUnauthorizedHandler, triggerUnauthorized } from "./http";

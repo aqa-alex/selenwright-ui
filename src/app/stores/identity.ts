@@ -53,6 +53,12 @@ export const useIdentityStore = defineStore("identity", {
     },
     async logout() {
       await apiLogout();
+      this.resetToAnonymous();
+    },
+    // resetToAnonymous flips the store to the "logged-out" shape without
+    // calling POST /api/logout — invoked by the global 401 handler when the
+    // server-side session is already gone (restart / TTL / revocation).
+    resetToAnonymous() {
       this.user = "unknown";
       this.isAdmin = false;
       this.authenticated = false;

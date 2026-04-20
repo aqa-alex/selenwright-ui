@@ -77,6 +77,12 @@ The UI sets these on every HTTP response:
 
 If you need to embed the UI in an iframe from another origin you must set `frame-ancestors` upstream; the header is not user-configurable.
 
+== Session expiry
+
+UI login sessions on the upstream are in-memory and cleared on every selenwright restart. When the server-side cookie becomes invalid (restart, TTL, explicit admin revocation), the UI catches the next `401` response from any data endpoint, drops the cached identity state, and bounces the browser to `/login?reason=session_expired` with a visible notice. This keeps the user from seeing a stale "logged-in" UI fed by open endpoints that the upstream no longer exposes (see the anonymous-reachable list in the selenwright authentication docs).
+
+The unauthorized handler is wired in `src/main.ts` via `setUnauthorizedHandler(...)`. Three paths are excluded from the trigger — `/api/whoami`, `/api/login`, `/api/logout` — to avoid a redirect loop during the auth bootstrap itself. Any other `401` from the proxy is treated as "session gone".
+
 == Checklist before going public
 
 . Terminate TLS at a reverse proxy.
@@ -85,4 +91,5 @@ If you need to embed the UI in an iframe from another origin you must set `frame
 . Upstream `-auth-mode` is `embedded` or `trusted-proxy`.
 . Admin users list is the minimum viable set.
 . Body and SSE caps left at defaults unless you have a reason.
-. `/api/whoami` returns `authenticated: true` for real users and `401` for unauthenticated ones — test both before announcing the URL.
+. `/api/whoami` returns `authenticated: true` for real users and `authenticated: false` for anonymous ones — test both before announcing the URL.
+. Hit `/api/status` with no cookie and confirm `401 Unauthorized`. Until the `openPaths` narrowing in selenwright, this returned a populated sessions list to anyone on the network.

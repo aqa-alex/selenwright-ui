@@ -93,6 +93,17 @@ export async function handleApi(req, res, route, requestUrl) {
         timeoutMs,
         `${req.method || "GET"} ${upstreamUrl.pathname} response`,
       );
+      // Auth failures on upstream are plain-text ("Unauthorized" / "Forbidden")
+      // from net/http's http.Error. Preserve the original status code so the
+      // browser-side 401 handler can trigger the session-expired redirect
+      // instead of seeing an opaque 502 upstream-contract error.
+      if (upstreamResponse.status === 401 || upstreamResponse.status === 403) {
+        sendJson(res, upstreamResponse.status, {
+          error: upstreamResponse.status === 401 ? "unauthorized" : "forbidden",
+          message: truncateBodyPreview(body) || (upstreamResponse.status === 401 ? "Unauthorized" : "Forbidden"),
+        });
+        return;
+      }
       sendJson(res, 502, {
         error: "upstream_contract_error",
         message: `Expected application/json from ${upstreamUrl.pathname}, got ${contentType || "unknown content-type"}: ${truncateBodyPreview(body)}`,
@@ -174,13 +185,21 @@ async function handleSessionTerminate(req, res, route, requestUrl) {
     : `/wd/hub/session/${encodedSessionId}`;
   const upstreamUrl = new URL(upstreamPath, target);
 
+  const upstreamHeaders = {
+    accept: "application/json, text/plain;q=0.9, */*;q=0.1",
+  };
+  if (req.headers["authorization"]) {
+    upstreamHeaders.authorization = req.headers["authorization"];
+  }
+  if (req.headers["cookie"]) {
+    upstreamHeaders.cookie = req.headers["cookie"];
+  }
+
   try {
     const upstreamResponse = await fetchWithTimeout(
       upstreamUrl,
       {
-        headers: {
-          accept: "application/json, text/plain;q=0.9, */*;q=0.1",
-        },
+        headers: upstreamHeaders,
         method: "DELETE",
       },
       terminateAttemptTimeoutMs,

@@ -5,6 +5,7 @@ import {
   fetchJson,
   fetchWithTimeout,
   readResponseJsonWithTimeout,
+  triggerUnauthorized,
 } from "./http";
 
 export type AuthMode = "embedded" | "trusted-proxy" | "none";
@@ -33,6 +34,23 @@ export async function fetchIdentity(): Promise<UserIdentity> {
     return normalizeIdentity(payload);
   } catch {
     return anonymousIdentity;
+  }
+}
+
+// EventSource does not expose the upstream HTTP status on error — a 401 from
+// an SSE stream looks identical to a transient network drop. Stream consumers
+// call this after an error to re-check identity via /api/whoami; if the call
+// reports anonymous under embedded auth, fan the global unauthorized handler
+// so the UI redirects to /login instead of looping reconnects on a dead cookie.
+export async function detectStreamAuthLoss(): Promise<void> {
+  try {
+    const identity = await fetchIdentity();
+    if (identity.authMode === "embedded" && !identity.authenticated) {
+      triggerUnauthorized();
+    }
+  } catch {
+    // fetchIdentity is already resilient (falls back to anonymousIdentity);
+    // swallow any unexpected throw so the SSE reconnect loop stays simple.
   }
 }
 

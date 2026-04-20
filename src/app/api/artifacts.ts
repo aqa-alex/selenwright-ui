@@ -4,6 +4,7 @@ import {
   fetchWithTimeout,
   readResponseTextWithTimeout,
 } from "./http";
+import { detectStreamAuthLoss } from "./identity";
 import {
   buildDownloadFileApiPath,
   buildLiveLogApiPath,
@@ -192,6 +193,12 @@ export function subscribeToLiveLogs(
       }
 
       emitStatus(nextStatus, nextMessage, payload);
+
+      if (nextStatus === "error" || nextStatus === "closed") {
+        disposed = true;
+        cancelPendingReconnect();
+        closeSource();
+      }
     });
 
     source.onopen = () => {
@@ -219,6 +226,7 @@ export function subscribeToLiveLogs(
       );
       emitStatus("reconnecting", errorMessage);
       scheduleReconnect();
+      void detectStreamAuthLoss();
     };
   };
 
