@@ -58,17 +58,17 @@ export async function terminateSession(
   return payload;
 }
 
-export function buildBrowserInventoryFromStatus(
-  browserTree: JsonRecord,
-  browserCatalog: BrowserCatalogEntry[] = [],
-): BrowserInventoryRow[] {
-  const catalogMap = new Map<string, Map<string, { image: string; protocol?: string }>>();
+type CatalogEntryInfo = { image: string; protocol?: string };
+type CatalogMap = Map<string, Map<string, CatalogEntryInfo>>;
+
+function buildCatalogMap(browserCatalog: BrowserCatalogEntry[]): CatalogMap {
+  const catalogMap: CatalogMap = new Map();
   for (const entry of browserCatalog) {
     if (!entry.name || !Array.isArray(entry.versions)) {
       continue;
     }
 
-    const versionMap = new Map<string, { image: string; protocol?: string }>(
+    const versionMap = new Map<string, CatalogEntryInfo>(
       entry.versions
         .filter((version) => version?.version)
         .map((version) => [
@@ -78,6 +78,35 @@ export function buildBrowserInventoryFromStatus(
     );
     catalogMap.set(entry.name, versionMap);
   }
+  return catalogMap;
+}
+
+function resolveProtocolFromCatalog(
+  catalogMap: CatalogMap,
+  browser: string,
+  version: string,
+): string {
+  const versionMap = catalogMap.get(browser);
+  const exact = normalizeProtocol(versionMap?.get(version)?.protocol);
+  if (exact) {
+    return exact;
+  }
+  if (versionMap) {
+    for (const info of versionMap.values()) {
+      const fallback = normalizeProtocol(info.protocol);
+      if (fallback) {
+        return fallback;
+      }
+    }
+  }
+  return inferProtocol(browser);
+}
+
+export function buildBrowserInventoryFromStatus(
+  browserTree: JsonRecord,
+  browserCatalog: BrowserCatalogEntry[] = [],
+): BrowserInventoryRow[] {
+  const catalogMap = buildCatalogMap(browserCatalog);
 
   const rows: BrowserInventoryRow[] = [];
   for (const [browser, versions] of Object.entries(browserTree)) {
@@ -90,7 +119,7 @@ export function buildBrowserInventoryFromStatus(
       rows.push({
         browser,
         version,
-        protocol: normalizeProtocol(catalogEntry?.protocol) || inferProtocol(browser),
+        protocol: resolveProtocolFromCatalog(catalogMap, browser, version),
         source: catalogEntry?.image || "—",
         status: "ready",
       });
@@ -128,8 +157,10 @@ export function normalizeSessionStatus(raw: RawSessionEntry): string {
 export function buildSessionsFromStatus(
   browserTree: JsonRecord,
   referenceTime = new Date().toISOString(),
+  browserCatalog: BrowserCatalogEntry[] = [],
 ): ConsoleSession[] {
   const nowIso = referenceTime || new Date().toISOString();
+  const catalogMap = buildCatalogMap(browserCatalog);
   const sessions: ConsoleSession[] = [];
 
   for (const [browser, versions] of Object.entries(browserTree)) {
@@ -155,7 +186,7 @@ export function buildSessionsFromStatus(
           const raw = rawCandidate as RawSessionEntry;
           const id = asString(raw.id) || generateFallbackSessionId();
           const encodedId = encodeURIComponent(id);
-          const protocol = inferProtocol(browser);
+          const protocol = resolveProtocolFromCatalog(catalogMap, browser, version);
           const startedAt = asString(raw.started) || nowIso;
           const durationMs = Math.max(0, Date.now() - new Date(startedAt).getTime());
           const screen = asString(raw.screen) || "1920x1080x24";

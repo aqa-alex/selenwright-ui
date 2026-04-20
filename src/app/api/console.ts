@@ -124,7 +124,11 @@ export function buildConsoleDatasetFromSnapshot(snapshot: ConsoleSnapshot = {}):
         payload.browsers,
         dataset.configuration.raw.browserCatalog,
       );
-      dataset.sessions = buildSessionsFromStatus(payload.browsers, snapshot.fetchedAt);
+      dataset.sessions = buildSessionsFromStatus(
+        payload.browsers,
+        snapshot.fetchedAt,
+        dataset.configuration.raw.browserCatalog,
+      );
     }
   } else {
     const errorMessage =

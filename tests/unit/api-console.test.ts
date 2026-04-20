@@ -198,6 +198,55 @@ describe("data service normalization", () => {
     expect(chrome?.protocol).toBe("selenium");
   });
 
+  it("derives session protocol from the browser catalog (Playwright firefox)", () => {
+    const dataset = buildConsoleDatasetFromSnapshot({
+      fetchedAt: NOW_ISO,
+      config: {
+        ok: true,
+        value: {
+          raw: {
+            browserCatalog: [
+              {
+                name: "firefox",
+                versions: [
+                  { version: "latest", image: "selenwright/playwright-firefox:latest", protocol: "playwright" },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      status: {
+        ok: true,
+        value: {
+          browsers: {
+            firefox: {
+              latest: {
+                default: {
+                  count: 1,
+                  sessions: [
+                    {
+                      caps: { version: "latest" },
+                      id: "pw-firefox-session",
+                      started: "2026-04-10T09:59:00.000Z",
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          pending: 0,
+          queued: 0,
+          total: 1,
+          used: 1,
+          value: { message: "Ready", ready: true },
+        },
+      },
+    });
+
+    expect(dataset.sessions[0]?.protocol).toBe("playwright");
+  });
+
   it("respects explicit artifact history availability flags", () => {
     const dataset = buildConsoleDatasetFromSnapshot({
       fetchedAt: NOW_ISO,
