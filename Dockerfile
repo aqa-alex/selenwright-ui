@@ -33,6 +33,7 @@ RUN if [ -f package-lock.json ]; then \
     fi
 
 COPY server.mjs server-origin.mjs server-ws-auth.mjs server-ws-frame.mjs ./
+COPY server ./server
 COPY --from=build /app/dist ./dist
 
 EXPOSE 4173
