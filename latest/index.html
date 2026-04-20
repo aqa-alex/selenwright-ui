@@ -694,7 +694,8 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <li><a href="#_websocket_frame_size_caps">21.6. WebSocket frame size caps</a></li>
 <li><a href="#_timeouts">21.7. Timeouts</a></li>
 <li><a href="#_security_headers">21.8. Security headers</a></li>
-<li><a href="#_checklist_before_going_public">21.9. Checklist before going public</a></li>
+<li><a href="#_session_expiry">21.9. Session expiry</a></li>
+<li><a href="#_checklist_before_going_public">21.10. Checklist before going public</a></li>
 </ul>
 </li>
 <li><a href="#_configuration_reference">22. Configuration Reference</a></li>
@@ -2459,7 +2460,16 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_checklist_before_going_public"><a class="anchor" href="#_checklist_before_going_public"></a>21.9. Checklist before going public</h3>
+<h3 id="_session_expiry"><a class="anchor" href="#_session_expiry"></a>21.9. Session expiry</h3>
+<div class="paragraph">
+<p>UI login sessions on the upstream are in-memory and cleared on every selenwright restart. When the server-side cookie becomes invalid (restart, TTL, explicit admin revocation), the UI catches the next <code>401</code> response from any data endpoint, drops the cached identity state, and bounces the browser to <code>/login?reason=session_expired</code> with a visible notice. This keeps the user from seeing a stale "logged-in" UI fed by open endpoints that the upstream no longer exposes (see the anonymous-reachable list in the selenwright authentication docs).</p>
+</div>
+<div class="paragraph">
+<p>The unauthorized handler is wired in <code>src/main.ts</code> via <code>setUnauthorizedHandler(&#8230;&#8203;)</code>. Three paths are excluded from the trigger — <code>/api/whoami</code>, <code>/api/login</code>, <code>/api/logout</code> — to avoid a redirect loop during the auth bootstrap itself. Any other <code>401</code> from the proxy is treated as "session gone".</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_checklist_before_going_public"><a class="anchor" href="#_checklist_before_going_public"></a>21.10. Checklist before going public</h3>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
@@ -2481,7 +2491,10 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <p>Body and SSE caps left at defaults unless you have a reason.</p>
 </li>
 <li>
-<p><code>/api/whoami</code> returns <code>authenticated: true</code> for real users and <code>401</code> for unauthenticated ones — test both before announcing the URL.</p>
+<p><code>/api/whoami</code> returns <code>authenticated: true</code> for real users and <code>authenticated: false</code> for anonymous ones — test both before announcing the URL.</p>
+</li>
+<li>
+<p>Hit <code>/api/status</code> with no cookie and confirm <code>401 Unauthorized</code>. Until the <code>openPaths</code> narrowing in selenwright, this returned a populated sessions list to anyone on the network.</p>
 </li>
 </ol>
 </div>
@@ -3142,7 +3155,7 @@ curl -sS -i \
 <div id="footer">
 <div id="footer-text">
 Version latest<br>
-Last updated 2026-04-19 18:48:07 UTC
+Last updated 2026-04-20 08:42:53 UTC
 </div>
 </div>
 </body>
