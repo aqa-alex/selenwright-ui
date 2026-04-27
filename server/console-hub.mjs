@@ -34,13 +34,29 @@ function stopConsoleWatcher() {
   consoleWatchTimer = null;
 }
 
+// pickAuthHeaders returns cookie+authorization captured from any currently
+// connected SSE client. The upstream Go service requires auth on most snapshot
+// endpoints; this lets the shared background watcher borrow valid credentials
+// from a real client request rather than fetching unauthenticated and 401-ing.
+// If no clients are connected, returns null and the upstream call is skipped.
+function pickAuthHeaders() {
+  for (const client of consoleStreamClients) {
+    if (client.cookie || client.authorization) {
+      return { cookie: client.cookie, authorization: client.authorization };
+    }
+  }
+  return null;
+}
+
 async function refreshConsoleSnapshot() {
   if (consoleSnapshotInFlight) {
     return consoleSnapshotInFlight;
   }
 
+  const authHeaders = pickAuthHeaders();
+
   consoleSnapshotInFlight = (async () => {
-    const nextSnapshot = await fetchConsoleSnapshot();
+    const nextSnapshot = await fetchConsoleSnapshot(authHeaders);
     const nextSignature = stableSerialize(nextSnapshot);
 
     if (nextSignature === consoleSnapshotSignature) {
@@ -103,7 +119,9 @@ export function handleConsoleStream(req, res) {
   res.write(`retry: ${Math.max(1000, consoleWatchIntervalMs)}\n\n`);
 
   const client = {
+    authorization: req.headers["authorization"] || null,
     connectedAt: Date.now(),
+    cookie: req.headers["cookie"] || null,
     heartbeatTimer: 0,
     response: res,
   };

@@ -7,16 +7,16 @@ import {
 } from "./http-utils.mjs";
 import { buildDemoConsoleSnapshot } from "./demo.mjs";
 
-export async function fetchConsoleSnapshot() {
+export async function fetchConsoleSnapshot(authHeaders) {
   if (demoMode) return { ...buildDemoConsoleSnapshot(), fetchedAt: new Date().toISOString() };
 
   const [configResult, statusResult, logsResult, videosResult, downloadsResult, historySettingsResult] = await Promise.allSettled([
-    fetchUpstreamJson("/config"),
-    fetchUpstreamJson("/status"),
-    fetchUpstreamJson("/logs/?json"),
-    fetchUpstreamJson("/video/?json"),
-    fetchUpstreamJson("/downloads/?json"),
-    fetchUpstreamJson("/history/settings"),
+    fetchUpstreamJson("/config", authHeaders),
+    fetchUpstreamJson("/status", authHeaders),
+    fetchUpstreamJson("/logs/?json", authHeaders),
+    fetchUpstreamJson("/video/?json", authHeaders),
+    fetchUpstreamJson("/downloads/?json", authHeaders),
+    fetchUpstreamJson("/history/settings", authHeaders),
   ]);
 
   return {
@@ -33,11 +33,14 @@ export async function fetchConsoleSnapshot() {
   };
 }
 
-async function fetchUpstreamJson(upstreamPath) {
+async function fetchUpstreamJson(upstreamPath, authHeaders) {
+  const headers = { accept: "application/json" };
+  if (authHeaders?.cookie) headers.cookie = authHeaders.cookie;
+  if (authHeaders?.authorization) headers.authorization = authHeaders.authorization;
   const response = await fetchWithTimeout(
     new URL(upstreamPath, target),
     {
-      headers: { accept: "application/json" },
+      headers,
     },
     upstreamRequestTimeoutMs,
     `Upstream ${upstreamPath}`,
