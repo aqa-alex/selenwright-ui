@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import type { StackPullResult } from "../api";
+import type { StackPullResult, StackVersionInfo } from "../api";
 
 export interface ArtifactHistoryDraft {
   draftEnabled: boolean;
@@ -16,6 +16,12 @@ export interface StackUpdateState {
   pullResult: StackPullResult | null;
   recreating: boolean;
   recreateError: string;
+  versions: StackVersionInfo[] | null;
+  versionsCheckedAt: string | null;
+  versionsError: string;
+  checkingVersions: boolean;
+  updateError: string;
+  updating: boolean;
 }
 
 export interface SettingsState {
@@ -38,6 +44,12 @@ const defaultStack: StackUpdateState = {
   pullResult: null,
   recreating: false,
   recreateError: "",
+  versions: null,
+  versionsCheckedAt: null,
+  versionsError: "",
+  checkingVersions: false,
+  updateError: "",
+  updating: false,
 };
 
 export const useSettingsStore = defineStore("settings", {
@@ -90,6 +102,28 @@ export const useSettingsStore = defineStore("settings", {
     resetStackPull() {
       this.stack.pullResult = null;
       this.stack.pullError = "";
+    },
+    setStackCheckingVersions(checking: boolean) {
+      this.stack.checkingVersions = checking;
+    },
+    setStackVersions(payload: { services: StackVersionInfo[]; checkedAt: string }) {
+      this.stack.versions = payload.services;
+      this.stack.versionsCheckedAt = payload.checkedAt;
+      this.stack.versionsError = "";
+    },
+    setStackVersionsError(message: string) {
+      this.stack.versionsError = message;
+    },
+    clearStackVersions() {
+      this.stack.versions = null;
+      this.stack.versionsCheckedAt = null;
+      this.stack.versionsError = "";
+    },
+    setStackUpdating(updating: boolean) {
+      this.stack.updating = updating;
+    },
+    setStackUpdateError(message: string) {
+      this.stack.updateError = message;
     },
   },
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ConsolePanel from "../components/ui/ConsolePanel.vue";
 import SegmentedControl from "../components/ui/SegmentedControl.vue";
@@ -15,7 +15,10 @@ import { useSaveArtifactHistoryMutation } from "../queries/useSaveArtifactHistor
 import { useStackStatusQuery } from "../queries/useStackStatusQuery";
 import { usePullStackMutation } from "../queries/usePullStackMutation";
 import { useRecreateStackMutation } from "../queries/useRecreateStackMutation";
+import { useCheckStackUpdatesMutation } from "../queries/useCheckStackUpdatesMutation";
+import { useUpdateStackMutation } from "../queries/useUpdateStackMutation";
 import { useIdentityStore } from "../stores/identity";
+import type { StackVersionInfo } from "../api";
 import type { OperationsPageModel } from "./operationsPage";
 
 const props = defineProps<{
@@ -28,6 +31,8 @@ const saveArtifactHistoryMutation = useSaveArtifactHistoryMutation();
 const stackStatusQuery = useStackStatusQuery();
 const pullStackMutation = usePullStackMutation();
 const recreateStackMutation = useRecreateStackMutation();
+const checkStackUpdatesMutation = useCheckStackUpdatesMutation();
+const updateStackMutation = useUpdateStackMutation();
 
 function saveArtifactHistory() {
   const draft = settingsStore.artifactHistory;
@@ -92,16 +97,33 @@ const unavailableReason = computed(
 const stackStatus = computed(() => stackStatusQuery.data.value ?? null);
 const stackUi = computed(() => props.model.stackUi);
 const stackAvailable = computed(() => stackStatus.value?.available === true);
+const stackBusy = computed(
+  () =>
+    stackUi.value.pulling ||
+    stackUi.value.recreating ||
+    stackUi.value.checkingVersions ||
+    stackUi.value.updating,
+);
 const stackPullDisabled = computed(
-  () => !identityStore.effectiveAdmin || stackUi.value.pulling || stackUi.value.recreating,
+  () => !identityStore.effectiveAdmin || stackBusy.value,
 );
 const stackRecreateDisabled = computed(
   () =>
     !identityStore.effectiveAdmin ||
     !stackUi.value.pullResult?.hasUpdate ||
-    stackUi.value.pulling ||
-    stackUi.value.recreating,
+    stackBusy.value,
 );
+const stackCheckDisabled = computed(
+  () => !identityStore.effectiveAdmin || stackBusy.value,
+);
+const versionByService = computed(() => {
+  const map = new Map<string, StackVersionInfo>();
+  for (const v of stackUi.value?.versions ?? []) {
+    map.set(v.service, v);
+  }
+  return map;
+});
+const targetTags = ref<Record<string, string>>({});
 
 function pullImages() {
   pullStackMutation.mutate();
@@ -110,6 +132,34 @@ function pullImages() {
 function applyUpdate() {
   recreateStackMutation.mutate();
 }
+
+function checkUpdates() {
+  checkStackUpdatesMutation.mutate();
+}
+
+function updateService(service: string) {
+  const tag = targetTags.value[service];
+  if (!tag) return;
+  updateStackMutation.mutate({ services: { [service]: tag } });
+}
+
+watch(
+  () => stackUi.value?.versions ?? null,
+  (versions) => {
+    if (!versions) {
+      targetTags.value = {};
+      return;
+    }
+    for (const v of versions) {
+      if (v.versionCheck === "ok" && v.availableTags && v.availableTags.length > 0) {
+        if (!targetTags.value[v.service] || !v.availableTags.includes(targetTags.value[v.service])) {
+          targetTags.value[v.service] = v.availableTags[0];
+        }
+      }
+    }
+  },
+  { immediate: true },
+);
 
 watch(
   artifactHistory,
@@ -265,55 +315,133 @@ watch(
     </ConsolePanel>
     <ConsolePanel title="Stack">
       <p class="hint-text">
-        Pull updated container images and recreate the compose stack.
+        Check Docker Hub for newer companion-stack releases and upgrade pinned image tags.
       </p>
       <template v-if="stackStatus && stackAvailable">
-        <div class="key-value-list compact stack-rows">
-          <div
-            v-for="svc in stackStatus.services"
-            :key="svc.service"
-            class="copyable-row"
-          >
-            <span>{{ svc.service }}</span>
-            <strong class="mono">{{ svc.image }} <span class="secondary-text">({{ svc.imageIdShort }})</span></strong>
-          </div>
-        </div>
         <div class="settings-status-stack">
           <div class="drawer-actions settings-actions">
             <button
               class="button"
-              :disabled="stackPullDisabled"
+              :disabled="stackCheckDisabled"
               :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
               type="button"
-              @click="pullImages"
+              @click="checkUpdates"
             >
-              {{ stackUi.pulling ? "Pulling…" : "Pull latest images" }}
+              {{ stackUi.checkingVersions ? "Checking…" : "Check for updates" }}
             </button>
-            <button
-              class="button"
-              :disabled="stackRecreateDisabled"
-              :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
-              type="button"
-              @click="applyUpdate"
+            <span
+              v-if="stackUi.versionsCheckedAt"
+              class="secondary-text"
             >
-              Apply update
-            </button>
+              Last checked
+              <span :data-time-ago="stackUi.versionsCheckedAt">{{ stackUi.versionsCheckedAt }}</span>
+            </span>
           </div>
           <div
-            v-if="stackUi.pullResult"
-            class="key-value-list compact stack-rows"
+            v-if="stackUi.versionsError"
+            class="note-block log-note-error settings-status-callout"
           >
-            <div
-              v-for="r in stackUi.pullResult.results"
-              :key="r.service"
-              class="copyable-row"
-            >
-              <span>{{ r.image }}</span>
-              <strong :class="r.updated ? '' : 'secondary-text'">
-                {{ r.error ? r.error : r.updated ? `Updated (${r.currentId})` : "Up to date" }}
-              </strong>
-            </div>
+            {{ stackUi.versionsError }}
           </div>
+        </div>
+        <div class="key-value-list compact stack-rows">
+          <div
+            v-for="svc in stackStatus.services"
+            :key="svc.service"
+            class="stack-service"
+          >
+            <div class="copyable-row">
+              <span>{{ svc.service }}</span>
+              <strong class="mono">{{ svc.image }} <span class="secondary-text">({{ svc.imageIdShort }})</span></strong>
+            </div>
+            <template v-if="versionByService.get(svc.service)">
+              <div
+                v-if="versionByService.get(svc.service)!.versionCheck === 'ok' && (versionByService.get(svc.service)!.availableTags?.length ?? 0) > 0"
+                class="stack-version-controls"
+              >
+                <label class="stack-version-label">
+                  <span class="secondary-text">Upgrade to</span>
+                  <select
+                    v-model="targetTags[svc.service]"
+                    class="search-field compact stack-version-select"
+                    :disabled="stackBusy"
+                  >
+                    <option
+                      v-for="tag in versionByService.get(svc.service)!.availableTags"
+                      :key="tag"
+                      :value="tag"
+                    >
+                      {{ tag }}
+                    </option>
+                  </select>
+                </label>
+                <button
+                  class="button"
+                  type="button"
+                  :disabled="!identityStore.effectiveAdmin || stackBusy || !targetTags[svc.service]"
+                  :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
+                  @click="updateService(svc.service)"
+                >
+                  {{ stackUi.updating ? "Updating…" : `Update to ${targetTags[svc.service] || '…'}` }}
+                </button>
+              </div>
+              <div
+                v-else-if="versionByService.get(svc.service)!.versionCheck === 'ok'"
+                class="secondary-text stack-version-note"
+              >
+                Up to date with Docker Hub.
+              </div>
+              <div
+                v-else-if="versionByService.get(svc.service)!.versionCheck === 'error'"
+                class="secondary-text stack-version-note"
+              >
+                Version check unavailable: {{ versionByService.get(svc.service)!.versionMessage }}
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="settings-status-stack">
+          <details class="stack-fallback">
+            <summary>Force-pull pinned tags (fallback)</summary>
+            <p class="hint-text">
+              Re-pulls the tags currently in <code>docker-compose.yml</code> without changing them. Use this for floating tags like <code>:latest</code> or when you've published a new build under the same tag.
+            </p>
+            <div class="drawer-actions settings-actions">
+              <button
+                class="button"
+                :disabled="stackPullDisabled"
+                :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
+                type="button"
+                @click="pullImages"
+              >
+                {{ stackUi.pulling ? "Pulling…" : "Pull latest images" }}
+              </button>
+              <button
+                class="button"
+                :disabled="stackRecreateDisabled"
+                :title="identityStore.effectiveAdmin ? undefined : 'Admin access required'"
+                type="button"
+                @click="applyUpdate"
+              >
+                Apply update
+              </button>
+            </div>
+            <div
+              v-if="stackUi.pullResult"
+              class="key-value-list compact stack-rows"
+            >
+              <div
+                v-for="r in stackUi.pullResult.results"
+                :key="r.service"
+                class="copyable-row"
+              >
+                <span>{{ r.image }}</span>
+                <strong :class="r.updated ? '' : 'secondary-text'">
+                  {{ r.error ? r.error : r.updated ? `Updated (${r.currentId})` : "Up to date" }}
+                </strong>
+              </div>
+            </div>
+          </details>
           <div
             v-if="stackUi.recreating"
             class="note-block settings-status-callout"
@@ -331,6 +459,12 @@ watch(
             class="note-block log-note-error settings-status-callout"
           >
             {{ stackUi.recreateError }}
+          </div>
+          <div
+            v-if="stackUi.updateError"
+            class="note-block log-note-error settings-status-callout"
+          >
+            {{ stackUi.updateError }}
           </div>
         </div>
       </template>
@@ -363,6 +497,10 @@ watch(
 </template>
 
 <style scoped>
+.stack-rows {
+  margin-top: var(--space-3);
+}
+
 .stack-rows :deep(.copyable-row) {
   align-items: center;
   display: flex;
@@ -380,5 +518,58 @@ watch(
 .stack-rows :deep(.copyable-row > strong) {
   flex: 0 0 auto;
   text-align: right;
+}
+
+.stack-service {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stack-version-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.stack-version-label {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+
+.stack-version-select {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--control-radius);
+  color: var(--text-primary);
+  height: 32px;
+  min-width: 9rem;
+  padding: 0 10px;
+}
+
+.stack-version-select:disabled {
+  opacity: 0.6;
+}
+
+.stack-version-note {
+  text-align: right;
+}
+
+.stack-fallback {
+  border-radius: var(--radius-2);
+  border: 1px solid var(--border-muted);
+  padding: var(--space-2) var(--space-3);
+}
+
+.stack-fallback summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.stack-fallback[open] summary {
+  margin-bottom: var(--space-2);
 }
 </style>

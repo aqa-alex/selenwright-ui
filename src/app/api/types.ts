@@ -376,3 +376,29 @@ export interface StackRecreateResult {
   accepted: boolean;
   message: string;
 }
+
+export type StackVersionCheck = "ok" | "unsupported" | "error";
+
+export interface StackVersionInfo {
+  service: string;
+  image: string;
+  currentTag?: string;
+  latestTag?: string;
+  availableTags?: string[];
+  updateAvailable: boolean;
+  versionCheck: StackVersionCheck;
+  versionMessage?: string;
+}
+
+export interface StackCheckUpdatesResult {
+  available: boolean;
+  reason?: string;
+  services: StackVersionInfo[];
+  checkedAt: string;
+}
+
+export interface StackUpdateRequest {
+  services: Record<string, string>;
+}
+
+export type StackUpdateResult = StackRecreateResult;

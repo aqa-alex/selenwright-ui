@@ -15,6 +15,8 @@ export const apiRoutes = new Map([
   ["/api/stack/status", { accept: "application/json", upstream: "/stack/status" }],
   ["/api/stack/pull", { accept: "application/json", upstream: "/stack/pull", timeoutMs: 150_000 }],
   ["/api/stack/recreate", { accept: "application/json", upstream: "/stack/recreate", timeoutMs: 150_000 }],
+  ["/api/stack/check-updates", { accept: "application/json", upstream: "/stack/check-updates", timeoutMs: 15_000 }],
+  ["/api/stack/update", { accept: "application/json", upstream: "/stack/update", timeoutMs: 150_000 }],
   ["/api/whoami", { accept: "application/json", upstream: "/whoami" }],
   ["/api/login", { accept: "application/json", upstream: "/login" }],
   ["/api/logout", { accept: "application/json", upstream: "/logout" }],
