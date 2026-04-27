@@ -17,6 +17,14 @@ export const apiRoutes = new Map([
   ["/api/stack/recreate", { accept: "application/json", upstream: "/stack/recreate", timeoutMs: 150_000 }],
   ["/api/stack/check-updates", { accept: "application/json", upstream: "/stack/check-updates", timeoutMs: 15_000 }],
   ["/api/stack/update", { accept: "application/json", upstream: "/stack/update", timeoutMs: 150_000 }],
+  // Registry list takes ?host=<host>; preserve the query string when building
+  // the upstream URL (the simple `upstream:` form drops it).
+  ["/api/registry/list", {
+    accept: "application/json",
+    timeoutMs: 30_000,
+    buildUpstreamUrl: (requestUrl) => new URL(`/registry/list${requestUrl.search}`, target),
+  }],
+  ["/api/registry/pull", { accept: "application/json", upstream: "/registry/pull", timeoutMs: 300_000 }],
   ["/api/whoami", { accept: "application/json", upstream: "/whoami" }],
   ["/api/login", { accept: "application/json", upstream: "/login" }],
   ["/api/logout", { accept: "application/json", upstream: "/logout" }],

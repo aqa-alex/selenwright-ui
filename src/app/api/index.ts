@@ -20,4 +20,15 @@ export {
   recreateStack,
   updateStack,
 } from "./stack";
+export { listRegistry, pullFromRegistry } from "./registry";
+export type {
+  RegistryListing,
+  RegistryRepoListing,
+  RegistryListingError,
+  RegistrySource,
+  RegistryPullRef,
+  RegistryPullRequest,
+  RegistryPullItem,
+  RegistryPullResult,
+} from "./registry";
 export { setUnauthorizedHandler, triggerUnauthorized } from "./http";
