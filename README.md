@@ -38,3 +38,5 @@ See the [Running Locally](https://aqa-alex.github.io/selenwright-ui/latest/#_run
 ## License
 
 Apache 2.0 — see [LICENSE](LICENSE).
+
+<!-- maintenance: ; -->
