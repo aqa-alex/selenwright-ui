@@ -8,25 +8,32 @@ import { withSecurityHeaders } from "./security.mjs";
 import { formatSseEvent } from "./http-utils.mjs";
 import { fetchConsoleSnapshot, stableSerialize } from "./snapshot.mjs";
 
-const consoleStreamClients = new Set();
-let consoleSnapshotCache = null;
-let consoleSnapshotInFlight = null;
-let consoleSnapshotSignature = "";
+// Clients are grouped by the credentials they connected with. Each group gets
+// its own upstream fetch and snapshot cache, so a client only ever receives
+// data the upstream returned for its own cookie/authorization, and a group's
+// cache is dropped together with its last client.
+const consoleStreamGroups = new Map();
+let consoleStreamClientCount = 0;
 let consoleWatchTimer = null;
 
+function credentialKey(authorization, cookie) {
+  return JSON.stringify([authorization || "", cookie || ""]);
+}
+
 function startConsoleWatcher() {
-  if (consoleWatchTimer || !consoleStreamClients.size) {
+  if (consoleWatchTimer || !consoleStreamClientCount) {
     return;
   }
 
-  void refreshConsoleSnapshot();
   consoleWatchTimer = setInterval(() => {
-    void refreshConsoleSnapshot();
+    for (const group of consoleStreamGroups.values()) {
+      void refreshConsoleSnapshot(group);
+    }
   }, consoleWatchIntervalMs);
 }
 
 function stopConsoleWatcher() {
-  if (consoleStreamClients.size || !consoleWatchTimer) {
+  if (consoleStreamClientCount || !consoleWatchTimer) {
     return;
   }
 
@@ -34,54 +41,38 @@ function stopConsoleWatcher() {
   consoleWatchTimer = null;
 }
 
-// pickAuthHeaders returns cookie+authorization captured from any currently
-// connected SSE client. The upstream Go service requires auth on most snapshot
-// endpoints; this lets the shared background watcher borrow valid credentials
-// from a real client request rather than fetching unauthenticated and 401-ing.
-// If no clients are connected, returns null and the upstream call is skipped.
-function pickAuthHeaders() {
-  for (const client of consoleStreamClients) {
-    if (client.cookie || client.authorization) {
-      return { cookie: client.cookie, authorization: client.authorization };
-    }
-  }
-  return null;
-}
-
-async function refreshConsoleSnapshot() {
-  if (consoleSnapshotInFlight) {
-    return consoleSnapshotInFlight;
+async function refreshConsoleSnapshot(group) {
+  if (group.inFlight) {
+    return group.inFlight;
   }
 
-  const authHeaders = pickAuthHeaders();
-
-  consoleSnapshotInFlight = (async () => {
-    const nextSnapshot = await fetchConsoleSnapshot(authHeaders);
+  group.inFlight = (async () => {
+    const nextSnapshot = await fetchConsoleSnapshot(group.auth);
     const nextSignature = stableSerialize(nextSnapshot);
 
-    if (nextSignature === consoleSnapshotSignature) {
-      return consoleSnapshotCache;
+    if (nextSignature === group.signature) {
+      return group.cache;
     }
 
-    consoleSnapshotSignature = nextSignature;
-    consoleSnapshotCache = {
+    group.signature = nextSignature;
+    group.cache = {
       ...nextSnapshot,
       fetchedAt: new Date().toISOString(),
     };
-    broadcastConsoleSnapshot(consoleSnapshotCache);
-    return consoleSnapshotCache;
+    broadcastConsoleSnapshot(group);
+    return group.cache;
   })();
 
   try {
-    return await consoleSnapshotInFlight;
+    return await group.inFlight;
   } finally {
-    consoleSnapshotInFlight = null;
+    group.inFlight = null;
   }
 }
 
-function broadcastConsoleSnapshot(snapshot) {
-  const message = formatSseEvent("snapshot", snapshot);
-  for (const client of consoleStreamClients) {
+function broadcastConsoleSnapshot(group) {
+  const message = formatSseEvent("snapshot", group.cache);
+  for (const client of group.clients) {
     try {
       const writeResult = client.response.write(message);
       if (!writeResult) {
@@ -100,7 +91,7 @@ export function handleConsoleStream(req, res) {
     return;
   }
 
-  if (consoleStreamClients.size >= maxSseClients) {
+  if (consoleStreamClientCount >= maxSseClients) {
     res.writeHead(503, withSecurityHeaders({
       "Content-Type": "text/plain; charset=utf-8",
       "Retry-After": "5",
@@ -118,10 +109,25 @@ export function handleConsoleStream(req, res) {
   res.flushHeaders?.();
   res.write(`retry: ${Math.max(1000, consoleWatchIntervalMs)}\n\n`);
 
+  const authorization = req.headers["authorization"] || null;
+  const cookie = req.headers["cookie"] || null;
+  const groupKey = credentialKey(authorization, cookie);
+  let group = consoleStreamGroups.get(groupKey);
+  if (!group) {
+    group = {
+      auth: { authorization, cookie },
+      cache: null,
+      clients: new Set(),
+      inFlight: null,
+      key: groupKey,
+      signature: "",
+    };
+    consoleStreamGroups.set(groupKey, group);
+  }
+
   const client = {
-    authorization: req.headers["authorization"] || null,
     connectedAt: Date.now(),
-    cookie: req.headers["cookie"] || null,
+    group,
     heartbeatTimer: 0,
     response: res,
   };
@@ -143,13 +149,14 @@ export function handleConsoleStream(req, res) {
     }
   }, consoleHeartbeatIntervalMs);
 
-  consoleStreamClients.add(client);
+  group.clients.add(client);
+  consoleStreamClientCount += 1;
   startConsoleWatcher();
 
-  if (consoleSnapshotCache) {
-    res.write(formatSseEvent("snapshot", consoleSnapshotCache));
+  if (group.cache) {
+    res.write(formatSseEvent("snapshot", group.cache));
   } else {
-    void refreshConsoleSnapshot();
+    void refreshConsoleSnapshot(group);
   }
 
   req.on("close", () => {
@@ -162,11 +169,16 @@ export function handleConsoleStream(req, res) {
 }
 
 function closeConsoleClient(client) {
-  if (!consoleStreamClients.has(client)) {
+  const { group } = client;
+  if (!group.clients.has(client)) {
     return;
   }
 
-  consoleStreamClients.delete(client);
+  group.clients.delete(client);
+  consoleStreamClientCount -= 1;
+  if (!group.clients.size && consoleStreamGroups.get(group.key) === group) {
+    consoleStreamGroups.delete(group.key);
+  }
   clearInterval(client.heartbeatTimer);
   stopConsoleWatcher();
   try {

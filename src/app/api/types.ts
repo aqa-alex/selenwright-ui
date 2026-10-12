@@ -269,6 +269,7 @@ export interface SnapshotSuccess<T> {
 export interface SnapshotFailure {
   ok: false;
   error: string;
+  status?: number;
 }
 
 export type SnapshotResult<T> = SnapshotSuccess<T> | SnapshotFailure;

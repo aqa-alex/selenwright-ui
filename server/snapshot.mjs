@@ -47,7 +47,9 @@ async function fetchUpstreamJson(upstreamPath, authHeaders) {
   );
 
   if (!response.ok) {
-    throw new Error(`Request failed for ${upstreamPath} (${response.status})`);
+    const error = new Error(`Request failed for ${upstreamPath} (${response.status})`);
+    error.status = response.status;
+    throw error;
   }
 
   const contentType = response.headers.get("content-type") || "";
@@ -73,10 +75,14 @@ function normalizeSnapshotResult(result, fallbackError) {
     };
   }
 
-  return {
+  const failure = {
     error: result.reason instanceof Error ? result.reason.message : fallbackError,
     ok: false,
   };
+  if (typeof result.reason?.status === "number") {
+    failure.status = result.reason.status;
+  }
+  return failure;
 }
 
 export function stableSerialize(value) {

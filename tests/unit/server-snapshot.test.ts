@@ -60,6 +60,20 @@ describe("fetchConsoleSnapshot upstream auth forwarding", () => {
     }
   });
 
+  it("reports the upstream status code on failed sections", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response("Unauthorized", {
+        headers: { "content-type": "text/plain" },
+        status: 401,
+      }),
+    ) as typeof fetch;
+
+    const snapshot = await fetchConsoleSnapshot({ cookie: "selenwright_session=expired" });
+
+    expect(snapshot.config).toMatchObject({ ok: false, status: 401 });
+    expect(snapshot.logs).toMatchObject({ ok: false, status: 401 });
+  });
+
   it("forwards only the headers actually present (cookie alone, no token)", async () => {
     const calls: { headers: Record<string, string> }[] = [];
     globalThis.fetch = vi.fn(async (_resource, init) => {
