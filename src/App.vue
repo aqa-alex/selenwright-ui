@@ -5,7 +5,7 @@ import AppHeader from "./app/components/AppHeader.vue";
 import AppSidebar from "./app/components/AppSidebar.vue";
 import PageFrame from "./app/components/PageFrame.vue";
 import { useArtifactSplitter } from "./app/composables/useArtifactSplitter";
-import { useConsoleStream } from "./app/composables/useConsoleStream";
+import { useConsolePolling } from "./app/composables/useConsolePolling";
 import { useDataLinkInterceptor } from "./app/composables/useDataLinkInterceptor";
 import { useGlobalErrorHandler } from "./app/composables/useGlobalErrorHandler";
 import { useRelativeTimeTicker } from "./app/composables/useRelativeTimeTicker";
@@ -13,7 +13,7 @@ import { useRouteSideEffects } from "./app/composables/useRouteSideEffects";
 import { useIdentityStore } from "./app/stores/identity";
 import { useShellStore } from "./app/stores/shell";
 
-useConsoleStream();
+useConsolePolling();
 useRouteSideEffects();
 useArtifactSplitter();
 useRelativeTimeTicker();

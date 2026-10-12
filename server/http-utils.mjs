@@ -71,10 +71,6 @@ export async function readUpstreamTextWithTimeout(response, timeoutMs, contextLa
   return withTimeout(response.text(), timeoutMs, contextLabel);
 }
 
-export async function readUpstreamJsonWithTimeout(response, timeoutMs, contextLabel) {
-  return withTimeout(response.json(), timeoutMs, contextLabel);
-}
-
 export async function readUpstreamArrayBufferWithTimeout(response, timeoutMs, contextLabel) {
   return withTimeout(response.arrayBuffer(), timeoutMs, contextLabel);
 }

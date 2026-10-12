@@ -34,17 +34,6 @@ export async function useBaselineApi(page, options = {}) {
     "/api/videos": snapshot.videos.value,
   };
 
-  await page.route("**/api/stream/console", async (route) => {
-    await route.fulfill({
-      body: `event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`,
-      contentType: "text/event-stream; charset=utf-8",
-      headers: {
-        "cache-control": "no-store",
-      },
-      status: 200,
-    });
-  });
-
   for (const [path, payload] of Object.entries(endpointPayloads)) {
     await page.route(`**${path}`, async (route) => {
       await route.fulfill({

@@ -30,16 +30,6 @@ All runtime knobs are environment variables read by `server.mjs` at startup.
 | `SELENWRIGHT_ALLOWED_ORIGINS` | _(empty)_ | Comma-separated exact-match origins allowed on WebSocket upgrades in addition to `Host`. See <<Deployment Security>>.
 |===
 
-== Console snapshot stream
-
-[cols="2,2,3",options="header"]
-|===
-| Variable | Default | Description
-| `SELENWRIGHT_WATCH_INTERVAL_MS` | `3000` | How often `server.mjs` re-fetches the upstream snapshot while any SSE client is connected.
-| `SELENWRIGHT_MAX_SSE_CLIENTS` | `64` | Hard cap on concurrent console-snapshot subscribers. Over-cap gets `503 Retry-After: 5`.
-| `SELENWRIGHT_MAX_SSE_CLIENT_AGE_MS` | `14400000` (4 h) | Max lifetime of a single SSE subscription before a graceful `shutdown` event. Keeps long-lived tabs from accumulating state forever.
-|===
-
 == Timeouts
 
 [cols="2,2,3",options="header"]

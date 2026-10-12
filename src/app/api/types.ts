@@ -234,15 +234,6 @@ export interface ConsoleDataset {
   videos: VideoArtifact[];
 }
 
-export interface ConsoleDataHandlers {
-  onDataset?: (dataset: ConsoleDataset) => void;
-  onError?: (error: Error) => void;
-}
-
-export interface ConsoleDataSubscription {
-  close(): void;
-}
-
 export interface LiveLogStatusEvent extends JsonRecord {
   attempt: number;
   message: string;
@@ -269,7 +260,6 @@ export interface SnapshotSuccess<T> {
 export interface SnapshotFailure {
   ok: false;
   error: string;
-  status?: number;
 }
 
 export type SnapshotResult<T> = SnapshotSuccess<T> | SnapshotFailure;

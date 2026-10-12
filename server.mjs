@@ -4,7 +4,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   apiOnlyMode,
-  consoleStreamPath,
   demoMode,
   host,
   port,
@@ -14,7 +13,6 @@ import { withSecurityHeaders } from "./server/security.mjs";
 import { resolveStaticRootDir, serveStaticFile } from "./server/static.mjs";
 import { resolveApiRoute, resolveUpgradeHandler } from "./server/api-routes.mjs";
 import { handleApi } from "./server/api-proxy.mjs";
-import { handleConsoleStream } from "./server/console-hub.mjs";
 import { handleLiveLogStream } from "./server/live-log-relay.mjs";
 import { handleWebSocketProxyUpgrade } from "./server/ws-proxy.mjs";
 
@@ -23,11 +21,6 @@ const staticRootDir = resolveStaticRootDir();
 
 const server = createServer(async (req, res) => {
   const requestUrl = new URL(req.url || "/", `http://${req.headers.host || `${host}:${port}`}`);
-
-  if (requestUrl.pathname === consoleStreamPath) {
-    handleConsoleStream(req, res);
-    return;
-  }
 
   if (requestUrl.pathname.startsWith("/api/logs/live/")) {
     handleLiveLogStream(req, res, requestUrl);
