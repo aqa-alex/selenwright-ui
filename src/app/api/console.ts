@@ -248,6 +248,9 @@ export function subscribeToConsoleData(
         sawSnapshot = true;
         attempt = 0;
         onDataset(buildConsoleDatasetFromSnapshot(snapshot));
+        if (snapshotReportsUnauthorized(snapshot)) {
+          void detectStreamAuthLoss();
+        }
       } catch (error) {
         onError(
           error instanceof Error
@@ -285,6 +288,17 @@ export function subscribeToConsoleData(
       closeSource();
     },
   };
+}
+
+function snapshotReportsUnauthorized(snapshot: ConsoleSnapshot): boolean {
+  return [
+    snapshot.config,
+    snapshot.downloads,
+    snapshot.historySettings,
+    snapshot.logs,
+    snapshot.status,
+    snapshot.videos,
+  ].some((section) => section?.ok === false && section.status === 401);
 }
 
 async function fetchConsoleSnapshot(): Promise<ConsoleSnapshot> {
