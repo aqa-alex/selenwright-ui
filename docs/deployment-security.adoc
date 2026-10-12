@@ -50,10 +50,6 @@ Comma-separate multiple origins. Exact match only — no wildcards, no path segm
 
 `SELENWRIGHT_MAX_BODY_BYTES` caps request bodies (default 1 MiB). Oversize requests get `413 Request Too Large` and never touch the upstream. The cap guards against someone hammering the proxy with huge POSTs.
 
-== SSE client cap
-
-`SELENWRIGHT_MAX_SSE_CLIENTS` caps concurrent console-snapshot SSE subscribers (default 64). Over-cap gets `503 Retry-After: 5`. Without this, a script opening thousands of SSE connections would hold memory for each.
-
 == WebSocket frame size caps
 
 `SELENWRIGHT_WS_MAX_FRAME_BYTES` caps a single WS frame; `SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES` caps the total size of a reassembled fragmented message (default 4 MiB). Over-cap closes the stream with WS code `1009`. This prevents a misbehaving upstream from driving the proxy into unbounded memory.
@@ -90,6 +86,6 @@ The unauthorized handler is wired in `src/main.ts` via `setUnauthorizedHandler(.
 . `SELENWRIGHT_ALLOWED_ORIGINS` contains the public origin.
 . Upstream `-auth-mode` is `embedded` or `trusted-proxy`.
 . Admin users list is the minimum viable set.
-. Body and SSE caps left at defaults unless you have a reason.
+. Body and WebSocket frame caps left at defaults unless you have a reason.
 . `/api/whoami` returns `authenticated: true` for real users and `authenticated: false` for anonymous ones — test both before announcing the URL.
 . Hit `/api/status` with no cookie and confirm `401 Unauthorized`. Until the `openPaths` narrowing in selenwright, this returned a populated sessions list to anyone on the network.

@@ -1,17 +1,13 @@
 export type * from "./types";
-export {
-  buildConsoleDatasetFromSnapshot,
-  createEmptyDataset,
-  loadConsoleData,
-  subscribeToConsoleData,
-} from "./console";
+export { buildConsoleDatasetFromSnapshot, createEmptyDataset } from "./console";
+export { fetchConfiguration } from "./configuration";
 export {
   enrichDatasetArtifacts,
   loadLogFileContent,
   subscribeToLiveLogs,
 } from "./artifacts";
-export { saveArtifactHistorySettings } from "./settings";
-export { terminateSession, type TerminateProtocol } from "./sessions";
+export { fetchArtifactHistorySettings, saveArtifactHistorySettings } from "./settings";
+export { buildSessionsFromStatus, terminateSession, type TerminateProtocol } from "./sessions";
 export { fetchDiscoveredBrowsers, adoptBrowser, dismissBrowser, rescanBrowsers } from "./discovery";
 export {
   checkStackUpdates,
@@ -31,4 +27,4 @@ export type {
   RegistryPullItem,
   RegistryPullResult,
 } from "./registry";
-export { setUnauthorizedHandler, triggerUnauthorized } from "./http";
+export { fetchJson, setUnauthorizedHandler, triggerUnauthorized } from "./http";

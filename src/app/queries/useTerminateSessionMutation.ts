@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { terminateSession, type ConsoleDataset, type TerminateProtocol } from "../api";
+import { terminateSession, type TerminateProtocol } from "../api";
 import { useConsoleStore } from "../stores/console";
-import { CONSOLE_SNAPSHOT_QUERY_KEY } from "./useConsoleSnapshotQuery";
+import { consoleQueryKey, useConsoleIdentityKey } from "./useConsoleSnapshotQuery";
 
 export interface TerminateSessionVariables {
   id: string;
@@ -11,6 +11,7 @@ export interface TerminateSessionVariables {
 export function useTerminateSessionMutation() {
   const queryClient = useQueryClient();
   const consoleStore = useConsoleStore();
+  const identityKey = useConsoleIdentityKey();
 
   return useMutation({
     mutationFn: ({ id, protocol }: TerminateSessionVariables) =>
@@ -18,15 +19,8 @@ export function useTerminateSessionMutation() {
     onMutate: ({ id }) => {
       consoleStore.setTerminating(id);
     },
-    onSuccess: (_data, { id }) => {
-      queryClient.setQueryData<ConsoleDataset>(
-        CONSOLE_SNAPSHOT_QUERY_KEY,
-        (previous) =>
-          previous
-            ? { ...previous, sessions: previous.sessions.filter((s) => s.id !== id) }
-            : previous,
-      );
-    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: consoleQueryKey(identityKey.value, "status") }),
     onSettled: () => {
       consoleStore.setTerminating("");
     },

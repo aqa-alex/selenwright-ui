@@ -24,7 +24,7 @@ By default the API process targets `http://127.0.0.1:4444`. Point it somewhere e
 SELENWRIGHT_TARGET=http://selenwright.internal:4444 npm run dev
 ----
 
-If the target is unreachable the snapshot endpoints return `ok: false` entries — the UI stays usable, just empty.
+If the target is unreachable the API proxy answers `502` and the UI marks live status as unavailable — it stays usable, just empty.
 
 == Demo mode (no upstream)
 

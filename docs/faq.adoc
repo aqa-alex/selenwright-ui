@@ -2,7 +2,7 @@
 
 == Why is the Sessions page empty?
 
-The UI is a pure client of the upstream Selenwright service. If the **Sessions** page is empty, the upstream has no sessions yet. Start one from your test runner (Selenium or Playwright) pointing at the upstream and it will appear within one snapshot tick (default 3s).
+The UI is a pure client of the upstream Selenwright service. If the **Sessions** page is empty, the upstream has no sessions yet. Start one from your test runner (Selenium or Playwright) pointing at the upstream and it will appear within a few seconds — the UI refreshes live session status every 3s.
 
 If the page shows "upstream unavailable" banners instead, the Node proxy cannot reach `SELENWRIGHT_TARGET` — check the target URL, firewall, and that the upstream is running.
 
@@ -41,7 +41,7 @@ If the button is missing where you expect it, you either don't have permission o
 Selenwright UI is rewritten from scratch. What it adds over https://github.com/aerokube/selenoid-ui[Selenoid UI]:
 
 - **First-class Playwright.** Sessions list, session detail, and live log view all distinguish the protocol; terminate works for both.
-- **Server-push snapshots.** The console state (sessions, catalogue, system, artefacts index) is streamed over SSE every 3s instead of per-page polling.
+- **Per-user data, no shared cache.** Every request is made by your browser with your own session, so the UI server never holds credentials or serves one user's data to another. Live status refreshes every 3s, artefact lists refresh as soon as a session ends, and tabs in the background stop refreshing.
 - **Artefact retention and history.** Integrates with the upstream `artifact-history` feature — videos, logs and downloads persist past session lifetime.
 - **Runtime operations.** Browser discovery (rescan, adopt, dismiss), stack pull/recreate, configuration snapshot, system health — all operable from the UI by admins.
 
