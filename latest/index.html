@@ -528,15 +528,15 @@ table.CodeRay td.code{padding:0 0 0 .75em}
       content="Selenwright UI | Operator console for the Selenwright browser grid">
 <meta property="og:description"
       content="Dense operator console for Selenwright: live Selenium and Playwright sessions, VNC, live logs, videos, downloads, browser inventory.">
-<meta property="og:url" content="https://aqa-alex.github.io/selenwright-ui/v1.0.5">
+<meta property="og:url" content="https://aqa-alex.github.io/selenwright-ui/latest">
 <meta property="og:image"
-      content="https://aqa-alex.github.io/selenwright-ui/v1.0.5/img/sessions-light.png">
+      content="https://aqa-alex.github.io/selenwright-ui/latest/img/sessions-light.png">
 </head>
 <body class="article toc2 toc-left">
 <div id="header">
 <h1>Selenwright UI</h1>
 <div class="details">
-<span id="revnumber">version v1.0.5,</span>
+<span id="revnumber">version latest,</span>
 <span id="revdate">2026-04-17</span>
 </div>
 <div id="toc" class="toc2">
@@ -690,12 +690,11 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <li><a href="#_reverse_proxy">21.2. Reverse proxy</a></li>
 <li><a href="#_websocket_origin_check">21.3. WebSocket Origin check</a></li>
 <li><a href="#_body_size_limits">21.4. Body size limits</a></li>
-<li><a href="#_sse_client_cap">21.5. SSE client cap</a></li>
-<li><a href="#_websocket_frame_size_caps">21.6. WebSocket frame size caps</a></li>
-<li><a href="#_timeouts">21.7. Timeouts</a></li>
-<li><a href="#_security_headers">21.8. Security headers</a></li>
-<li><a href="#_session_expiry">21.9. Session expiry</a></li>
-<li><a href="#_checklist_before_going_public">21.10. Checklist before going public</a></li>
+<li><a href="#_websocket_frame_size_caps">21.5. WebSocket frame size caps</a></li>
+<li><a href="#_timeouts">21.6. Timeouts</a></li>
+<li><a href="#_security_headers">21.7. Security headers</a></li>
+<li><a href="#_session_expiry">21.8. Session expiry</a></li>
+<li><a href="#_checklist_before_going_public">21.9. Checklist before going public</a></li>
 </ul>
 </li>
 <li><a href="#_configuration_reference">22. Configuration Reference</a></li>
@@ -704,10 +703,9 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <li><a href="#_listen">23.1. Listen</a></li>
 <li><a href="#_upstream_target">23.2. Upstream target</a></li>
 <li><a href="#_origins_and_cors">23.3. Origins and CORS</a></li>
-<li><a href="#_console_snapshot_stream">23.4. Console snapshot stream</a></li>
-<li><a href="#_timeouts_2">23.5. Timeouts</a></li>
-<li><a href="#_size_caps">23.6. Size caps</a></li>
-<li><a href="#_examples">23.7. Examples</a></li>
+<li><a href="#_timeouts_2">23.4. Timeouts</a></li>
+<li><a href="#_size_caps">23.5. Size caps</a></li>
+<li><a href="#_examples">23.6. Examples</a></li>
 </ul>
 </li>
 <li><a href="#_docker">24. Docker</a>
@@ -743,7 +741,7 @@ table.CodeRay td.code{padding:0 0 0 .75em}
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p>This reference covers version: <em>v1.0.5</em></p>
+<p>This reference covers version: <em>latest</em></p>
 </div>
 <div class="paragraph">
 <p>Selenwright UI is the operator console for <a href="https://github.com/aqa-alex/selenwright">Selenwright</a> — a browser automation grid with native Selenium WebDriver and Playwright WebSocket support.
@@ -920,7 +918,7 @@ npm run dev</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>If the target is unreachable the snapshot endpoints return <code>ok: false</code> entries — the UI stays usable, just empty.</p>
+<p>If the target is unreachable the API proxy answers <code>502</code> and the UI marks live status as unavailable — it stays usable, just empty.</p>
 </div>
 </div>
 <div class="sect2">
@@ -1015,7 +1013,7 @@ npm run dev:vite</code></pre>
 <div class="sect2">
 <h3 id="_why_is_the_sessions_page_empty"><a class="anchor" href="#_why_is_the_sessions_page_empty"></a>4.1. Why is the Sessions page empty?</h3>
 <div class="paragraph">
-<p>The UI is a pure client of the upstream Selenwright service. If the <strong>Sessions</strong> page is empty, the upstream has no sessions yet. Start one from your test runner (Selenium or Playwright) pointing at the upstream and it will appear within one snapshot tick (default 3s).</p>
+<p>The UI is a pure client of the upstream Selenwright service. If the <strong>Sessions</strong> page is empty, the upstream has no sessions yet. Start one from your test runner (Selenium or Playwright) pointing at the upstream and it will appear within a few seconds — the UI refreshes live session status every 3s.</p>
 </div>
 <div class="paragraph">
 <p>If the page shows "upstream unavailable" banners instead, the Node proxy cannot reach <code>SELENWRIGHT_TARGET</code> — check the target URL, firewall, and that the upstream is running.</p>
@@ -1094,7 +1092,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <p><strong>First-class Playwright.</strong> Sessions list, session detail, and live log view all distinguish the protocol; terminate works for both.</p>
 </li>
 <li>
-<p><strong>Server-push snapshots.</strong> The console state (sessions, catalogue, system, artefacts index) is streamed over SSE every 3s instead of per-page polling.</p>
+<p><strong>Per-user data, no shared cache.</strong> Every request is made by your browser with your own session, so the UI server never holds credentials or serves one user&#8217;s data to another. Live status refreshes every 3s, artefact lists refresh as soon as a session ends, and tabs in the background stop refreshing.</p>
 </li>
 <li>
 <p><strong>Artefact retention and history.</strong> Integrates with the upstream <code>artifact-history</code> feature — videos, logs and downloads persist past session lifetime.</p>
@@ -2404,19 +2402,13 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_sse_client_cap"><a class="anchor" href="#_sse_client_cap"></a>21.5. SSE client cap</h3>
-<div class="paragraph">
-<p><code>SELENWRIGHT_MAX_SSE_CLIENTS</code> caps concurrent console-snapshot SSE subscribers (default 64). Over-cap gets <code>503 Retry-After: 5</code>. Without this, a script opening thousands of SSE connections would hold memory for each.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_websocket_frame_size_caps"><a class="anchor" href="#_websocket_frame_size_caps"></a>21.6. WebSocket frame size caps</h3>
+<h3 id="_websocket_frame_size_caps"><a class="anchor" href="#_websocket_frame_size_caps"></a>21.5. WebSocket frame size caps</h3>
 <div class="paragraph">
 <p><code>SELENWRIGHT_WS_MAX_FRAME_BYTES</code> caps a single WS frame; <code>SELENWRIGHT_WS_MAX_FRAGMENTED_BYTES</code> caps the total size of a reassembled fragmented message (default 4 MiB). Over-cap closes the stream with WS code <code>1009</code>. This prevents a misbehaving upstream from driving the proxy into unbounded memory.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_timeouts"><a class="anchor" href="#_timeouts"></a>21.7. Timeouts</h3>
+<h3 id="_timeouts"><a class="anchor" href="#_timeouts"></a>21.6. Timeouts</h3>
 <div class="ulist">
 <ul>
 <li>
@@ -2435,7 +2427,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_security_headers"><a class="anchor" href="#_security_headers"></a>21.8. Security headers</h3>
+<h3 id="_security_headers"><a class="anchor" href="#_security_headers"></a>21.7. Security headers</h3>
 <div class="paragraph">
 <p>The UI sets these on every HTTP response:</p>
 </div>
@@ -2460,7 +2452,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_session_expiry"><a class="anchor" href="#_session_expiry"></a>21.9. Session expiry</h3>
+<h3 id="_session_expiry"><a class="anchor" href="#_session_expiry"></a>21.8. Session expiry</h3>
 <div class="paragraph">
 <p>UI login sessions on the upstream are in-memory and cleared on every selenwright restart. When the server-side cookie becomes invalid (restart, TTL, explicit admin revocation), the UI catches the next <code>401</code> response from any data endpoint, drops the cached identity state, and bounces the browser to <code>/login?reason=session_expired</code> with a visible notice. This keeps the user from seeing a stale "logged-in" UI fed by open endpoints that the upstream no longer exposes (see the anonymous-reachable list in the selenwright authentication docs).</p>
 </div>
@@ -2469,7 +2461,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_checklist_before_going_public"><a class="anchor" href="#_checklist_before_going_public"></a>21.10. Checklist before going public</h3>
+<h3 id="_checklist_before_going_public"><a class="anchor" href="#_checklist_before_going_public"></a>21.9. Checklist before going public</h3>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
@@ -2488,7 +2480,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 <p>Admin users list is the minimum viable set.</p>
 </li>
 <li>
-<p>Body and SSE caps left at defaults unless you have a reason.</p>
+<p>Body and WebSocket frame caps left at defaults unless you have a reason.</p>
 </li>
 <li>
 <p><code>/api/whoami</code> returns <code>authenticated: true</code> for real users and <code>authenticated: false</code> for anonymous ones — test both before announcing the URL.</p>
@@ -2608,41 +2600,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_console_snapshot_stream"><a class="anchor" href="#_console_snapshot_stream"></a>23.4. Console snapshot stream</h3>
-<table class="tableblock frame-all grid-all stretch">
-<colgroup>
-<col style="width: 28.5714%;">
-<col style="width: 28.5714%;">
-<col style="width: 42.8572%;">
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Variable</th>
-<th class="tableblock halign-left valign-top">Default</th>
-<th class="tableblock halign-left valign-top">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SELENWRIGHT_WATCH_INTERVAL_MS</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>3000</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">How often <code>server.mjs</code> re-fetches the upstream snapshot while any SSE client is connected.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SELENWRIGHT_MAX_SSE_CLIENTS</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>64</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Hard cap on concurrent console-snapshot subscribers. Over-cap gets <code>503 Retry-After: 5</code>.</p></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>SELENWRIGHT_MAX_SSE_CLIENT_AGE_MS</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>14400000</code> (4 h)</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Max lifetime of a single SSE subscription before a graceful <code>shutdown</code> event. Keeps long-lived tabs from accumulating state forever.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="sect2">
-<h3 id="_timeouts_2"><a class="anchor" href="#_timeouts_2"></a>23.5. Timeouts</h3>
+<h3 id="_timeouts_2"><a class="anchor" href="#_timeouts_2"></a>23.4. Timeouts</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 28.5714%;">
@@ -2679,7 +2637,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_size_caps"><a class="anchor" href="#_size_caps"></a>23.6. Size caps</h3>
+<h3 id="_size_caps"><a class="anchor" href="#_size_caps"></a>23.5. Size caps</h3>
 <table class="tableblock frame-all grid-all stretch">
 <colgroup>
 <col style="width: 28.5714%;">
@@ -2713,7 +2671,7 @@ Sessions without VNC show a "VNC unavailable" placeholder.</p>
 </table>
 </div>
 <div class="sect2">
-<h3 id="_examples"><a class="anchor" href="#_examples"></a>23.7. Examples</h3>
+<h3 id="_examples"><a class="anchor" href="#_examples"></a>23.6. Examples</h3>
 <div class="paragraph">
 <p>Typical production invocation behind a reverse proxy:</p>
 </div>
@@ -3154,8 +3112,8 @@ curl -sS -i \
 </div>
 <div id="footer">
 <div id="footer-text">
-Version v1.0.5<br>
-Last updated 2026-10-12 13:13:12 UTC
+Version latest<br>
+Last updated 2026-10-12 13:34:53 UTC
 </div>
 </div>
 </body>
